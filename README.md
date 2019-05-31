@@ -1,0 +1,1 @@
+The plugin manager will download plugins and their dependencies into a folder so that they can easily be imported into an instance of Jenkins.
