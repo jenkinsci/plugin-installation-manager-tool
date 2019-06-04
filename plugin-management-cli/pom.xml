@@ -11,5 +11,11 @@
 
     <artifactId>plugin-management-cli</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>jenkins</groupId>
+            <artifactId>plugin-management-library</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
