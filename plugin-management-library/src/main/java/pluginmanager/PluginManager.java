@@ -1,3 +1,5 @@
+package pluginmanager;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.io.FileNotFoundException;
@@ -18,14 +20,24 @@ import java.nio.file.PathMatcher;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import java.io.FileFilter;
 import org.apache.commons.io.FilenameUtils;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.jar.Attributes;
+import java.util.Map;
+import java.util.HashMap;
+
 
 
 public class PluginManager {
     private List<String> plugins = new ArrayList<>();
     private File refDir = new File("./plugins");
     private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
+    private File jenkinsWarFile;
+    private Map<String, String> installedPluginVersions;
 
     public PluginManager() {
+        jenkinsWarFile = new File(JENKINS_WAR);
+        installedPluginVersions = new HashMap<>();
 
     }
 
@@ -46,23 +58,73 @@ public class PluginManager {
             e.printStackTrace();
         }
 
-        //the script created files by appending .lock; is using the FileLock class a better way to do this?
+
+        //will update with Java FileLock
         createLocks(plugins);
 
         bundledPlugins();
         installedPlugins();
+        getJenkinsVersion();
+
+        downloadPlugins("");
+
+    }
+
+
+    public void downloadPlugins(String plugin) {
+        String[] pluginInfo = plugin.split(":");
+
+
+        doDownloadPlugin();
+    }
+
+
+
+    public void doDownloadPlugin() {
+
+    }
+
+    public String getJenkinsVersion() {
+        //java -jar $JENKINS_WAR --version
+        try {
+            JarFile jenkinsWar = new JarFile(jenkinsWarFile);
+            Manifest manifest= jenkinsWar.getManifest();
+            Attributes attributes = manifest.getMainAttributes();
+            return attributes.getValue("Implementation-Version");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+
+    }
+
+
+    public String getPluginVersion(File file) {
+        //this is also done in the existing plugin manager from core - should I do this a similar way to that instead?
+        try {
+            JarFile pluginJpi = new JarFile(file);
+            Manifest manifest = pluginJpi.getManifest();
+            Attributes attributes = manifest.getMainAttributes();
+            return attributes.getValue("Plugin-Version");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     public void installedPlugins() {
         String jpiFiles = new StringBuilder(refDir.toString()).append("*.jpi").toString();
         FileFilter fileFilter = new WildcardFileFilter(jpiFiles);
+
+        //only lists files in same directory, does not list files recursively
         File[] files = refDir.listFiles(fileFilter);
         for (File file: files) {
-            String basename = FilenameUtils.getBaseName(file.getName());
-            //I'm not sure if get_plugin_version is supposed to actually return the plugin version?
-            //This didn't look like it actually called a method or referred to a variable
-            String newFileName = new StringBuilder("get_plugin_version").append(basename).toString();
-            file.renameTo(new File(newFileName));
+            String pluginName = file.getName();  //includes file extension
+            String pluginVersion = getPluginVersion(file);
+            installedPluginVersions.put(pluginName, pluginVersion);
         }
     }
 
@@ -80,12 +142,14 @@ public class PluginManager {
 
 
     public void bundledPlugins() {
-        File jenkinsWarFile = new File(JENKINS_WAR);
-
         if (jenkinsWarFile.exists()) {
-            //install-plugins.sh uses the pid, but this looked less straightforward with Java
-            double random = Math.random() * 1000 + 1;
-            String tempPluginDir = new StringBuilder("/tmp/plugintemp.").append(random).toString();
+            Path tempPluginDir;
+            try {
+                tempPluginDir = Files.createTempDirectory("plugintemp");
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
 
             //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
             Path path = Paths.get(JENKINS_WAR);
@@ -103,10 +167,7 @@ public class PluginManager {
             List<Path> bundledPlugins = new ArrayList<>();
             try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
                 Path warPath = warFS.getPath("/").getRoot();
-
-                //I couldn't get any PathMatcher I tried to work
-                //Should I use the WildCardFileFilter or RegEx instead?
-                PathMatcher matcher = warFS.getPathMatcher("glob:*.{hpi}");
+                PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
                 Stream<Path> walk = Files.walk(warPath);
                 for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
                     Path file = it.next();
@@ -126,7 +187,7 @@ public class PluginManager {
     }
 
     public void download(String plugin) {
-
+        return;
     }
 
 }

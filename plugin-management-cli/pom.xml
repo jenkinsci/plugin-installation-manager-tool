@@ -15,6 +15,7 @@
         <dependency>
             <groupId>jenkins</groupId>
             <artifactId>plugin-management-library</artifactId>
+            <version>1.0</version>
         </dependency>
     </dependencies>
 
