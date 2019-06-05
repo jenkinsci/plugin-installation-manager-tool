@@ -25,13 +25,22 @@ import java.util.jar.Manifest;
 import java.util.jar.Attributes;
 import java.util.Map;
 import java.util.HashMap;
-
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import org.apache.commons.lang3.StringUtils;
 
 
 public class PluginManager {
-    private List<String> plugins = new ArrayList<>();
+    private List<Plugin> plugins = new ArrayList<>();
     private File refDir = new File("./plugins");
     private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
+    private String JENKINS_UC_LATEST = "";
+    private final String JENKINS_UC_EXPERIMENTAL = "https://updates.jenkins.io/experimental";
+    private final String JENKINS_INCREMENTALS = "https://repo.jenkins-ci.org/incrementals";
+    private String jenkinsVersion;
+
     private File jenkinsWarFile;
     private Map<String, String> installedPluginVersions;
 
@@ -39,50 +48,97 @@ public class PluginManager {
         jenkinsWarFile = new File(JENKINS_WAR);
         installedPluginVersions = new HashMap<>();
 
+
     }
 
     public void start() {
         refDir.mkdir();
 
+        jenkinsVersion = getJenkinsVersion();
+        String url;
+
+        if (!StringUtils.isEmpty(jenkinsVersion)) {
+            JENKINS_UC_LATEST = new StringBuilder("https://updates.jenkins.io").append(jenkinsVersion).toString();
+        }
+
+
         System.out.println("Reading in plugins...");
         try {
             Scanner scanner = new Scanner(new File("plugins.txt"));
-            String plugin;
+            while (scanner.hasNextLine()) {
+                String[] pluginInfo = scanner.nextLine().split(":");
+                String pluginName = pluginInfo[0];
+                String pluginVersion = null;
+                String pluginUrl = null;
+                if (pluginInfo.length >= 2) {
+                    pluginVersion = pluginInfo[1];
+                }
+                if (pluginInfo.length == 3) {
+                    pluginUrl = pluginInfo[2];
+                }
 
-            while (scanner.hasNext()) {
-                plugin = scanner.nextLine();
+                Plugin plugin = new Plugin(pluginName, pluginVersion, pluginUrl);
                 plugins.add(plugin);
+
             }
         } catch (
                 FileNotFoundException e) {
-            e.printStackTrace();
+                e.printStackTrace();
         }
 
 
         //will update with Java FileLock
         createLocks(plugins);
 
-        bundledPlugins();
-        installedPlugins();
-        getJenkinsVersion();
+        List<String> bundledPlugins = bundledPlugins();
+        List<String> installedPlugins = installedPlugins();
 
-        downloadPlugins("");
+        downloadPlugins(plugins);
+
+    }
+
+
+
+    public void downloadPlugins(List<Plugin> plugins) {
+        for (Plugin plugin: plugins) {
+            downloadPlugin(plugin);
+        }
+    }
+
+    public void downloadPlugin(Plugin plugin) {
+        String pluginName = plugin.getName();
+        String pluginVersion = plugin.getVersion();
+        String pluginUrl = plugin.getUrl();
+
+        if (!doDownloadPlugin(pluginName, pluginVersion, pluginUrl)) {
+            pluginName = new StringBuilder(plugin.getName()).append("-plugin").toString();
+            doDownloadPlugin(pluginName, pluginVersion, pluginUrl);
+        }
+        if (!StringUtils.isEmpty(pluginUrl)) {
+            System.out.println("Will use url: " + pluginUrl);
+        }
+        elif (pluginVersion.equals("latest")) {
+
+        }
 
     }
 
 
-    public void downloadPlugins(String plugin) {
-        String[] pluginInfo = plugin.split(":");
+
+    public boolean doDownloadPlugin(String pluginName, String pluginVersion, String pluginUrl) {
+        //if plugin already exists and is the same version, do not download
+        if (installedPluginVersions.get(pluginName).equals(pluginVersion)) {
+            return true;
+        }
 
 
-        doDownloadPlugin();
+
+
+
     }
 
 
 
-    public void doDownloadPlugin() {
-
-    }
 
     public String getJenkinsVersion() {
         //java -jar $JENKINS_WAR --version
@@ -115,33 +171,56 @@ public class PluginManager {
         return "";
     }
 
-    public void installedPlugins() {
+    public List<String> installedPlugins() {
+        List<String> installedPlugins = new ArrayList<>();
+
         String jpiFiles = new StringBuilder(refDir.toString()).append("*.jpi").toString();
         FileFilter fileFilter = new WildcardFileFilter(jpiFiles);
 
         //only lists files in same directory, does not list files recursively
         File[] files = refDir.listFiles(fileFilter);
         for (File file: files) {
-            String pluginName = file.getName();  //includes file extension
+            String pluginName = FilenameUtils.getBaseName(file.getName());
             String pluginVersion = getPluginVersion(file);
             installedPluginVersions.put(pluginName, pluginVersion);
+            installedPlugins.add(pluginName);
         }
+
+        return installedPlugins;
     }
 
 
-    public void createLocks(List<String> plugins) {
-        for (String plugin : plugins) {
+    public void createLocks(List<Plugin> plugins) {
+        for (Plugin plugin : plugins) {
             createLock(plugin);
         }
     }
 
-    public void createLock(String plugin) {
-        String pluginLock = new StringBuilder(plugin).append(".lock").toString();
+    public void createLock(Plugin plugin) {
+        //in bash script, users can also pass in a version, but lock is only on plugin name
+        String pluginLock = new StringBuilder(plugin.getName()).append(".lock").toString();
+
         File lockedFile = new File(refDir, pluginLock);
+
+        FileChannel channel;
+        FileLock lock;
+
+            try {
+                channel = new RandomAccessFile(lockedFile, "rw").getChannel();
+                lock = channel.lock();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            //need to return the file locks?
+
     }
 
 
-    public void bundledPlugins() {
+    public List<String> bundledPlugins() {
+        List<String> bundledPlugins = new ArrayList<>();
+
         if (jenkinsWarFile.exists()) {
             Path tempPluginDir;
             try {
@@ -160,11 +239,10 @@ public class PluginManager {
 
             catch (URISyntaxException e) {
                 e.printStackTrace();
-                return;
+                return bundledPlugins;
             }
 
             //walk through war contents and find bundled plugins
-            List<Path> bundledPlugins = new ArrayList<>();
             try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
@@ -172,7 +250,7 @@ public class PluginManager {
                 for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
-                        System.out.println(it.next());
+                        bundledPlugins.add(file.toString());
                     }
                 }
             }
@@ -184,6 +262,7 @@ public class PluginManager {
             System.out.println("War not found, installing all plugins: " + JENKINS_WAR);
         }
 
+        return bundledPlugins;
     }
 
     public void download(String plugin) {
