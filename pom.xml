@@ -9,8 +9,9 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>plugin-management-cli</module>
         <module>plugin-management-library</module>
+        <module>plugin-management-cli</module>
+
     </modules>
 
     <dependencies>
