@@ -1,6 +1,7 @@
 package pluginmanager;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,9 +18,13 @@ import java.net.URISyntaxException;
 import java.util.stream.Stream;
 import java.util.Iterator;
 import java.nio.file.PathMatcher;
+
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+
 import java.io.FileFilter;
+
 import org.apache.commons.io.FilenameUtils;
+
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.jar.Attributes;
@@ -29,27 +34,38 @@ import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.io.FileUtils;
+
+import java.net.URL;
 
 
 public class PluginManager {
-    private List<Plugin> plugins = new ArrayList<>();
-    private File refDir = new File("./plugins");
+    private List<Plugin> plugins;
+    private List<Plugin> failedPlugins;
+    private File refDir;
     private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
     private String JENKINS_UC_LATEST = "";
     private final String JENKINS_UC_EXPERIMENTAL = "https://updates.jenkins.io/experimental";
-    private final String JENKINS_INCREMENTALS = "https://repo.jenkins-ci.org/incrementals";
+    private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
+    private final String JENKINS_UC = "https://updates.jenkins.io";
+    private final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
+
     private String jenkinsVersion;
 
     private File jenkinsWarFile;
     private Map<String, String> installedPluginVersions;
 
+
     public PluginManager() {
+        plugins = new ArrayList<>();
+        failedPlugins = new ArrayList();
         jenkinsWarFile = new File(JENKINS_WAR);
         installedPluginVersions = new HashMap<>();
-
-
+        refDir = new File("./plugins");
     }
+
 
     public void start() {
         refDir.mkdir();
@@ -83,77 +99,126 @@ public class PluginManager {
             }
         } catch (
                 FileNotFoundException e) {
-                e.printStackTrace();
+            e.printStackTrace();
         }
 
-
-        //will update with Java FileLock
         createLocks(plugins);
 
         List<String> bundledPlugins = bundledPlugins();
         List<String> installedPlugins = installedPlugins();
 
         downloadPlugins(plugins);
-
     }
-
 
 
     public void downloadPlugins(List<Plugin> plugins) {
-        for (Plugin plugin: plugins) {
-            downloadPlugin(plugin);
+        for (Plugin plugin : plugins) {
+            boolean successfulDownload = downloadPlugin(plugin);
+            if (!successfulDownload) {
+                System.out.println("Unable to download " + plugin + ". Skipping...");
+            } else {
+                resolveDependencies(plugin);
+            }
         }
     }
 
-    public void downloadPlugin(Plugin plugin) {
+
+    public void resolveDependencies(Plugin plugin) {
+
+
+    }
+
+
+    public boolean downloadPlugin(Plugin plugin) {
+        boolean successfulDownload = doDownloadPlugin(plugin);
+        if (!successfulDownload) {
+            //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
+            String pluginName = plugin.getName();
+            String newPluginName = new StringBuffer(plugin.getName()).append("-plugin").toString();
+            plugin.setName(newPluginName);
+            successfulDownload = downloadPlugin(plugin);
+
+        }
+        return successfulDownload;
+    }
+
+
+    public boolean doDownloadPlugin(Plugin plugin) {
         String pluginName = plugin.getName();
         String pluginVersion = plugin.getVersion();
         String pluginUrl = plugin.getUrl();
 
-        if (!doDownloadPlugin(pluginName, pluginVersion, pluginUrl)) {
-            pluginName = new StringBuilder(plugin.getName()).append("-plugin").toString();
-            doDownloadPlugin(pluginName, pluginVersion, pluginUrl);
-        }
-        if (!StringUtils.isEmpty(pluginUrl)) {
-            System.out.println("Will use url: " + pluginUrl);
-        }
-        elif (pluginVersion.equals("latest")) {
+        String urlString = "";
 
-        }
-
-    }
-
-
-
-    public boolean doDownloadPlugin(String pluginName, String pluginVersion, String pluginUrl) {
-        //if plugin already exists and is the same version, do not download
         if (installedPluginVersions.get(pluginName).equals(pluginVersion)) {
             return true;
         }
 
+        if (!StringUtils.isEmpty(pluginUrl)) {
+            System.out.println("Will use url: " + pluginUrl);
+        } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
+            urlString = new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append("hpi").toString();
+        } else if (pluginVersion.equals("experimental")) {
+            urlString = new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append("hpi").toString();
+        } else if (pluginVersion.contains("incrementals")) {
+            String[] incrementalsVersionInfo = pluginVersion.split(";");
+            String groupId = incrementalsVersionInfo[1];
+            String incrementalsVersion = incrementalsVersionInfo[2];
 
+            groupId = groupId.replace(".", "/");
 
+            String incrementalsVersionPath = new StringBuffer(incrementalsVersion).append("/").append(pluginName)
+                    .append("-").append(incrementalsVersion).append(".hpi").toString();
 
+            urlString = new StringBuffer(JENKINS_INCREMENTALS_REPO_MIRROR).append("/").append(groupId).append("/").
+                    append(incrementalsVersionPath).toString();
+        } else {
+            String pathToPlugin = new StringBuffer(pluginName).append("/").append(pluginVersion).append("/").
+                    append(pluginName).append(".hpi").toString();
+            urlString = new StringBuffer(JENKINS_UC_DOWNLOAD).append("/plugins/").append(pathToPlugin).toString();
+        }
+
+        System.out.println("Downloading plugin: " + pluginName + " from url: " + urlString);
+
+        URL url;
+
+        try {
+            url = new URL(urlString);
+
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        try {
+            File pluginFile = new File(plugin.getArchiveFileName());
+            FileUtils.copyURLToFile(url, new File(plugin.getArchiveFileName()));
+            //retry some number of times if fails?
+
+            //check integrity with creation of JarFile object
+            JarFile pluginJpi = new JarFile(pluginFile, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        return true;
 
     }
-
-
 
 
     public String getJenkinsVersion() {
         //java -jar $JENKINS_WAR --version
         try {
             JarFile jenkinsWar = new JarFile(jenkinsWarFile);
-            Manifest manifest= jenkinsWar.getManifest();
+            Manifest manifest = jenkinsWar.getManifest();
             Attributes attributes = manifest.getMainAttributes();
             return attributes.getValue("Implementation-Version");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
         return "";
-
     }
 
 
@@ -164,8 +229,7 @@ public class PluginManager {
             Manifest manifest = pluginJpi.getManifest();
             Attributes attributes = manifest.getMainAttributes();
             return attributes.getValue("Plugin-Version");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return "";
@@ -179,7 +243,7 @@ public class PluginManager {
 
         //only lists files in same directory, does not list files recursively
         File[] files = refDir.listFiles(fileFilter);
-        for (File file: files) {
+        for (File file : files) {
             String pluginName = FilenameUtils.getBaseName(file.getName());
             String pluginVersion = getPluginVersion(file);
             installedPluginVersions.put(pluginName, pluginVersion);
@@ -205,15 +269,14 @@ public class PluginManager {
         FileChannel channel;
         FileLock lock;
 
-            try {
-                channel = new RandomAccessFile(lockedFile, "rw").getChannel();
-                lock = channel.lock();
-            }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
+        try {
+            channel = new RandomAccessFile(lockedFile, "rw").getChannel();
+            lock = channel.lock();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-            //need to return the file locks?
+        //need to return the file locks?
 
     }
 
@@ -225,8 +288,7 @@ public class PluginManager {
             Path tempPluginDir;
             try {
                 tempPluginDir = Files.createTempDirectory("plugintemp");
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -235,9 +297,7 @@ public class PluginManager {
             URI jenkinsWarUri;
             try {
                 jenkinsWarUri = new URI("jar:" + path.toUri());
-            }
-
-            catch (URISyntaxException e) {
+            } catch (URISyntaxException e) {
                 e.printStackTrace();
                 return bundledPlugins;
             }
@@ -247,14 +307,13 @@ public class PluginManager {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
                 Stream<Path> walk = Files.walk(warPath);
-                for (Iterator<Path> it = walk.iterator(); it.hasNext();) {
+                for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
                         bundledPlugins.add(file.toString());
                     }
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -265,9 +324,6 @@ public class PluginManager {
         return bundledPlugins;
     }
 
-    public void download(String plugin) {
-        return;
-    }
 
 }
 
