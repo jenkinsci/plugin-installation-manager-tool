@@ -4,14 +4,18 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>jenkins</groupId>
-    <artifactId>plugin-management</artifactId>
+    <parent>
+        <groupId>org.jenkins-ci</groupId>
+        <artifactId>jenkins</artifactId>
+        <version>1.51</version>
+    </parent>
     <packaging>pom</packaging>
+    <groupId>io.jenkins.plugin-management</groupId>
+    <artifactId>jenkins-plugin-management-parent-pom</artifactId>
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>plugin-management-cli</module>
         <module>plugin-management-library</module>
     </modules>
-
 
 </project>
