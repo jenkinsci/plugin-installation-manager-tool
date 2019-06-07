@@ -57,6 +57,7 @@ public class PluginManager {
     private final String JENKINS_UC = "https://updates.jenkins.io";
     private final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
     private final String JENKINS_UC_JSON = "https://updates.jenkins.io/update-center.json";
+    private final String SEPARATOR = File.separator;
 
     private String jenkinsVersion;
 
@@ -69,12 +70,15 @@ public class PluginManager {
         failedPlugins = new ArrayList();
         jenkinsWarFile = new File(JENKINS_WAR);
         installedPluginVersions = new HashMap<>();
-        refDir = new File("./plugins");
+        refDir = new File("." + SEPARATOR + "plugins");
     }
 
 
     public void start() {
-        refDir.mkdir();
+        if (!refDir.mkdir()) {
+            System.out.println("Unable to create plugin directory");
+        }
+
 
         jenkinsVersion = getJenkinsVersion();
         String url;
@@ -121,7 +125,7 @@ public class PluginManager {
         for (Plugin plugin : plugins) {
             boolean successfulDownload = downloadPlugin(plugin);
             if (!successfulDownload) {
-                System.out.println("Unable to download " + plugin + ". Skipping...");
+                System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
             } else {
                 resolveDependencies(plugin);
             }
@@ -157,7 +161,7 @@ public class PluginManager {
             String pluginName = plugin.getName();
             String newPluginName = new StringBuffer(plugin.getName()).append("-plugin").toString();
             plugin.setName(newPluginName);
-            successfulDownload = downloadPlugin(plugin);
+            successfulDownload = doDownloadPlugin(plugin);
 
         }
         return successfulDownload;
@@ -171,7 +175,7 @@ public class PluginManager {
 
         String urlString = "";
 
-        if (installedPluginVersions.get(pluginName).equals(pluginVersion)) {
+        if (installedPluginVersions.containsKey(pluginName) && installedPluginVersions.get(pluginName).equals(pluginVersion)) {
             return true;
         }
 
@@ -212,9 +216,10 @@ public class PluginManager {
         }
 
         try {
-            File pluginFile = new File(plugin.getArchiveFileName());
-            FileUtils.copyURLToFile(url, new File(plugin.getArchiveFileName()));
+            File pluginFile = new File("." + SEPARATOR + plugin.getArchiveFileName());
+            FileUtils.copyURLToFile(url, pluginFile);
             //retry some number of times if fails?
+            //also, this doesn't seem to be working - the local file is being created but it can't be opened/extracted
 
             //check integrity with creation of JarFile object
             JarFile pluginJpi = new JarFile(pluginFile, true);
