@@ -13,6 +13,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.charset.Charset;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.stream.Stream;
@@ -20,6 +21,7 @@ import java.util.Iterator;
 import java.nio.file.PathMatcher;
 
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.io.IOUtils;
 
 import java.io.FileFilter;
 
@@ -40,6 +42,9 @@ import org.apache.commons.io.FileUtils;
 
 import java.net.URL;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 
 public class PluginManager {
     private List<Plugin> plugins;
@@ -51,6 +56,7 @@ public class PluginManager {
     private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
     private final String JENKINS_UC = "https://updates.jenkins.io";
     private final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
+    private final String JENKINS_UC_JSON = "https://updates.jenkins.io/update-center.json";
 
     private String jenkinsVersion;
 
@@ -124,7 +130,22 @@ public class PluginManager {
 
 
     public void resolveDependencies(Plugin plugin) {
+        URL updateCenter;
 
+        try {
+            updateCenter = new URL(JENKINS_UC_JSON);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        try {
+            JSONObject json = new JSONObject(IOUtils.toString(updateCenter, Charset.forName("UTF-8")));
+            System.out.println(json.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
 
     }
 
