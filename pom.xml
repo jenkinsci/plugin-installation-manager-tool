@@ -13,6 +13,9 @@
     <groupId>io.jenkins.plugin-management</groupId>
     <artifactId>jenkins-plugin-management-parent-pom</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
     <modules>
         <module>plugin-management-cli</module>
         <module>plugin-management-library</module>
