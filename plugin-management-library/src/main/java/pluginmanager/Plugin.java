@@ -8,6 +8,7 @@ public class Plugin {
     private String url;
     private String archiveFileName;
     private JarFile jarFile;
+    private boolean isPluginOptional;
 
 
     public Plugin(String name, String version, String url) {
@@ -15,6 +16,13 @@ public class Plugin {
         this.version = version;
         this.url = url;
         this.archiveFileName = new StringBuffer(name).append(".jpi").toString();
+
+    }
+
+    public Plugin(String name, String version, boolean isPluginOptional) {
+        this.name = name;
+        this.version = version;
+        this.isPluginOptional = isPluginOptional;
     }
 
     public void setName(String name) {
@@ -32,6 +40,10 @@ public class Plugin {
 
     public void setJarFile(JarFile jarFile) {
         this.jarFile = jarFile;
+    }
+
+    public void setPluginOptional(boolean isPluginOptional) {
+        this.isPluginOptional = isPluginOptional;
     }
 
     public void setArchiveFileName(String archiveFileName) {
@@ -52,6 +64,10 @@ public class Plugin {
 
     public String getArchiveFileName() {
         return archiveFileName;
+    }
+
+    public boolean getPluginOptional() {
+        return isPluginOptional;
     }
 
     public JarFile getJarFile() {
