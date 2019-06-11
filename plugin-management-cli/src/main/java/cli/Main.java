@@ -7,6 +7,7 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -24,6 +25,9 @@ public class Main {
 
         cfg.setPluginTxt(options.getPluginTxt());
         cfg.setPluginDir(options.getPluginDir());
+
+        String[] plugins = options.getPlugins();
+
 
         PluginManager pm = new PluginManager(cfg);
         pm.start();
