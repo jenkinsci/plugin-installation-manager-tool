@@ -3,13 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>io.jenkins</groupId>
-        <artifactId>plugin-installation-manager-tool</artifactId>
+        <groupId>io.jenkins.plugin-management</groupId>
+        <artifactId>jenkins-plugin-management-parent-pom</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>plugin-management-library</artifactId>
+    <artifactId>jenkins-plugin-management-library</artifactId>
 
 
 </project>
