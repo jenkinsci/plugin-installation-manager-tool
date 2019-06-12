@@ -3,47 +3,50 @@ package io.jenkins.tools.pluginmanager.impl;
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileOutputStream;
-import java.net.MalformedURLException;
-import java.net.HttpURLConnection;
-import java.nio.file.Files;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.FileWriter;
+import java.io.FileFilter;
+import java.io.RandomAccessFile;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.ArrayList;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.charset.Charset;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.stream.Stream;
 import java.util.Iterator;
-import java.nio.file.PathMatcher;
-
-import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.apache.commons.io.IOUtils;
-
-import java.io.FileFilter;
-
-import org.apache.commons.io.FilenameUtils;
-
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.jar.Attributes;
 import java.util.Map;
 import java.util.HashMap;
-import java.io.RandomAccessFile;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.charset.Charset;
+import java.nio.file.PathMatcher;
+import java.net.MalformedURLException;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.HttpHost;
+import org.apache.http.client.utils.URIUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
-
-import java.net.URL;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.io.IOUtils;
 
 import org.json.JSONObject;
 import org.json.JSONArray;
@@ -321,33 +324,45 @@ public class PluginManager {
 
         System.out.println("Downloading plugin: " + pluginName + " from url: " + urlString);
 
-        URL url;
+        File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
 
         try {
-            url = new URL(urlString);
-            System.out.println(urlString);
-
-        } catch (MalformedURLException e) {
+            downloadToFile(urlString, pluginFile);
+        } catch (IOException | URISyntaxException e) {
             e.printStackTrace();
+            failedPlugins.add(plugin);
+            System.out.println("Failed to download from requested URL");
             return false;
         }
 
+        //check integrity of plugin file
         try {
-
-            File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
-            FileUtils.copyURLToFile(url, pluginFile);
-            //retry some number of times if fails?
-
-            //check integrity with creation of JarFile object
-            //also, this doesn't seem to be working - the local file is being created but it can't be opened/extracted
-            //JarFile pluginJpi = new JarFile(pluginFile, true);
+            JarFile pluginJpi = new JarFile(pluginFile);
         } catch (IOException e) {
             e.printStackTrace();
+            failedPlugins.add(plugin);
+            System.out.println("Downloaded file is not a valid ZIP");
             return false;
         }
-
         return true;
+    }
 
+
+    public void downloadToFile(String urlString, File pluginFile) throws IOException, URISyntaxException {
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        HttpClientContext context = HttpClientContext.create();
+        HttpGet httpget = new HttpGet(urlString);
+        CloseableHttpResponse response = httpclient.execute(httpget, context);
+
+        try {
+            HttpHost target = context.getTargetHost();
+            List<URI> redirectLocations = context.getRedirectLocations();
+            // Expected to be an absolute URI
+            URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
+            FileUtils.copyURLToFile(location.toURL(), pluginFile);
+        } finally {
+            response.close();
+        }
     }
 
 
