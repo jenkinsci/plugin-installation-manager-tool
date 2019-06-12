@@ -1,9 +1,10 @@
-package pluginmanager;
+package io.jenkins.tools.pluginmanager.impl;
 
 import java.io.File;
 import java.io.InputStream;
 import java.io.FileOutputStream;
 import java.net.MalformedURLException;
+import java.net.HttpURLConnection;
 import java.nio.file.Files;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,24 +39,23 @@ import java.util.HashMap;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
-import java.nio.channels.OverlappingFileLockException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
 
 import java.net.URL;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
+
+import io.jenkins.tools.pluginmanager.config.Config;
 
 
 public class PluginManager {
     private List<Plugin> plugins;
     private List<Plugin> failedPlugins;
     private File refDir;
-    //private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
-    private final String JENKINS_WAR = "/Users/natashastopa/Jenkins/Jenkins/test2/mywar-1.0-SNAPSHOT.war";
+
     private String JENKINS_UC_LATEST = "";
     private final String JENKINS_UC_EXPERIMENTAL = "https://updates.jenkins.io/experimental";
     private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
@@ -64,20 +64,25 @@ public class PluginManager {
     private final String JENKINS_UC_JSON = "https://updates.jenkins.io/update-center.json";
     private final String SEPARATOR = File.separator;
 
+    //private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
+    public static final String JENKINS_WAR = "/Users/natashastopa/Jenkins/Jenkins/test2/mywar-1.0-SNAPSHOT.war";
+
     private String jenkinsVersion;
 
     private File jenkinsWarFile;
     private Map<String, String> installedPluginVersions;
     private Map<String, String> bundledPluginVersions;
+    Config cfg;
 
 
-    public PluginManager() {
+    public PluginManager(Config cfg) {
         plugins = new ArrayList<>();
         failedPlugins = new ArrayList();
         jenkinsWarFile = new File(JENKINS_WAR);
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
-        refDir = new File("." + SEPARATOR + "plugins");
+        refDir = cfg.getPluginDir();
+        this.cfg = cfg;
     }
 
 
@@ -86,19 +91,29 @@ public class PluginManager {
             System.out.println("Unable to create plugin directory");
         }
 
-
         jenkinsVersion = getJenkinsVersion();
-        String url;
 
+        //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
             JENKINS_UC_LATEST = new StringBuilder("https://updates.jenkins.io/").append(jenkinsVersion).toString();
+            try {
+                URL url = new URL(JENKINS_UC_LATEST);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("HEAD");
+                conn.connect();
+                if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                    JENKINS_UC_LATEST = "";
+                }
+            } catch (IOException e) {
+                JENKINS_UC_LATEST = "";
+            }
         }
 
+        String url;
 
         System.out.println("Reading in plugins...");
         try {
-            //Scanner scanner = new Scanner(new File("plugins.txt"));
-            Scanner scanner = new Scanner(new File("/Users/natashastopa/Jenkins/PluginManagement/plugins.txt"));
+            Scanner scanner = new Scanner(cfg.getPluginTxt());
             while (scanner.hasNextLine()) {
                 String[] pluginInfo = scanner.nextLine().split(":");
                 String pluginName = pluginInfo[0];
@@ -151,8 +166,6 @@ public class PluginManager {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-
     }
 
 
@@ -239,6 +252,7 @@ public class PluginManager {
             }
 
             if (!StringUtils.isEmpty(installedVersion)) {
+                //probably not the best way: https://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java
                 if (installedVersion.compareTo(dependencyVersion) < 0) {
                     System.out.println("Installed version of " + dependencyName + " is less than minimum " +
                             "required version of " + dependencyVersion + ", upgrading bundled dependency");
@@ -319,7 +333,8 @@ public class PluginManager {
         }
 
         try {
-            File pluginFile = new File("." + SEPARATOR + plugin.getArchiveFileName());
+
+            File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
             FileUtils.copyURLToFile(url, pluginFile);
             //retry some number of times if fails?
 
@@ -414,12 +429,6 @@ public class PluginManager {
         List<String> bundledPlugins = new ArrayList<>();
 
         if (jenkinsWarFile.exists()) {
-            Path tempPluginDir;
-            try {
-                tempPluginDir = Files.createTempDirectory("plugintemp");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
 
             //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
             Path path = Paths.get(JENKINS_WAR);

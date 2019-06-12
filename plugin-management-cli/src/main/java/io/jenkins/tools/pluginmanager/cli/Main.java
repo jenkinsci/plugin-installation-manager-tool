@@ -1,13 +1,14 @@
-package cli;
+package io.jenkins.tools.pluginmanager.cli;
 
-import impl.PluginManager;
-import config.Config;
+import io.jenkins.tools.pluginmanager.cli.CliOptions;
+import io.jenkins.tools.pluginmanager.impl.PluginManager;
+import io.jenkins.tools.pluginmanager.config.Config;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import java.io.IOException;
-import java.util.List;
+
 
 public class Main {
     public static void main(String[] args) throws IOException {

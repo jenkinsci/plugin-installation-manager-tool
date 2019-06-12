@@ -1,4 +1,4 @@
-package config;
+package io.jenkins.tools.pluginmanager.config;
 
 import java.io.File;
 

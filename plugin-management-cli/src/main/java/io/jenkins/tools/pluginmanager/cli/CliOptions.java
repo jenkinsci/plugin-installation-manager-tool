@@ -1,6 +1,6 @@
-package cli;
+package io.jenkins.tools.pluginmanager.cli;
 
-import config.Settings;
+import io.jenkins.tools.pluginmanager.config.Settings;
 
 import org.kohsuke.args4j.Option;
 
@@ -9,7 +9,6 @@ import javax.annotation.Nonnull;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 
 import java.io.File;
-import java.util.List;
 
 public class CliOptions {
     //path must include plugins.txt

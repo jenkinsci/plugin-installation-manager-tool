@@ -1,4 +1,4 @@
-package impl;
+package io.jenkins.tools.pluginmanager.impl;
 
 import java.util.jar.JarFile;
 
