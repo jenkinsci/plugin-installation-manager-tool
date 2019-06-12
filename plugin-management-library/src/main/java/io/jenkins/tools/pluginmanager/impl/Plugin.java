@@ -15,7 +15,7 @@ public class Plugin {
         this.name = name;
         this.version = version;
         this.url = url;
-        this.archiveFileName = new StringBuffer(name).append(".jpi").toString();
+        this.archiveFileName = name + ".jpi";
 
     }
 
