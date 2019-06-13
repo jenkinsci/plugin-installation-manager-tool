@@ -26,6 +26,8 @@ public class Main {
 
         cfg.setPluginTxt(options.getPluginTxt());
         cfg.setPluginDir(options.getPluginDir());
+        cfg.setShowWarnings(options.hasShowWarnings());
+        cfg.setShowAllWarnings(options.hasShowAllWarnings());
 
         String[] plugins = options.getPlugins();
 

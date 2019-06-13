@@ -1,6 +1,8 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import java.util.jar.JarFile;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Plugin {
     private String name;
@@ -9,6 +11,8 @@ public class Plugin {
     private String archiveFileName;
     private JarFile jarFile;
     private boolean isPluginOptional;
+    private List<Plugin> dependencies;
+    private List<Plugin> dependents;
 
 
     public Plugin(String name, String version, String url) {
@@ -16,6 +20,8 @@ public class Plugin {
         this.version = version;
         this.url = url;
         this.archiveFileName = new StringBuffer(name).append(".jpi").toString();
+        this.dependencies = new ArrayList<>();
+        this.dependents = new ArrayList<>();
 
     }
 
@@ -23,7 +29,7 @@ public class Plugin {
         this.name = name;
         this.version = version;
         this.isPluginOptional = isPluginOptional;
-        this.archiveFileName = new StringBuffer(name).append(".jpi").toString();
+        this.archiveFileName = name + ".jpi";
     }
 
     public void setName(String name) {
@@ -74,4 +80,21 @@ public class Plugin {
     public JarFile getJarFile() {
         return jarFile;
     }
+
+    public void setDependencies(List<Plugin> dependencies) {
+        this.dependencies = dependencies;
+    }
+
+    public List<Plugin> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependent(Plugin dependent) {
+        dependents.add(dependent);
+    }
+
+    public List<Plugin> getDependents() {
+        return dependents;
+    }
+
 }

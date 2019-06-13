@@ -21,6 +21,12 @@ public class CliOptions {
     @Option(name = "-plugins", usage = "List of plugins to install, separated by a space", handler = StringArrayOptionHandler.class)
     public String[] plugins;
 
+    @Option(name = "-viewSecurityWarnings", usage = "Set to true to show specified plugins that have security warnings")
+    public boolean showWarnings;
+
+    @Option(name = "-viewAllSecurityWarnings", usage = "Set to true to show all plugins that have security warnings")
+    public boolean showAllWarnings;
+
     @Nonnull
     public File getPluginTxt() {
         return pluginTxt != null ? pluginTxt : Settings.DEFAULT_PLUGIN_TXT;
@@ -35,4 +41,11 @@ public class CliOptions {
         return plugins;
     }
 
+    public boolean hasShowWarnings() {
+        return showWarnings;
+    }
+
+    public boolean hasShowAllWarnings() {
+        return showWarnings;
+    }
 }

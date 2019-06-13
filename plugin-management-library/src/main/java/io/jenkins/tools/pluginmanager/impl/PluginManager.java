@@ -41,6 +41,7 @@ import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.HttpStatus;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,6 +76,7 @@ public class PluginManager {
     private File jenkinsWarFile;
     private Map<String, String> installedPluginVersions;
     private Map<String, String> bundledPluginVersions;
+    private List<SecurityWarning> allSecurityWarnings;
     Config cfg;
 
 
@@ -86,6 +88,7 @@ public class PluginManager {
         bundledPluginVersions = new HashMap<>();
         refDir = cfg.getPluginDir();
         this.cfg = cfg;
+        allSecurityWarnings = new ArrayList<>();
     }
 
 
@@ -95,24 +98,18 @@ public class PluginManager {
         }
 
         jenkinsVersion = getJenkinsVersion();
-
-        //check if version specific update center
-        if (!StringUtils.isEmpty(jenkinsVersion)) {
-            JENKINS_UC_LATEST = new StringBuilder("https://updates.jenkins.io/").append(jenkinsVersion).toString();
-            try {
-                URL url = new URL(JENKINS_UC_LATEST);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("HEAD");
-                conn.connect();
-                if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                    JENKINS_UC_LATEST = "";
-                }
-            } catch (IOException e) {
-                JENKINS_UC_LATEST = "";
-            }
-        }
+        checkVersionSpecificUpdateCenter();
 
         String url;
+
+        getSecurityWarnings();
+
+        if (cfg.hasShowAllWarnings()) {
+            for (int i = 0; i < allSecurityWarnings.size(); i++) {
+                SecurityWarning securityWarning = allSecurityWarnings.get(i);
+                System.out.println(securityWarning.getName() + " " + securityWarning.getMessage());
+            }
+        }
 
         System.out.println("Reading in plugins...");
         try {
@@ -149,8 +146,61 @@ public class PluginManager {
 
         //clean up locks
 
+    }
+
+
+    public void getSecurityWarnings() {
+        JSONObject updateCenterJson = getUpdateCenterJson();
+        JSONArray warnings = updateCenterJson.getJSONArray("warnings");
+
+        for (int i = 0; i < warnings.length(); i++) {
+            JSONObject warning = warnings.getJSONObject(i);
+            String warningType = warning.getString("type");
+            if (!warningType.equals("plugin")) {
+                continue;
+            }
+            String warningId = warning.getString("id");
+            String warningMessage = warning.getString("message");
+            String warningName = warning.getString("name");
+            String warningUrl = warning.getString("url");
+
+            SecurityWarning securityWarning = new SecurityWarning(warningId, warningMessage, warningName, warningUrl);
+            JSONArray warningVersions = warning.getJSONArray("versions");
+
+            System.out.println(warningName);
+            for (int j = 0; j < warningVersions.length(); j++) {
+                JSONObject warningVersion = warningVersions.getJSONObject(j);
+                String lastVersion = "";
+                if (warningVersion.has("lastVersion")) {
+                    lastVersion = warningVersion.getString("lastVersion");
+                }
+                String pattern = warningVersion.getString("pattern");
+                securityWarning.addSecurityVersion(lastVersion, pattern);
+            }
+            allSecurityWarnings.add(securityWarning);
+        }
+    }
+
+
+    public void checkVersionSpecificUpdateCenter() {
+        //check if version specific update center
+        if (!StringUtils.isEmpty(jenkinsVersion)) {
+            JENKINS_UC_LATEST = new StringBuilder(JENKINS_UC).append(jenkinsVersion).toString();
+
+            CloseableHttpClient httpclient = HttpClients.createDefault();
+            HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
+            try (CloseableHttpResponse response = httpclient.execute(httpget);) {
+                if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                    JENKINS_UC_LATEST = "";
+                }
+            } catch (IOException e) {
+                JENKINS_UC_LATEST = "";
+                System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
+            }
+        }
 
     }
+
 
     public void writeFailedPluginsToFile() {
         FileWriter fileWriter;
@@ -255,8 +305,7 @@ public class PluginManager {
             }
 
             if (!StringUtils.isEmpty(installedVersion)) {
-                //probably not the best way: https://stackoverflow.com/questions/6701948/efficient-way-to-compare-version-strings-in-java
-                if (installedVersion.compareTo(dependencyVersion) < 0) {
+                if (comparePluginVersions(installedVersion, dependencyVersion) < 0) {
                     System.out.println("Installed version of " + dependencyName + " is less than minimum " +
                             "required version of " + dependencyVersion + ", upgrading bundled dependency");
                 } else {
@@ -266,6 +315,30 @@ public class PluginManager {
                 downloadPlugin(dependency);
             }
         }
+
+    }
+
+
+    public int comparePluginVersions(String version1, String version2) {
+        if (version2 == null)
+            return 1;
+        if (version1 == null) {
+            return -1;
+        }
+        String[] version1Parts = version1.split("\\.");
+        String[] version2Parts = version2.split("\\.");
+        int length = Math.max(version1Parts.length, version2Parts.length);
+        for (int i = 0; i < length; i++) {
+            int version1Part = i < version1Parts.length ?
+                    Integer.parseInt(version1Parts[i]) : 0;
+            int version2Part = i < version2Parts.length ?
+                    Integer.parseInt(version2Parts[i]) : 0;
+            if (version1Part < version2Part)
+                return -1;
+            if (version1Part > version2Part)
+                return 1;
+        }
+        return 0;
 
     }
 
