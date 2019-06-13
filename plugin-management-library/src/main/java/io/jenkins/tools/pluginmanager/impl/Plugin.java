@@ -19,10 +19,9 @@ public class Plugin {
         this.name = name;
         this.version = version;
         this.url = url;
-        this.archiveFileName = new StringBuffer(name).append(".jpi").toString();
         this.dependencies = new ArrayList<>();
         this.dependents = new ArrayList<>();
-
+        this.archiveFileName = name + ".jpi";
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
