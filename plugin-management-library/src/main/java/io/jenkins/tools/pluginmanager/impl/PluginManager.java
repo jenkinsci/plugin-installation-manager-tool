@@ -55,12 +55,12 @@ public class PluginManager {
     private File refDir;
 
     private String JENKINS_UC_LATEST = "";
-    private final String JENKINS_UC = "https://updates.jenkins.io";
-    private final String JENKINS_UC_EXPERIMENTAL = JENKINS_UC + "/experimental";
-    private final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
-    private final String JENKINS_UC_JSON = JENKINS_UC + "/update-center.json";
-    private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
-    private final String SEPARATOR = File.separator;
+    public static final String JENKINS_UC = "https://updates.jenkins.io";
+    public static final String JENKINS_UC_EXPERIMENTAL = JENKINS_UC + "/experimental";
+    public static final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
+    public static final String JENKINS_UC_JSON = JENKINS_UC + "/update-center.json";
+    public static final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
+    public static final String SEPARATOR = File.separator;
 
     private String jenkinsVersion;
 
@@ -88,7 +88,7 @@ public class PluginManager {
             System.out.println("Unable to create plugin directory");
         }
 
-        jenkinsVersion = getJenkinsVersion();
+        jenkinsVersion = getJenkinsVersionFromWar();
         checkVersionSpecificUpdateCenter();
 
         String url;
@@ -151,10 +151,9 @@ public class PluginManager {
         //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
             JENKINS_UC_LATEST = new StringBuilder(JENKINS_UC).append(jenkinsVersion).toString();
-
-            try (CloseableHttpClient httpclient = HttpClients.createDefault();) {
+            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
-                try (CloseableHttpResponse response = httpclient.execute(httpget);) {
+                try (CloseableHttpResponse response = httpclient.execute(httpget)) {
                     if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
                         JENKINS_UC_LATEST = "";
                     }
@@ -173,10 +172,8 @@ public class PluginManager {
 
 
     public void writeFailedPluginsToFile() {
-        FileWriter fileWriter;
 
-        try {
-            fileWriter = new FileWriter("failedplugins.txt");
+        try (FileWriter fileWriter = new FileWriter("failedplugins.txt")) {
             if (failedPlugins.size() > 0) {
                 System.out.println("Some plugins failed to download: ");
                 for (Plugin plugin : failedPlugins) {
@@ -185,7 +182,6 @@ public class PluginManager {
                     fileWriter.write(failedPluginName + "\n");
                 }
             }
-            fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -340,7 +336,7 @@ public class PluginManager {
         if (StringUtils.isEmpty(pluginVersion)) {
             pluginVersion = "latest";
         }
-        
+
         if (!StringUtils.isEmpty(pluginUrl)) {
             System.out.println("Will use url: " + pluginUrl);
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
@@ -390,11 +386,11 @@ public class PluginManager {
 
     public boolean downloadToFile(String urlString, File pluginFile) {
 
-        try (CloseableHttpClient httpclient = HttpClients.createDefault();) {
+        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             HttpClientContext context = HttpClientContext.create();
             HttpGet httpget = new HttpGet(urlString);
 
-            try (CloseableHttpResponse response = httpclient.execute(httpget, context);) {
+            try (CloseableHttpResponse response = httpclient.execute(httpget, context)) {
                 HttpHost target = context.getTargetHost();
                 List<URI> redirectLocations = context.getRedirectLocations();
                 // Expected to be an absolute URI
@@ -414,7 +410,7 @@ public class PluginManager {
         }
 
 
-        public String getJenkinsVersion () {
+        public String getJenkinsVersionFromWar () {
             //java -jar $JENKINS_WAR --version
             try {
                 JarFile jenkinsWar = new JarFile(jenkinsWarFile);
@@ -538,8 +534,18 @@ public class PluginManager {
             return bundledPlugins;
         }
 
-
+    public void setJenkinsVersion(String jenkinsVersion) {
+        this.jenkinsVersion = jenkinsVersion;
     }
+
+    public String getJenkinsVersion() {
+        return jenkinsVersion;
+    }
+
+    public String getJenkinsUCLatest() {
+        return JENKINS_UC_LATEST;
+    }
+}
 
 
 
