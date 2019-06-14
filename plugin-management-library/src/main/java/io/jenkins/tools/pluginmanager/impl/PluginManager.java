@@ -1,58 +1,52 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import io.jenkins.tools.pluginmanager.config.Config;
 import java.io.File;
-import java.io.InputStream;
-import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.FileWriter;
 import java.io.FileFilter;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
-import java.util.ArrayList;
-import java.util.stream.Stream;
-import java.util.Iterator;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
-import java.util.jar.Attributes;
-import java.util.Map;
-import java.util.HashMap;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.charset.Charset;
-import java.nio.file.PathMatcher;
 import java.net.MalformedURLException;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.protocol.HttpClientContext;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.charset.Charset;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
+import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.HttpStatus;
-
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.WildcardFileFilter;
-import org.apache.commons.io.IOUtils;
-
-import org.json.JSONObject;
+import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
-import io.jenkins.tools.pluginmanager.config.Config;
 
 
 public class PluginManager {
@@ -61,15 +55,12 @@ public class PluginManager {
     private File refDir;
 
     private String JENKINS_UC_LATEST = "";
-    private final String JENKINS_UC_EXPERIMENTAL = "https://updates.jenkins.io/experimental";
-    private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
     private final String JENKINS_UC = "https://updates.jenkins.io";
+    private final String JENKINS_UC_EXPERIMENTAL = JENKINS_UC + "/experimental";
     private final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
-    private final String JENKINS_UC_JSON = "https://updates.jenkins.io/update-center.json";
+    private final String JENKINS_UC_JSON = JENKINS_UC + "/update-center.json";
+    private final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
     private final String SEPARATOR = File.separator;
-
-    //private final String JENKINS_WAR = "/usr/share/jenkins/jenkins.war";
-    public static final String JENKINS_WAR = "/Users/natashastopa/Jenkins/Jenkins/test2/mywar-1.0-SNAPSHOT.war";
 
     private String jenkinsVersion;
 
@@ -81,9 +72,9 @@ public class PluginManager {
 
 
     public PluginManager(Config cfg) {
-        plugins = new ArrayList<>();
+        plugins = cfg.getPlugins();
         failedPlugins = new ArrayList();
-        jenkinsWarFile = new File(JENKINS_WAR);
+        jenkinsWarFile = new File(cfg.getJenkinsWar());
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
         refDir = cfg.getPluginDir();
@@ -107,32 +98,8 @@ public class PluginManager {
         if (cfg.hasShowAllWarnings()) {
             for (int i = 0; i < allSecurityWarnings.size(); i++) {
                 SecurityWarning securityWarning = allSecurityWarnings.get(i);
-                System.out.println(securityWarning.getName() + " " + securityWarning.getMessage());
+                System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
             }
-        }
-
-        System.out.println("Reading in plugins...");
-        try {
-            Scanner scanner = new Scanner(cfg.getPluginTxt());
-            while (scanner.hasNextLine()) {
-                String[] pluginInfo = scanner.nextLine().split(":");
-                String pluginName = pluginInfo[0];
-                String pluginVersion = null;
-                String pluginUrl = null;
-                if (pluginInfo.length >= 2) {
-                    pluginVersion = pluginInfo[1];
-                }
-                if (pluginInfo.length == 3) {
-                    pluginUrl = pluginInfo[2];
-                }
-
-                Plugin plugin = new Plugin(pluginName, pluginVersion, pluginUrl);
-                plugins.add(plugin);
-
-            }
-        } catch (
-                FileNotFoundException e) {
-            e.printStackTrace();
         }
 
         createLocks(plugins);
@@ -166,8 +133,6 @@ public class PluginManager {
 
             SecurityWarning securityWarning = new SecurityWarning(warningId, warningMessage, warningName, warningUrl);
             JSONArray warningVersions = warning.getJSONArray("versions");
-
-            System.out.println(warningName);
             for (int j = 0; j < warningVersions.length(); j++) {
                 JSONObject warningVersion = warningVersions.getJSONObject(j);
                 String lastVersion = "";
@@ -187,16 +152,21 @@ public class PluginManager {
         if (!StringUtils.isEmpty(jenkinsVersion)) {
             JENKINS_UC_LATEST = new StringBuilder(JENKINS_UC).append(jenkinsVersion).toString();
 
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-            HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
-            try (CloseableHttpResponse response = httpclient.execute(httpget);) {
-                if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+            try (CloseableHttpClient httpclient = HttpClients.createDefault();) {
+                HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
+                try (CloseableHttpResponse response = httpclient.execute(httpget);) {
+                    if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                        JENKINS_UC_LATEST = "";
+                    }
+                } catch (IOException e) {
                     JENKINS_UC_LATEST = "";
+                    System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
                 }
             } catch (IOException e) {
                 JENKINS_UC_LATEST = "";
-                System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
+                System.out.println("Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
+
         }
 
     }
@@ -367,10 +337,10 @@ public class PluginManager {
             return true;
         }
 
-        if (!StringUtils.isEmpty(pluginVersion)) {
+        if (StringUtils.isEmpty(pluginVersion)) {
             pluginVersion = "latest";
         }
-
+        
         if (!StringUtils.isEmpty(pluginUrl)) {
             System.out.println("Will use url: " + pluginUrl);
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
@@ -399,11 +369,8 @@ public class PluginManager {
 
         File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
 
-        try {
-            downloadToFile(urlString, pluginFile);
-        } catch (IOException | URISyntaxException e) {
-            e.printStackTrace();
-            failedPlugins.add(plugin);
+
+        if (!downloadToFile(urlString, pluginFile)) {
             System.out.println("Failed to download from requested URL");
             return false;
         }
@@ -421,149 +388,158 @@ public class PluginManager {
     }
 
 
-    public void downloadToFile(String urlString, File pluginFile) throws IOException, URISyntaxException {
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-        HttpClientContext context = HttpClientContext.create();
-        HttpGet httpget = new HttpGet(urlString);
-        CloseableHttpResponse response = httpclient.execute(httpget, context);
+    public boolean downloadToFile(String urlString, File pluginFile) {
 
-        try {
-            HttpHost target = context.getTargetHost();
-            List<URI> redirectLocations = context.getRedirectLocations();
-            // Expected to be an absolute URI
-            URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
-            FileUtils.copyURLToFile(location.toURL(), pluginFile);
-        } finally {
-            response.close();
-        }
-    }
+        try (CloseableHttpClient httpclient = HttpClients.createDefault();) {
+            HttpClientContext context = HttpClientContext.create();
+            HttpGet httpget = new HttpGet(urlString);
 
-
-    public String getJenkinsVersion() {
-        //java -jar $JENKINS_WAR --version
-        try {
-            JarFile jenkinsWar = new JarFile(jenkinsWarFile);
-            Manifest manifest = jenkinsWar.getManifest();
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue("Jenkins-Version");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return "";
-    }
-
-
-    public String getPluginVersion(File file) {
-        //this is also done in the existing plugin manager from core - should I do this a similar way to that instead?
-        try {
-            JarFile pluginJpi = new JarFile(file);
-            Manifest manifest = pluginJpi.getManifest();
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue("Plugin-Version");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
-
-    public List<String> installedPlugins() {
-        List<String> installedPlugins = new ArrayList<>();
-
-        String jpiFiles = new StringBuilder(refDir.toString()).append("*.jpi").toString();
-        FileFilter fileFilter = new WildcardFileFilter(jpiFiles);
-
-        //only lists files in same directory, does not list files recursively
-        File[] files = refDir.listFiles(fileFilter);
-        for (File file : files) {
-            String pluginName = FilenameUtils.getBaseName(file.getName());
-            String pluginVersion = getPluginVersion(file);
-            installedPluginVersions.put(pluginName, pluginVersion);
-            installedPlugins.add(pluginName);
-        }
-
-        return installedPlugins;
-    }
-
-
-    public void createLocks(List<Plugin> plugins) {
-        for (Plugin plugin : plugins) {
-            createLock(plugin);
-        }
-    }
-
-    public void createLock(Plugin plugin) {
-        //in bash script, users can also pass in a version, but lock is only on plugin name
-        String pluginLock = new StringBuilder(plugin.getName()).append(".lock").toString();
-
-        File lockedFile = new File(refDir, pluginLock);
-
-        FileChannel channel;
-        FileLock lock;
-
-        try {
-            channel = new RandomAccessFile(lockedFile, "rw").getChannel();
-            lock = channel.lock();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        //need to return the file locks?
-
-    }
-
-
-    public List<String> bundledPlugins() {
-        List<String> bundledPlugins = new ArrayList<>();
-
-        if (jenkinsWarFile.exists()) {
-
-            //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
-            Path path = Paths.get(JENKINS_WAR);
-            URI jenkinsWarUri;
-            try {
-                jenkinsWarUri = new URI("jar:" + path.toUri());
-            } catch (URISyntaxException e) {
+            try (CloseableHttpResponse response = httpclient.execute(httpget, context);) {
+                HttpHost target = context.getTargetHost();
+                List<URI> redirectLocations = context.getRedirectLocations();
+                // Expected to be an absolute URI
+                URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
+                FileUtils.copyURLToFile(location.toURL(), pluginFile);
+            } catch (URISyntaxException | IOException e) {
                 e.printStackTrace();
-                return bundledPlugins;
+                System.out.println("Unable to resolve plugin URL to download plugin");
+                return false;
+            }
+        } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("Unable to create HTTP connection to download plugin");
+                return false;
+            }
+            return true;
+        }
+
+
+        public String getJenkinsVersion () {
+            //java -jar $JENKINS_WAR --version
+            try {
+                JarFile jenkinsWar = new JarFile(jenkinsWarFile);
+                Manifest manifest = jenkinsWar.getManifest();
+                Attributes attributes = manifest.getMainAttributes();
+                return attributes.getValue("Jenkins-Version");
+            } catch (IOException e) {
+                System.out.println("Unable to open war file");
+                e.printStackTrace();
             }
 
-            //walk through war contents and find bundled plugins
-            try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
-                Path warPath = warFS.getPath("/").getRoot();
-                PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
-                Stream<Path> walk = Files.walk(warPath);
-                for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
-                    Path file = it.next();
-                    if (matcher.matches(file)) {
-                        bundledPlugins.add(file.getFileName().toString());
+            return "";
+        }
 
-                        //because can't convert a ZipPath to a file with file.toFile();
-                        InputStream in = Files.newInputStream(file);
-                        final File tempFile = File.createTempFile("PREFIX", "SUFFIX");
-                        try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                            IOUtils.copy(in, out);
-                        }
 
-                        String pluginVersion = getPluginVersion(tempFile);
-                        tempFile.delete();
+        public String getPluginVersion (File file){
+            //this is also done in the existing plugin manager from core - should I do this a similar way to that instead?
+            try {
+                JarFile pluginJpi = new JarFile(file);
+                Manifest manifest = pluginJpi.getManifest();
+                Attributes attributes = manifest.getMainAttributes();
+                return attributes.getValue("Plugin-Version");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return "";
+        }
 
-                        bundledPluginVersions.put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
-                    }
-                }
+        public List<String> installedPlugins () {
+            List<String> installedPlugins = new ArrayList<>();
+
+            String jpiFiles = new StringBuilder(refDir.toString()).append("*.jpi").toString();
+            FileFilter fileFilter = new WildcardFileFilter(jpiFiles);
+
+            //only lists files in same directory, does not list files recursively
+            File[] files = refDir.listFiles(fileFilter);
+            for (File file : files) {
+                String pluginName = FilenameUtils.getBaseName(file.getName());
+                String pluginVersion = getPluginVersion(file);
+                installedPluginVersions.put(pluginName, pluginVersion);
+                installedPlugins.add(pluginName);
+            }
+
+            return installedPlugins;
+        }
+
+
+        public void createLocks (List < Plugin > plugins) {
+            for (Plugin plugin : plugins) {
+                createLock(plugin);
+            }
+        }
+
+        public void createLock (Plugin plugin){
+            //in bash script, users can also pass in a version, but lock is only on plugin name
+            String pluginLock = new StringBuilder(plugin.getName()).append(".lock").toString();
+
+            File lockedFile = new File(refDir, pluginLock);
+
+            FileChannel channel;
+            FileLock lock;
+
+            try {
+                channel = new RandomAccessFile(lockedFile, "rw").getChannel();
+                lock = channel.lock();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-        } else {
-            System.out.println("War not found, installing all plugins: " + JENKINS_WAR);
+            //need to return the file locks?
+
         }
 
-        return bundledPlugins;
+
+        public List<String> bundledPlugins () {
+            List<String> bundledPlugins = new ArrayList<>();
+
+            if (jenkinsWarFile.exists()) {
+
+                //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
+                Path path = Paths.get(jenkinsWarFile.toString());
+                URI jenkinsWarUri;
+                try {
+                    jenkinsWarUri = new URI("jar:" + path.toUri());
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    return bundledPlugins;
+                }
+
+                //walk through war contents and find bundled plugins
+                try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
+                    Path warPath = warFS.getPath("/").getRoot();
+                    PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
+                    Stream<Path> walk = Files.walk(warPath);
+                    for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
+                        Path file = it.next();
+                        if (matcher.matches(file)) {
+                            bundledPlugins.add(file.getFileName().toString());
+
+                            //because can't convert a ZipPath to a file with file.toFile();
+                            InputStream in = Files.newInputStream(file);
+                            final File tempFile = File.createTempFile("PREFIX", "SUFFIX");
+                            try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                                IOUtils.copy(in, out);
+                            }
+
+                            String pluginVersion = getPluginVersion(tempFile);
+                            tempFile.delete();
+
+                            bundledPluginVersions.put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            } else {
+                System.out.println("War not found, installing all plugins: " + jenkinsWarFile.toString());
+            }
+
+            return bundledPlugins;
+        }
+
+
     }
-
-
-}
 
 
 
