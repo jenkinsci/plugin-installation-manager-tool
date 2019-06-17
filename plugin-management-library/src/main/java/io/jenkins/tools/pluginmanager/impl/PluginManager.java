@@ -441,9 +441,7 @@ public class PluginManager {
 
         public List<String> installedPlugins () {
             List<String> installedPlugins = new ArrayList<>();
-
-            String jpiFiles = new StringBuilder(refDir.toString()).append("*.jpi").toString();
-            FileFilter fileFilter = new WildcardFileFilter(jpiFiles);
+            FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
             //only lists files in same directory, does not list files recursively
             File[] files = refDir.listFiles(fileFilter);
