@@ -2,7 +2,6 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -11,7 +10,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
+import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.HttpHost;
@@ -191,12 +190,90 @@ public class PluginManagerTest {
         PowerMockito.mockStatic(FileUtils.class);
         URL url = PowerMockito.mock(URL.class);
 
-        File pluginDir = cfg.getPluginDir();
-        File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
+        //File pluginDir = cfg.getPluginDir();
+        //File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
 
-        pm.downloadToFile("downloadURL", tmp3);
+        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL");
 
+        JarFile pluginJpi = Mockito.mock(JarFile.class);
 
+        PowerMockito.whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
+        Assert.assertTrue(pm.downloadToFile("downloadURL", plugin));
     }
+
+    @Test
+    public void getPluginDownloadUrlTest() {
+        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL");
+
+        Assert.assertEquals( "pluginURL", pm.getPluginDownloadUrl(plugin));
+
+        plugin.setUrl("");
+        pm.setJenkinsUCLatest("https://updates.jenkins.io/2.176");
+
+        plugin.setVersion("latest");
+
+        String latestUrl = pm.getJenkinsUCLatest() + "/latest/pluginName.hpi";
+
+        Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
+
+        plugin.setVersion("");
+        Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
+
+        plugin.setVersion("experimental");
+
+        String experimentalUrl = PluginManager.JENKINS_UC_EXPERIMENTAL + "/latest/pluginName.hpi";
+        Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
+
+        plugin.setVersion("incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74");
+
+        String incrementalUrl = PluginManager.JENKINS_INCREMENTALS_REPO_MIRROR +
+                "/org/jenkins-ci/plugins/workflow/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
+
+        Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
+
+        plugin.setVersion("otherversion");
+
+        String otherURL = PluginManager.JENKINS_UC_DOWNLOAD + "/plugins/pluginName/otherversion/pluginName.hpi";
+
+        Assert.assertEquals(otherURL, pm.getPluginDownloadUrl(plugin));
+    }
+
+
+    @Test
+    public void getJenkinsVersionFromWarTest() throws Exception {
+        URL warURL = this.getClass().getResource("/plugin-manager-test-war.war");
+        File testWar = new File(warURL.getFile());
+
+        //the only time the file for a particular war string is created is in the PluginManager constructor
+        Config config = new Config();
+        config.setJenkinsWar(testWar.toString());
+        PluginManager pluginManager = new PluginManager(config);
+        Assert.assertEquals("2.164.1", pluginManager.getJenkinsVersionFromWar());
+    }
+
+    /*
+    @Test
+    public void bundledPluginsTest() {
+        URL warURL = this.getClass().getResource("/plugin-manager-test-war.war");
+        File testWar = new File(warURL.getFile());
+
+        Config config = new Config();
+        config.setJenkinsWar(testWar.toString());
+        PluginManager pluginManager = new PluginManager(config);
+
+        List<String> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add("credentials.jpi");
+        expectedPlugins.add("display-url-api.jpi");
+        expectedPlugins.add("github-branch-source.hpi");
+
+        List<String> actualPlugins = pluginManager.bundledPlugins();
+
+        Collections.sort(expectedPlugins);
+        Collections.sort(actualPlugins);
+
+        Assert.assertEquals(expectedPlugins, actualPlugins);
+    }
+    */
+
 }
 
