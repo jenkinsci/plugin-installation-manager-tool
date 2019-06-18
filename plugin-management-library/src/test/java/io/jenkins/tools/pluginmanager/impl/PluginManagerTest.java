@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
@@ -82,26 +83,6 @@ public class PluginManagerTest {
 
         expected = "";
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
-    }
-
-
-    @Test
-    public void comparePluginVersionsTest() {
-        int actual = pm.comparePluginVersions("1.1", "2.0.2");
-        int expected = -1;
-        Assert.assertEquals(expected, actual);
-
-        actual = pm.comparePluginVersions("4.1.4", "4.11.4");
-        expected = -1;
-        Assert.assertEquals(expected, actual);
-
-        actual = pm.comparePluginVersions("2.0.2", "1.1");
-        expected = 1;
-        Assert.assertEquals(expected, actual);
-
-        actual = pm.comparePluginVersions("3.2.1.1", "3.2.1.1");
-        expected = 0;
-        Assert.assertEquals(expected, actual);
     }
 
 
@@ -210,28 +191,39 @@ public class PluginManagerTest {
         plugin.setUrl("");
         pm.setJenkinsUCLatest("https://updates.jenkins.io/2.176");
 
-        plugin.setVersion("latest");
+        VersionNumber latestVersion = new VersionNumber("latest");
+
+        plugin.setVersion(latestVersion);
 
         String latestUrl = pm.getJenkinsUCLatest() + "/latest/pluginName.hpi";
 
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
 
-        plugin.setVersion("");
+        VersionNumber noVersion = new VersionNumber("");
+
+        plugin.setVersion(noVersion);
+
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
 
-        plugin.setVersion("experimental");
+        VersionNumber experimentalVersion = new VersionNumber("experimental");
+
+        plugin.setVersion(experimentalVersion);
 
         String experimentalUrl = PluginManager.JENKINS_UC_EXPERIMENTAL + "/latest/pluginName.hpi";
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
 
-        plugin.setVersion("incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74");
+        VersionNumber incrementalVersion = new VersionNumber("incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74");
+
+        plugin.setVersion(incrementalVersion);
 
         String incrementalUrl = PluginManager.JENKINS_INCREMENTALS_REPO_MIRROR +
                 "/org/jenkins-ci/plugins/workflow/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 
-        plugin.setVersion("otherversion");
+        VersionNumber otherVersion = new VersionNumber("otherversion");
+
+        plugin.setVersion(otherVersion);
 
         String otherURL = PluginManager.JENKINS_UC_DOWNLOAD + "/plugins/pluginName/otherversion/pluginName.hpi";
 

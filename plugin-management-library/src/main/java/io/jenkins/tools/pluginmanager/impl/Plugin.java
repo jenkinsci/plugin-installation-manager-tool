@@ -1,12 +1,13 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import hudson.util.VersionNumber;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarFile;
 
 public class Plugin {
     private String name;
-    private String version;
+    private VersionNumber version;
     private String url;
     private JarFile jarFile;
     private boolean isPluginOptional;
@@ -16,7 +17,7 @@ public class Plugin {
 
     public Plugin(String name, String version, String url) {
         this.name = name;
-        this.version = version;
+        this.version = new VersionNumber(version);
         this.url = url;
         this.dependencies = new ArrayList<>();
         this.dependents = new ArrayList<>();
@@ -24,7 +25,7 @@ public class Plugin {
 
     public Plugin(String name, String version, boolean isPluginOptional) {
         this.name = name;
-        this.version = version;
+        this.version = new VersionNumber(version);
         this.isPluginOptional = isPluginOptional;
     }
 
@@ -32,7 +33,7 @@ public class Plugin {
         this.name = name;
     }
 
-    public void setVersion(String version) {
+    public void setVersion(VersionNumber version) {
         this.version = version;
     }
 
@@ -52,7 +53,7 @@ public class Plugin {
         return name;
     }
 
-    public String getVersion() {
+    public VersionNumber getVersion() {
         return version;
     }
 

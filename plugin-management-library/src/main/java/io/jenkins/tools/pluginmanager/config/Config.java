@@ -24,7 +24,7 @@ public class Config {
         this.showWarnings = showWarnings;
     }
 
-    public boolean hasShowWarnings() {
+    public boolean isShowWarnings() {
         return showWarnings;
     }
 
@@ -32,7 +32,7 @@ public class Config {
         this.showWarnings = showWarnings;
     }
 
-    public boolean hasShowAllWarnings() {
+    public boolean isShowAllWarnings() {
         return showWarnings;
     }
 

@@ -49,11 +49,11 @@ public class CliOptions {
         return plugins;
     }
 
-    public boolean hasShowWarnings() {
+    public boolean isShowWarnings() {
         return showWarnings;
     }
 
-    public boolean hasShowAllWarnings() {
+    public boolean isShowAllWarnings() {
         return showAllWarnings;
     }
 }

@@ -29,8 +29,8 @@ public class Main {
         Config cfg = new Config();
 
         cfg.setPluginDir(options.getPluginDir());
-        cfg.setShowWarnings(options.hasShowWarnings());
-        cfg.setShowAllWarnings(options.hasShowAllWarnings());
+        cfg.setShowWarnings(options.isShowWarnings());
+        cfg.setShowAllWarnings(options.isShowAllWarnings());
         cfg.setJenkinsWar(options.getJenkinsWar());
 
         String[] pluginsFromCLI = options.getPlugins();
@@ -40,7 +40,7 @@ public class Main {
             }
         }
 
-        System.out.println("show warnings" + options.hasShowAllWarnings());
+        System.out.println("Show warnings: " + options.isShowAllWarnings());
 
         try {
             Scanner scanner = new Scanner(options.getPluginTxt());
@@ -62,7 +62,7 @@ public class Main {
     public static Plugin parsePluginLine(String pluginLine) {
         String[] pluginInfo = pluginLine.split(":");
         String pluginName = pluginInfo[0];
-        String pluginVersion = null;
+        String pluginVersion = "latest";
         String pluginUrl = null;
         if (pluginInfo.length >= 2) {
             pluginVersion = pluginInfo[1];
