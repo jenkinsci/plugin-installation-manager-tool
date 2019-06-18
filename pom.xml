@@ -15,10 +15,11 @@
         <!-- Version of Maven Components -->
         <maven.version>3.5.0</maven.version>
         <powermock.version>2.0.2</powermock.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-    <groupId>io.jenkins</groupId>
-    <artifactId>plugin-manager</artifactId>
+    <groupId>io.jenkins.plugin-management</groupId>
+    <artifactId>jenkins-plugin-management-parent-pom</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
