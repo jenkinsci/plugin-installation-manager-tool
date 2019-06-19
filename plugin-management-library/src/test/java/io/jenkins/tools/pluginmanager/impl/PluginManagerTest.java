@@ -241,7 +241,7 @@ public class PluginManagerTest {
 
     @Test
     public void getJenkinsVersionFromWarTest() throws Exception {
-        URL warURL = this.getClass().getResource("/plugin-manager-test-war.war");
+        URL warURL = this.getClass().getResource("/jenkinsversiontest.war");
         File testWar = new File(warURL.getFile());
 
         //the only time the file for a particular war string is created is in the PluginManager constructor
@@ -251,10 +251,10 @@ public class PluginManagerTest {
         Assert.assertEquals("2.164.1", pluginManager.getJenkinsVersionFromWar());
     }
 
-    /*
+
     @Test
     public void bundledPluginsTest() {
-        URL warURL = this.getClass().getResource("/plugin-manager-test-war.war");
+        URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());
 
         Config config = new Config();
@@ -273,7 +273,5 @@ public class PluginManagerTest {
 
         Assert.assertEquals(expectedPlugins, actualPlugins);
     }
-    */
 
 }
-
