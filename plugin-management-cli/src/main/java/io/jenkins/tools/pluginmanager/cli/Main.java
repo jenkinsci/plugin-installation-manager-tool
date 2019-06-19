@@ -1,6 +1,7 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
 import java.io.FileNotFoundException;
@@ -28,10 +29,8 @@ public class Main {
 
         Config cfg = new Config();
 
-        cfg.setPluginDir(options.getPluginDir());
-        cfg.setShowWarnings(options.hasShowWarnings());
-        cfg.setShowAllWarnings(options.hasShowAllWarnings());
-        cfg.setJenkinsWar(options.getJenkinsWar());
+        cfg.setShowWarnings(options.isShowWarnings());
+        cfg.setShowAllWarnings(options.isShowAllWarnings());
 
         String[] pluginsFromCLI = options.getPlugins();
         if (pluginsFromCLI != null) {
@@ -40,17 +39,49 @@ public class Main {
             }
         }
 
-        System.out.println("show warnings" + options.hasShowAllWarnings());
+        if (options.getPluginTxt() == null) {
+            System.out.println("No file containing list of plugins to be downloaded entered. " +
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_TXT);
+            cfg.setPluginTxt(Settings.DEFAULT_PLUGIN_TXT);
+        }
+        else {
+            System.out.println("File containing list of plugins to be downloaded: " + options.getPluginTxt());
+            cfg.setPluginTxt(options.getPluginTxt());
+        }
 
+
+        if (options.getPluginDir() == null) {
+            System.out.println("No directory to download plugins to entered. " +
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
+            cfg.setPluginDir(Settings.DEFAULT_PLUGIN_DIR);
+        }
+        else {
+            System.out.println("Plugin download location: " + options.getPluginDir());
+            cfg.setPluginDir(options.getPluginDir());
+        }
+
+
+        if (options.getJenkinsWar() == null) {
+            System.out.println("No war entered. Will use default of " + Settings.DEFAULT_JENKINS_WAR);
+            cfg.setJenkinsWar(Settings.DEFAULT_JENKINS_WAR);
+        }
+        else {
+            System.out.println("Will use war file: " + options.getJenkinsWar());
+            cfg.setJenkinsWar(options.getJenkinsWar());
+        }
+
+        System.out.println("Show all security warnings: " + options.isShowAllWarnings());
+
+
+        //will need to deal with case where no plugin.txt file exists
         try {
-            Scanner scanner = new Scanner(options.getPluginTxt());
-            System.out.println("Reading in plugins from " + options.getPluginTxt().toString());
+            Scanner scanner = new Scanner(cfg.getPluginTxt());
+            System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
             while (scanner.hasNextLine()) {
                 Plugin plugin = parsePluginLine(scanner.nextLine());
                 plugins.add(plugin);
             }
-        } catch (
-                FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
@@ -62,7 +93,7 @@ public class Main {
     public static Plugin parsePluginLine(String pluginLine) {
         String[] pluginInfo = pluginLine.split(":");
         String pluginName = pluginInfo[0];
-        String pluginVersion = null;
+        String pluginVersion = "latest";
         String pluginUrl = null;
         if (pluginInfo.length >= 2) {
             pluginVersion = pluginInfo[1];

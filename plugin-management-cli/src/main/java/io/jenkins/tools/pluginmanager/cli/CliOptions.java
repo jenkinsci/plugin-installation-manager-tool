@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.cli;
 
-import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import javax.annotation.Nonnull;
 import org.kohsuke.args4j.Option;
@@ -31,17 +30,17 @@ public class CliOptions {
 
     @Nonnull
     public File getPluginTxt() {
-        return pluginTxt != null ? pluginTxt : Settings.DEFAULT_PLUGIN_TXT;
+        return pluginTxt;
     }
 
     @Nonnull
     public File getPluginDir() {
-        return pluginDir != null ? pluginDir : Settings.DEFAULT_PLUGIN_DIR;
+        return pluginDir;
     }
 
     @Nonnull
     public String getJenkinsWar() {
-        return jenkinsWarFile != null ? jenkinsWarFile : Settings.DEFAULT_JENKINS_WAR;
+        return jenkinsWarFile;
     }
 
 
@@ -49,11 +48,11 @@ public class CliOptions {
         return plugins;
     }
 
-    public boolean hasShowWarnings() {
+    public boolean isShowWarnings() {
         return showWarnings;
     }
 
-    public boolean hasShowAllWarnings() {
+    public boolean isShowAllWarnings() {
         return showAllWarnings;
     }
 }

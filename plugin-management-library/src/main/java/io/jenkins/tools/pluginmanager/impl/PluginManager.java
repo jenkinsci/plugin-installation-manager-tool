@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import java.io.File;
 import java.io.FileFilter;
@@ -61,8 +62,8 @@ public class PluginManager {
     private String jenkinsVersion;
 
     private File jenkinsWarFile;
-    private Map<String, String> installedPluginVersions;
-    private Map<String, String> bundledPluginVersions;
+    private Map<String, VersionNumber> installedPluginVersions;
+    private Map<String, VersionNumber> bundledPluginVersions;
     private List<SecurityWarning> allSecurityWarnings;
     Config cfg;
 
@@ -91,7 +92,7 @@ public class PluginManager {
 
         getSecurityWarnings();
 
-        if (cfg.hasShowAllWarnings()) {
+        if (cfg.isShowAllWarnings()) {
             for (int i = 0; i < allSecurityWarnings.size(); i++) {
                 SecurityWarning securityWarning = allSecurityWarnings.get(i);
                 System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
@@ -157,7 +158,8 @@ public class PluginManager {
                 }
             } catch (IOException e) {
                 JENKINS_UC_LATEST = "";
-                System.out.println("Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
+                System.out.println(
+                        "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
 
         }
@@ -235,7 +237,7 @@ public class PluginManager {
 
         List<Plugin> dependentPlugins = new ArrayList<>();
 
-        System.out.println("Plugin depends on: ");
+        System.out.println(plugin.getName() + " depends on: ");
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
@@ -251,54 +253,30 @@ public class PluginManager {
 
         for (Plugin dependency : dependentPlugins) {
             String dependencyName = dependency.getName();
-            String dependencyVersion = dependency.getVersion();
+            VersionNumber dependencyVersion = dependency.getVersion();
             if (dependency.getPluginOptional()) {
                 System.out.println("Skipping optional dependency " + dependencyName);
                 continue;
             }
 
-            String installedVersion = "";
+            VersionNumber installedVersion = null;
             if (installedPluginVersions.containsKey(plugin.getName())) {
                 installedVersion = installedPluginVersions.get(dependencyName);
             } else if (bundledPluginVersions.containsKey(plugin.getName())) {
                 installedVersion = bundledPluginVersions.get(dependencyName);
             }
 
-            if (!StringUtils.isEmpty(installedVersion)) {
-                if (comparePluginVersions(installedVersion, dependencyVersion) < 0) {
+            if (installedVersion != null) {
+                if (installedVersion.compareTo(dependencyVersion) < 0) {
                     System.out.println("Installed version of " + dependencyName + " is less than minimum " +
                             "required version of " + dependencyVersion + ", upgrading bundled dependency");
                 } else {
-                    System.out.println("Skipping already installed dependency ");
+                    System.out.println("Skipping already installed dependency " + dependencyName);
                 }
             } else {
                 downloadPlugin(dependency);
             }
         }
-
-    }
-
-
-    public int comparePluginVersions(String version1, String version2) {
-        if (version2 == null)
-            return 1;
-        if (version1 == null) {
-            return -1;
-        }
-        String[] version1Parts = version1.split("\\.");
-        String[] version2Parts = version2.split("\\.");
-        int length = Math.max(version1Parts.length, version2Parts.length);
-        for (int i = 0; i < length; i++) {
-            int version1Part = i < version1Parts.length ?
-                    Integer.parseInt(version1Parts[i]) : 0;
-            int version2Part = i < version2Parts.length ?
-                    Integer.parseInt(version2Parts[i]) : 0;
-            if (version1Part < version2Part)
-                return -1;
-            if (version1Part > version2Part)
-                return 1;
-        }
-        return 0;
 
     }
 
@@ -319,7 +297,7 @@ public class PluginManager {
 
     public String getPluginDownloadUrl(Plugin plugin) {
         String pluginName = plugin.getName();
-        String pluginVersion = plugin.getVersion();
+        String pluginVersion = plugin.getVersion().toString();
         String pluginUrl = plugin.getUrl();
 
         String urlString = "";
@@ -332,9 +310,11 @@ public class PluginManager {
             System.out.println("Will use url: " + pluginUrl);
             urlString = pluginUrl;
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
-            urlString = new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append(".hpi").toString();
+            urlString =
+                    new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append(".hpi").toString();
         } else if (pluginVersion.equals("experimental")) {
-            urlString = new StringBuffer(JENKINS_UC_EXPERIMENTAL).append("/latest/").append(pluginName).append(".hpi").toString();
+            urlString = new StringBuffer(JENKINS_UC_EXPERIMENTAL).append("/latest/").append(pluginName).append(".hpi")
+                    .toString();
         } else if (pluginVersion.contains("incrementals")) {
             String[] incrementalsVersionInfo = pluginVersion.split(";");
             String groupId = incrementalsVersionInfo[1];
@@ -359,11 +339,12 @@ public class PluginManager {
 
     public boolean downloadToFile(String urlString, Plugin plugin) {
         String pluginName = plugin.getName();
-        String pluginVersion = plugin.getVersion();
+        VersionNumber pluginVersion = plugin.getVersion();
 
-        System.out.println("Downloading plugin: " + pluginName + " from url: " + urlString);
+        System.out.println("Downloading plugin " + pluginName + " from url: " + urlString);
 
-        if (installedPluginVersions.containsKey(pluginName) && installedPluginVersions.get(pluginName).equals(pluginVersion)) {
+        if (installedPluginVersions.containsKey(pluginName) &&
+                installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
             return true;
         }
 
@@ -412,7 +393,6 @@ public class PluginManager {
             return attributes.getValue("Jenkins-Version");
         } catch (IOException e) {
             System.out.println("Unable to open war file");
-            e.printStackTrace();
         }
 
         return "";
@@ -440,7 +420,7 @@ public class PluginManager {
         File[] files = refDir.listFiles(fileFilter);
         for (File file : files) {
             String pluginName = FilenameUtils.getBaseName(file.getName());
-            String pluginVersion = getPluginVersion(file);
+            VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
             installedPluginVersions.put(pluginName, pluginVersion);
             installedPlugins.add(pluginName);
         }
@@ -480,9 +460,11 @@ public class PluginManager {
                             IOUtils.copy(in, out);
                         }
 
-                        String pluginVersion = getPluginVersion(tempFile);
+                        VersionNumber pluginVersion = new VersionNumber(getPluginVersion(tempFile));
+
                         tempFile.delete();
-                        bundledPluginVersions.put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
+                        bundledPluginVersions
+                                .put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
                     }
                 }
             } catch (IOException e) {
