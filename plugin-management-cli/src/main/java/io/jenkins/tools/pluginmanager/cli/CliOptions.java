@@ -1,7 +1,7 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import java.io.File;
-import javax.annotation.Nonnull;
+import java.util.Arrays;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
@@ -28,24 +28,21 @@ public class CliOptions {
     @Option(name = "-viewAllSecurityWarnings", usage = "Set to true to show all plugins that have security warnings", handler = BooleanOptionHandler.class)
     public boolean showAllWarnings;
 
-    @Nonnull
     public File getPluginTxt() {
         return pluginTxt;
     }
 
-    @Nonnull
     public File getPluginDir() {
         return pluginDir;
     }
 
-    @Nonnull
     public String getJenkinsWar() {
         return jenkinsWarFile;
     }
 
 
     public String[] getPlugins() {
-        return plugins;
+        return Arrays.copyOf(plugins, plugins.length);
     }
 
     public boolean isShowWarnings() {

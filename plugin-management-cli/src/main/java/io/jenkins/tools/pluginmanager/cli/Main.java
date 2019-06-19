@@ -6,6 +6,7 @@ import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -75,7 +76,7 @@ public class Main {
 
         //will need to deal with case where no plugin.txt file exists
         try {
-            Scanner scanner = new Scanner(cfg.getPluginTxt());
+            Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
             System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
             while (scanner.hasNextLine()) {
                 Plugin plugin = parsePluginLine(scanner.nextLine());

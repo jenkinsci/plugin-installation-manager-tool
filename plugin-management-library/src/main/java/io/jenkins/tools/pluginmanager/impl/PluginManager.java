@@ -5,14 +5,16 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -99,8 +101,8 @@ public class PluginManager {
             }
         }
 
-        List<String> bundledPlugins = bundledPlugins();
-        List<String> installedPlugins = installedPlugins();
+        bundledPlugins();
+        installedPlugins();
 
         downloadPlugins(plugins);
 
@@ -168,21 +170,25 @@ public class PluginManager {
 
 
     public void writeFailedPluginsToFile() {
+        try (FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt")) {
+            try (Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
 
-        try (FileWriter fileWriter = new FileWriter("failedplugins.txt")) {
-            if (failedPlugins.size() > 0) {
-                System.out.println("Some plugins failed to download: ");
-                for (Plugin plugin : failedPlugins) {
-                    String failedPluginName = plugin.getName();
-                    System.out.println(failedPluginName);
-                    fileWriter.write(failedPluginName + "\n");
+                if (failedPlugins.size() > 0) {
+                    System.out.println("Some plugins failed to download: ");
+                    for (Plugin plugin : failedPlugins) {
+                        String failedPluginName = plugin.getName();
+                        System.out.println(failedPluginName);
+                        fstream.write(failedPluginName + "\n");
+                    }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+        }   catch (IOException e) {
+                e.printStackTrace();
+            }
 
+    }
 
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
@@ -224,6 +230,7 @@ public class PluginManager {
 
         if (updateCenterJson == null) {
             System.out.println("Unable to get update center json");
+            return;
         }
 
         JSONObject plugins = updateCenterJson.getJSONObject("plugins");
@@ -371,10 +378,8 @@ public class PluginManager {
         }
 
         //check integrity of plugin file
-        try {
-            JarFile pluginJpi = new JarFile(pluginFile);
+        try (JarFile pluginJpi = new JarFile(pluginFile)){
         } catch (IOException e) {
-            e.printStackTrace();
             failedPlugins.add(plugin);
             System.out.println("Downloaded file is not a valid ZIP");
             return false;
@@ -386,8 +391,7 @@ public class PluginManager {
 
     public String getJenkinsVersionFromWar() {
         //java -jar $JENKINS_WAR --version
-        try {
-            JarFile jenkinsWar = new JarFile(jenkinsWarFile);
+        try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
             Manifest manifest = jenkinsWar.getManifest();
             Attributes attributes = manifest.getMainAttributes();
             return attributes.getValue("Jenkins-Version");
@@ -401,8 +405,7 @@ public class PluginManager {
 
     public String getPluginVersion(File file) {
         //this is also done in the existing plugin manager from core - should I do this a similar way to that instead?
-        try {
-            JarFile pluginJpi = new JarFile(file);
+        try (JarFile pluginJpi = new JarFile(file)) {
             Manifest manifest = pluginJpi.getManifest();
             Attributes attributes = manifest.getMainAttributes();
             return attributes.getValue("Plugin-Version");
@@ -418,11 +421,13 @@ public class PluginManager {
 
         //only lists files in same directory, does not list files recursively
         File[] files = refDir.listFiles(fileFilter);
-        for (File file : files) {
-            String pluginName = FilenameUtils.getBaseName(file.getName());
-            VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
-            installedPluginVersions.put(pluginName, pluginVersion);
-            installedPlugins.add(pluginName);
+        if (files != null) {
+            for (File file : files) {
+                String pluginName = FilenameUtils.getBaseName(file.getName());
+                VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
+                installedPluginVersions.put(pluginName, pluginVersion);
+                installedPlugins.add(pluginName);
+            }
         }
 
         return installedPlugins;
@@ -451,20 +456,23 @@ public class PluginManager {
                 for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
-                        bundledPlugins.add(file.getFileName().toString());
+                        Path fileName = file.getFileName();
+                        if (fileName != null) {
+                            bundledPlugins.add(fileName.toString());
 
-                        //because can't convert a ZipPath to a file with file.toFile();
-                        InputStream in = Files.newInputStream(file);
-                        final File tempFile = File.createTempFile("PREFIX", "SUFFIX");
-                        try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                            IOUtils.copy(in, out);
+                            //because can't convert a ZipPath to a file with file.toFile();
+                            InputStream in = Files.newInputStream(file);
+                            final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
+                            try (FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
+                                IOUtils.copy(in, out);
+                            }
+
+                            VersionNumber pluginVersion = new VersionNumber(getPluginVersion(tempFile.toFile()));
+
+                            Files.delete(tempFile);
+                            bundledPluginVersions
+                                    .put(FilenameUtils.getBaseName(fileName.toString()), pluginVersion);
                         }
-
-                        VersionNumber pluginVersion = new VersionNumber(getPluginVersion(tempFile));
-
-                        tempFile.delete();
-                        bundledPluginVersions
-                                .put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
                     }
                 }
             } catch (IOException e) {
