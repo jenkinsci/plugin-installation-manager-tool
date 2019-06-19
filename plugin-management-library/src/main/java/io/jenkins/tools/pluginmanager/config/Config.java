@@ -8,12 +8,17 @@ import java.util.List;
 
 public class Config {
     private File pluginDir;
+    private File pluginTxt;
     private boolean showWarnings;
     private String jenkinsWar;
     private List<Plugin> plugins;
 
     public void setPluginDir(File pluginDir) {
         this.pluginDir = pluginDir;
+    }
+
+    public void setPluginTxt(File pluginTxt) {
+        this.pluginTxt =pluginTxt;
     }
 
     public File getPluginDir() {
@@ -34,6 +39,10 @@ public class Config {
 
     public boolean isShowAllWarnings() {
         return showWarnings;
+    }
+
+    public File getPluginTxt() {
+        return pluginTxt;
     }
 
     public void setJenkinsWar(String jenkinsWar) {

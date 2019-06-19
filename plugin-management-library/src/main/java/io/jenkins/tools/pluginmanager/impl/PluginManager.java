@@ -163,7 +163,8 @@ public class PluginManager {
                 }
             } catch (IOException e) {
                 JENKINS_UC_LATEST = "";
-                System.out.println("Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
+                System.out.println(
+                        "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
 
         }
@@ -271,7 +272,7 @@ public class PluginManager {
             }
 
             if (installedVersion != null) {
-                if (installedVersion.compareTo(dependencyVersion) < 0 ) {
+                if (installedVersion.compareTo(dependencyVersion) < 0) {
                     System.out.println("Installed version of " + dependencyName + " is less than minimum " +
                             "required version of " + dependencyVersion + ", upgrading bundled dependency");
                 } else {
@@ -314,9 +315,11 @@ public class PluginManager {
             System.out.println("Will use url: " + pluginUrl);
             urlString = pluginUrl;
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
-            urlString = new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append(".hpi").toString();
+            urlString =
+                    new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append(".hpi").toString();
         } else if (pluginVersion.equals("experimental")) {
-            urlString = new StringBuffer(JENKINS_UC_EXPERIMENTAL).append("/latest/").append(pluginName).append(".hpi").toString();
+            urlString = new StringBuffer(JENKINS_UC_EXPERIMENTAL).append("/latest/").append(pluginName).append(".hpi")
+                    .toString();
         } else if (pluginVersion.contains("incrementals")) {
             String[] incrementalsVersionInfo = pluginVersion.split(";");
             String groupId = incrementalsVersionInfo[1];
@@ -345,7 +348,8 @@ public class PluginManager {
 
         System.out.println("Downloading plugin " + pluginName + " from url: " + urlString);
 
-        if (installedPluginVersions.containsKey(pluginName) && installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
+        if (installedPluginVersions.containsKey(pluginName) &&
+                installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
             return true;
         }
 
@@ -394,7 +398,6 @@ public class PluginManager {
             return attributes.getValue("Jenkins-Version");
         } catch (IOException e) {
             System.out.println("Unable to open war file");
-            e.printStackTrace();
         }
 
         return "";
@@ -422,8 +425,7 @@ public class PluginManager {
         File[] files = refDir.listFiles(fileFilter);
         for (File file : files) {
             String pluginName = FilenameUtils.getBaseName(file.getName());
-            String versionNumber = getPluginVersion(file);
-            VersionNumber pluginVersion = new VersionNumber(versionNumber);
+            VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
             installedPluginVersions.put(pluginName, pluginVersion);
             installedPlugins.add(pluginName);
         }
@@ -491,11 +493,11 @@ public class PluginManager {
                             IOUtils.copy(in, out);
                         }
 
-                        String versionNumber = getPluginVersion(tempFile);
-                        VersionNumber pluginVersion = new VersionNumber(versionNumber);
+                        VersionNumber pluginVersion = new VersionNumber(getPluginVersion(tempFile));
 
                         tempFile.delete();
-                        bundledPluginVersions.put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
+                        bundledPluginVersions
+                                .put(FilenameUtils.getBaseName(file.getFileName().toString()), pluginVersion);
                     }
                 }
             } catch (IOException e) {
