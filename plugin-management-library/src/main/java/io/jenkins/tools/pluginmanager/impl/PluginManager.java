@@ -7,13 +7,10 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -100,8 +97,6 @@ public class PluginManager {
                 System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
             }
         }
-
-        createLocks(plugins);
 
         List<String> bundledPlugins = bundledPlugins();
         List<String> installedPlugins = installedPlugins();
@@ -454,38 +449,10 @@ public class PluginManager {
     }
 
 
-    public void createLocks(List<Plugin> plugins) {
-        for (Plugin plugin : plugins) {
-            createLock(plugin);
-        }
-    }
-
-    public void createLock(Plugin plugin) {
-        //in bash script, users can also pass in a version, but lock is only on plugin name
-        String pluginLock = new StringBuilder(plugin.getName()).append(".lock").toString();
-
-        File lockedFile = new File(refDir, pluginLock);
-
-        FileChannel channel;
-        FileLock lock;
-
-        try {
-            channel = new RandomAccessFile(lockedFile, "rw").getChannel();
-            lock = channel.lock();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        //need to return the file locks?
-
-    }
-
-
     public List<String> bundledPlugins() {
         List<String> bundledPlugins = new ArrayList<>();
 
         if (jenkinsWarFile.exists()) {
-
             //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
             Path path = Paths.get(jenkinsWarFile.toString());
             URI jenkinsWarUri;
