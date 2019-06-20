@@ -7,6 +7,7 @@ import io.jenkins.tools.pluginmanager.impl.PluginManager;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -73,17 +74,20 @@ public class Main {
 
         System.out.println("Show all security warnings: " + options.isShowAllWarnings());
 
-
-        //will need to deal with case where no plugin.txt file exists
-        try {
-            Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
-            System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
-            while (scanner.hasNextLine()) {
-                Plugin plugin = parsePluginLine(scanner.nextLine());
-                plugins.add(plugin);
+        if (Files.exists(cfg.getPluginTxt().toPath())) {
+            try {
+                Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
+                System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
+                while (scanner.hasNextLine()) {
+                    Plugin plugin = parsePluginLine(scanner.nextLine());
+                    plugins.add(plugin);
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("Unable to open " + cfg.getPluginTxt());
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
+        }
+        else {
+            System.out.println(cfg.getPluginTxt() + " file does not exist");
         }
 
         cfg.setPlugins(plugins);

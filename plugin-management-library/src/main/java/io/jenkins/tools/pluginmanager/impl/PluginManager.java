@@ -174,8 +174,6 @@ public class PluginManager {
           FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
           Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
         ) {
-            try (Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
-
                 if (failedPlugins.size() > 0) {
                     System.out.println("Some plugins failed to download: ");
                     for (Plugin plugin : failedPlugins) {
@@ -187,11 +185,7 @@ public class PluginManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }   catch (IOException e) {
-                e.printStackTrace();
-            }
-
-    }
+        }
 
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
@@ -332,8 +326,8 @@ public class PluginManager {
 
             groupId = groupId.replace(".", "/");
 
-            String incrementalsVersionPath = new StringBuffer(incrementalsVersion).append("/").append(pluginName)
-                    .append("-").append(incrementalsVersion).append(".hpi").toString();
+            String incrementalsVersionPath = new StringBuffer(pluginName).append("/").append(incrementalsVersion).append("/").
+                    append(pluginName).append("-").append(incrementalsVersion).append(".hpi").toString();
 
             urlString = new StringBuffer(JENKINS_INCREMENTALS_REPO_MIRROR).append("/").append(groupId).append("/").
                     append(incrementalsVersionPath).toString();
