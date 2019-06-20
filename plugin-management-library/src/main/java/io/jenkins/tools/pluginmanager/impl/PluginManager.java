@@ -83,8 +83,13 @@ public class PluginManager {
 
 
     public void start() {
-        if (!refDir.mkdir()) {
-            System.out.println("Unable to create plugin directory");
+        if (!refDir.exists()) {
+            try {
+                Files.createDirectory(refDir.toPath());
+            }
+            catch (IOException e) {
+                System.out.println("Unable to create plugin directory");
+            }
         }
 
         jenkinsVersion = getJenkinsVersionFromWar();
@@ -199,8 +204,6 @@ public class PluginManager {
             if (!successfulDownload) {
                 System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
                 failedPlugins.add(plugin);
-            } else {
-                resolveDependencies(plugin);
             }
         }
     }
@@ -278,8 +281,9 @@ public class PluginManager {
 
             if (installedVersion != null) {
                 if (installedVersion.compareTo(dependencyVersion) < 0) {
-                    System.out.println("Installed version of " + dependencyName + " is less than minimum " +
+                    System.out.println("Installed version (" + installedVersion + ") of " + dependencyName + " is less than minimum " +
                             "required version of " + dependencyVersion + ", upgrading bundled dependency");
+                    downloadPlugin(dependency);
                 } else {
                     System.out.println("Skipping already installed dependency " + dependencyName);
                 }
@@ -292,6 +296,14 @@ public class PluginManager {
 
 
     public boolean downloadPlugin(Plugin plugin) {
+        String pluginName = plugin.getName();
+        VersionNumber pluginVersion = plugin.getVersion();
+
+        if (installedPluginVersions.containsKey(pluginName) &&
+                installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
+            System.out.println(pluginName + " already installed, skipping");
+            return true;
+        }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin);
         if (!successfulDownload) {
@@ -300,6 +312,10 @@ public class PluginManager {
             plugin.setName(newPluginName);
             pluginDownloadUrl = getPluginDownloadUrl(plugin);
             successfulDownload = downloadToFile(pluginDownloadUrl, plugin);
+        }
+        if (successfulDownload) {
+            installedPluginVersions.put(plugin.getName(), pluginVersion);
+            resolveDependencies(plugin);
         }
         return successfulDownload;
     }
@@ -348,15 +364,7 @@ public class PluginManager {
 
 
     public boolean downloadToFile(String urlString, Plugin plugin) {
-        String pluginName = plugin.getName();
-        VersionNumber pluginVersion = plugin.getVersion();
-
-        System.out.println("Downloading plugin " + pluginName + " from url: " + urlString);
-
-        if (installedPluginVersions.containsKey(pluginName) &&
-                installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
-            return true;
-        }
+        System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
 
         File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
@@ -370,12 +378,10 @@ public class PluginManager {
                 URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
                 FileUtils.copyURLToFile(location.toURL(), pluginFile);
             } catch (URISyntaxException | IOException e) {
-                e.printStackTrace();
                 System.out.println("Unable to resolve plugin URL to download plugin");
                 return false;
             }
         } catch (IOException e) {
-            e.printStackTrace();
             System.out.println("Unable to create HTTP connection to download plugin");
             return false;
         }
@@ -423,13 +429,16 @@ public class PluginManager {
         FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
         //only lists files in same directory, does not list files recursively
+        System.out.println("\nInstalled plugins: ");
         File[] files = refDir.listFiles(fileFilter);
+
         if (files != null) {
             for (File file : files) {
                 String pluginName = FilenameUtils.getBaseName(file.getName());
                 VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
                 installedPluginVersions.put(pluginName, pluginVersion);
                 installedPlugins.add(pluginName);
+		System.out.println(pluginName);
             }
         }
 
@@ -456,9 +465,11 @@ public class PluginManager {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
                 Stream<Path> walk = Files.walk(warPath);
+                System.out.println("\nWar bundled plugins: ");
                 for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
+<<<<<<< HEAD
                         Path fileName = file.getFileName();
                         if (fileName != null) {
                             bundledPlugins.add(fileName.toString());
@@ -475,6 +486,16 @@ public class PluginManager {
                             Files.delete(tempFile);
                             bundledPluginVersions
                                     .put(FilenameUtils.getBaseName(fileName.toString()), pluginVersion);
+=======
+                        String fileName = file.getFileName().toString();
+                        bundledPlugins.add(fileName);
+                        System.out.println(fileName);
+                        //because can't convert a ZipPath to a file with file.toFile();
+                        InputStream in = Files.newInputStream(file);
+                        final File tempFile = File.createTempFile("PREFIX", "SUFFIX");
+                        try (FileOutputStream out = new FileOutputStream(tempFile)) {
+                            IOUtils.copy(in, out);
+>>>>>>> [JENKINS JENKINS-58123] Recursively resolve plugin dependencies
                         }
                     }
                 }
