@@ -86,7 +86,7 @@ public class PluginManager {
         if (!refDir.exists()) {
             try {
                 Files.createDirectory(refDir.toPath());
-            }
+            } catch (IOException e) {
             catch (IOException e) {
                 System.out.println("Unable to create plugin directory");
             }
