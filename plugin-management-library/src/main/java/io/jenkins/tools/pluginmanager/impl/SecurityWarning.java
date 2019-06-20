@@ -64,7 +64,7 @@ public class SecurityWarning {
         this.securityVersionList = new ArrayList<>();
     }
 
-    class SecurityVersion {
+    static class SecurityVersion {
         String lastVersion;
         String pattern;
 
