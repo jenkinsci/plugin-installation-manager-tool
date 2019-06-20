@@ -170,7 +170,10 @@ public class PluginManager {
 
 
     public void writeFailedPluginsToFile() {
-        try (FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt")) {
+        try (
+          FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
+          Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
+        ) {
             try (Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
 
                 if (failedPlugins.size() > 0) {
