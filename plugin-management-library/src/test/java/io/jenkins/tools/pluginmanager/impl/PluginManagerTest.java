@@ -217,7 +217,7 @@ public class PluginManagerTest {
         plugin.setVersion(incrementalVersion);
 
         String incrementalUrl = PluginManager.JENKINS_INCREMENTALS_REPO_MIRROR +
-                "/org/jenkins-ci/plugins/workflow/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
+                "/org/jenkins-ci/plugins/workflow/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 
