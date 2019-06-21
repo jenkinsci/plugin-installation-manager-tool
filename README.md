@@ -3,7 +3,7 @@ Plugin Installation Manager Tool
 
 [![Join the chat at https://gitter.im/jenkinsci/plugin-installation-manager-cli-tool](https://badges.gitter.im/jenkinsci/plugin-installation-manager-cli-tool.svg)](https://gitter.im/jenkinsci/plugin-installation-manager-cli-tool?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-The plugin manager downloads plugins and their dependencies into a folder so that they can easily be imported into an instance of Jenkins. The goal of this tool is to replace the [Docker install-plugins.sh script](https://github.com/jenkinsci/docker/blob/master/install-plugins.sh).
+The plugin manager downloads plugins and their dependencies into a folder so that they can easily be imported into an instance of Jenkins. The goal of this tool is to replace the [Docker install-plugins.sh script](https://github.com/jenkinsci/docker/blob/master/install-plugins.sh) and the many other implementations of plugin management that have been recreated across Jenkins.
 
 ### Usage
 
@@ -53,5 +53,5 @@ If a plugin to be downloaded from the incrementals repository is requested using
 java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar -plugins "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
-For plugins listed in a file, each plugin must be listed on a new line. More robust parsing [coming soon](https://issues.jenkins-ci.org/browse/JENKINS-58126). 
+For plugins listed in a .txt file, each plugin must be listed on a new line. More [robust parsing](https://issues.jenkins-ci.org/browse/JENKINS-58126) and other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
 
