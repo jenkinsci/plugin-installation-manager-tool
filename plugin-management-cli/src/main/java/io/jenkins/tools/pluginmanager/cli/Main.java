@@ -77,7 +77,7 @@ public class Main {
         //will need to deal with case where no plugin.txt file exists
         try {
             Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
-            System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
+            System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString() + "\n");
             while (scanner.hasNextLine()) {
                 Plugin plugin = parsePluginLine(scanner.nextLine());
                 plugins.add(plugin);
