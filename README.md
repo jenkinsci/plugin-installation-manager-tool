@@ -10,7 +10,7 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 #### Getting Started
 ```
 mvn clean install 
-java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar /file/path/jenkins.war -pluginTxtPath /file/path/plugins.txt -plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar -war /file/path/jenkins.war -pluginTxtPath /file/path/plugins.txt -plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 #### CLI Options
