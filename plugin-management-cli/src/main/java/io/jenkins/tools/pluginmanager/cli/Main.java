@@ -77,7 +77,7 @@ public class Main {
         if (Files.exists(cfg.getPluginTxt().toPath())) {
             try {
                 Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
-                System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString());
+                System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString() + "\n");
                 while (scanner.hasNextLine()) {
                     Plugin plugin = parsePluginLine(scanner.nextLine());
                     plugins.add(plugin);
