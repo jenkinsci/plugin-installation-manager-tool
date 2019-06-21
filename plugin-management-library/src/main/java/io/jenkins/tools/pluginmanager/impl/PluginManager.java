@@ -178,8 +178,6 @@ public class PluginManager {
           FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
           Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
         ) {
-            try (Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)) {
-
                 if (failedPlugins.size() > 0) {
                     System.out.println("Some plugins failed to download: ");
                     for (Plugin plugin : failedPlugins) {
@@ -191,11 +189,7 @@ public class PluginManager {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }   catch (IOException e) {
-                e.printStackTrace();
-            }
-
-    }
+        }
 
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
@@ -335,26 +329,20 @@ public class PluginManager {
             System.out.println("Will use url: " + pluginUrl);
             urlString = pluginUrl;
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
-            urlString =
-                    new StringBuffer(JENKINS_UC_LATEST).append("/latest/").append(pluginName).append(".hpi").toString();
+            urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_LATEST, pluginName);
         } else if (pluginVersion.equals("experimental")) {
-            urlString = new StringBuffer(JENKINS_UC_EXPERIMENTAL).append("/latest/").append(pluginName).append(".hpi")
-                    .toString();
+            urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_EXPERIMENTAL, pluginName);
         } else if (pluginVersion.contains("incrementals")) {
             String[] incrementalsVersionInfo = pluginVersion.split(";");
             String groupId = incrementalsVersionInfo[1];
             String incrementalsVersion = incrementalsVersionInfo[2];
-
             groupId = groupId.replace(".", "/");
-
-            String incrementalsVersionPath = new StringBuffer(pluginName).append("/").append(incrementalsVersion).append("/").
-
-            urlString = new StringBuffer(JENKINS_INCREMENTALS_REPO_MIRROR).append("/").append(groupId).append("/").
-                    append(incrementalsVersionPath).toString();
+          
+            String incrementalsVersionPath = String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
+            urlString = String.format("%s/%s/%s", JENKINS_INCREMENTALS_REPO_MIRROR, groupId, incrementalsVersionPath);
+          
         } else {
-            String pathToPlugin = new StringBuffer(pluginName).append("/").append(pluginVersion).append("/").
-                    append(pluginName).append(".hpi").toString();
-            urlString = new StringBuffer(JENKINS_UC_DOWNLOAD).append("/plugins/").append(pathToPlugin).toString();
+              urlString = String.format("%s/plugins/%s/%s/%s.hpi", JENKINS_UC_DOWNLOAD, pluginName, pluginVersion, pluginName);
         }
 
         return urlString;
@@ -467,11 +455,10 @@ public class PluginManager {
                 for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
-<<<<<<< HEAD
                         Path fileName = file.getFileName();
                         if (fileName != null) {
                             bundledPlugins.add(fileName.toString());
-
+                            System.out.println(fileName.toString());
                             //because can't convert a ZipPath to a file with file.toFile();
                             InputStream in = Files.newInputStream(file);
                             final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
@@ -484,16 +471,6 @@ public class PluginManager {
                             Files.delete(tempFile);
                             bundledPluginVersions
                                     .put(FilenameUtils.getBaseName(fileName.toString()), pluginVersion);
-=======
-                        String fileName = file.getFileName().toString();
-                        bundledPlugins.add(fileName);
-                        System.out.println(fileName);
-                        //because can't convert a ZipPath to a file with file.toFile();
-                        InputStream in = Files.newInputStream(file);
-                        final File tempFile = File.createTempFile("PREFIX", "SUFFIX");
-                        try (FileOutputStream out = new FileOutputStream(tempFile)) {
-                            IOUtils.copy(in, out);
->>>>>>> [JENKINS JENKINS-58123] Recursively resolve plugin dependencies
                         }
                     }
                 }
