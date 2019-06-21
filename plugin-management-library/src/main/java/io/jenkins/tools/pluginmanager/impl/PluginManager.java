@@ -348,7 +348,6 @@ public class PluginManager {
             groupId = groupId.replace(".", "/");
 
             String incrementalsVersionPath = new StringBuffer(pluginName).append("/").append(incrementalsVersion).append("/").
-                    append(pluginName).append("-").append(incrementalsVersion).append(".hpi").toString();
 
             urlString = new StringBuffer(JENKINS_INCREMENTALS_REPO_MIRROR).append("/").append(groupId).append("/").
                     append(incrementalsVersionPath).toString();
