@@ -53,7 +53,7 @@ public class Main {
 
 
         if (options.getPluginDir() == null) {
-            System.out.println("No directory to download plugins to entered. " +
+            System.out.println("No directory to download plugins entered. " +
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
             cfg.setPluginDir(Settings.DEFAULT_PLUGIN_DIR);
         }

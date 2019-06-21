@@ -42,7 +42,11 @@ public class CliOptions {
 
 
     public String[] getPlugins() {
-        return Arrays.copyOf(plugins, plugins.length);
+        if (plugins != null) {
+            return Arrays.copyOf(plugins, plugins.length);
+        }
+        return null;
+
     }
 
     public boolean isShowWarnings() {
