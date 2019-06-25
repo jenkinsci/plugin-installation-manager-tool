@@ -34,12 +34,11 @@ public class Main {
         cfg.setShowWarnings(options.isShowWarnings());
         cfg.setShowAllWarnings(options.isShowAllWarnings());
 
-        String[] pluginsFromCLI = options.getPlugins();
-        if (pluginsFromCLI != null) {
-            for (String pluginLine : pluginsFromCLI) {
-                plugins.add(parsePluginLine(pluginLine));
-            }
+        List<String> pluginsFromCLI = options.getPlugins();
+        for (String pluginLine : pluginsFromCLI) {
+            plugins.add(parsePluginLine(pluginLine));
         }
+
 
         if (options.getPluginTxt() == null) {
             System.out.println("No file containing list of plugins to be downloaded entered. " +
@@ -53,7 +52,7 @@ public class Main {
 
 
         if (options.getPluginDir() == null) {
-            System.out.println("No directory to download plugins to entered. " +
+            System.out.println("No directory to download plugins entered. " +
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
             cfg.setPluginDir(Settings.DEFAULT_PLUGIN_DIR);
         }

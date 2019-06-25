@@ -1,7 +1,9 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
@@ -41,8 +43,11 @@ public class CliOptions {
     }
 
 
-    public String[] getPlugins() {
-        return Arrays.copyOf(plugins, plugins.length);
+    public List<String> getPlugins() {
+        if (plugins != null) {
+            return new ArrayList<>(Arrays.asList(plugins));
+        }
+        return new ArrayList<>();
     }
 
     public boolean isShowWarnings() {
