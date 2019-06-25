@@ -12,13 +12,14 @@ public class Config {
     private boolean showWarnings;
     private String jenkinsWar;
     private List<Plugin> plugins;
+    private boolean isOutputVerbose;
 
     public void setPluginDir(File pluginDir) {
         this.pluginDir = pluginDir;
     }
 
     public void setPluginTxt(File pluginTxt) {
-        this.pluginTxt =pluginTxt;
+        this.pluginTxt = pluginTxt;
     }
 
     public File getPluginDir() {
@@ -61,7 +62,16 @@ public class Config {
         return plugins;
     }
 
+    public boolean isOutputVerbose() {
+        return isOutputVerbose;
+    }
+
+    public void setOutputVerbose(boolean outputVerbose) {
+        isOutputVerbose = outputVerbose;
+    }
+
     public Config() {
         plugins = new ArrayList<>();
     }
+
 }

@@ -7,7 +7,6 @@ import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 
 
-
 public class CliOptions {
     //path must include plugins.txt
     @Option(name = "-pluginTxtPath", usage = "Path to plugins.txt")
@@ -22,11 +21,14 @@ public class CliOptions {
     @Option(name = "-war", usage = "Path to Jenkins war file")
     public String jenkinsWarFile;
 
-    @Option(name = "-viewSecurityWarnings", usage = "Set to true to show specified plugins that have security warnings", handler = BooleanOptionHandler.class)
+    @Option(name = "-viewSecurityWarnings", usage = "Set to show specified plugins that have security warnings", handler = BooleanOptionHandler.class)
     public boolean showWarnings;
 
-    @Option(name = "-viewAllSecurityWarnings", usage = "Set to true to show all plugins that have security warnings", handler = BooleanOptionHandler.class)
+    @Option(name = "-viewAllSecurityWarnings", usage = "Set to show all plugins that have security warnings", handler = BooleanOptionHandler.class)
     public boolean showAllWarnings;
+
+    @Option(name="-verbose", usage = "Set to show detailed information about plugin downloads", handler = BooleanOptionHandler.class)
+    public boolean isOutputVerbose;
 
     public File getPluginTxt() {
         return pluginTxt;
@@ -40,9 +42,11 @@ public class CliOptions {
         return jenkinsWarFile;
     }
 
-
     public String[] getPlugins() {
-        return Arrays.copyOf(plugins, plugins.length);
+        if (plugins != null) {
+            return Arrays.copyOf(plugins, plugins.length);
+        }
+        return null;
     }
 
     public boolean isShowWarnings() {
@@ -51,5 +55,9 @@ public class CliOptions {
 
     public boolean isShowAllWarnings() {
         return showAllWarnings;
+    }
+
+    public boolean isOutputVerbose() {
+        return isOutputVerbose;
     }
 }

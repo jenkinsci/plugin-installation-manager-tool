@@ -30,8 +30,11 @@ import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -71,6 +74,14 @@ public class PluginManager {
 
 
     public PluginManager(Config cfg) {
+        if (cfg.isOutputVerbose()) {
+            Handler consoleHandler = new ConsoleHandler();
+            consoleHandler.setLevel(Level.FINE);
+            LOGGER.setLevel(Level.FINE);
+            LOGGER.addHandler(consoleHandler);
+            LOGGER.setUseParentHandlers(false);
+        }
+
         plugins = cfg.getPlugins();
         failedPlugins = new ArrayList();
         jenkinsWarFile = new File(cfg.getJenkinsWar());
@@ -99,10 +110,9 @@ public class PluginManager {
         getSecurityWarnings();
 
         if (cfg.isShowAllWarnings()) {
-            for (int i = 0; i < allSecurityWarnings.size(); i++) {
-                SecurityWarning securityWarning = allSecurityWarnings.get(i);
-                LOGGER.log(Level.INFO, securityWarning.getName() + " - " + securityWarning.getMessage());
-            }
+            LOGGER.log(Level.INFO, "All security warnings: {0}",
+                    allSecurityWarnings.stream().map(p -> p.getName() + " - " + p.getMessage())
+                            .collect(Collectors.joining(", ")));
         }
 
         bundledPlugins();
@@ -112,8 +122,7 @@ public class PluginManager {
 
         writeFailedPluginsToFile();
 
-        //clean up locks
-
+        LOGGER.log(Level.INFO, "Download complete");
     }
 
 
@@ -160,43 +169,39 @@ public class PluginManager {
                     }
                 } catch (IOException e) {
                     JENKINS_UC_LATEST = "";
-                    LOGGER.log(Level.WARNING, "No version specific update center for Jenkins version " + jenkinsVersion);
+                    LOGGER.log(Level.FINE, "No version specific update center for Jenkins version {0}", jenkinsVersion);
                 }
             } catch (IOException e) {
                 JENKINS_UC_LATEST = "";
-                LOGGER.log(Level.WARNING, "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
+                LOGGER.log(Level.WARNING, "Unable to check if version specific update center for Jenkins version {0}",
+                        jenkinsVersion);
             }
-
         }
-
     }
 
 
     public void writeFailedPluginsToFile() {
         try (
-          FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
-          Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
+                FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
+                Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
         ) {
-                if (failedPlugins.size() > 0) {
-                    LOGGER.log(Level.WARNING, "Some plugins failed to download: ");
-                    for (Plugin plugin : failedPlugins) {
-                        String failedPluginName = plugin.getName();
-                        LOGGER.log(Level.INFO, failedPluginName);
-                        fstream.write(failedPluginName + "\n");
-                    }
+            if (failedPlugins.size() > 0) {
+                for (Plugin plugin : failedPlugins) {
+                    String failedPluginName = plugin.getName();
+                    fstream.write(failedPluginName + "\n");
                 }
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Error writing failed plugins to file");
+                LOGGER.log(Level.INFO, "Some plugins failed to download: {0}",
+                        failedPlugins.stream().map(p -> p.getName()).collect(Collectors.joining(", ")));
             }
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Error writing failed plugins to file");
         }
+    }
 
     public void downloadPlugins(List<Plugin> plugins) {
+        LOGGER.log(Level.INFO, "Downloading plugins");
         for (Plugin plugin : plugins) {
-            boolean successfulDownload = downloadPlugin(plugin);
-            if (!successfulDownload) {
-                LOGGER.log(Level.WARNING, "Unable to download " + plugin.getName() + ". Skipping...");
-                failedPlugins.add(plugin);
-            }
+            downloadPlugin(plugin);
         }
     }
 
@@ -228,6 +233,7 @@ public class PluginManager {
 
         if (updateCenterJson == null) {
             LOGGER.log(Level.WARNING, "Unable to get update center json");
+            return;
         }
 
         JSONObject plugins = updateCenterJson.getJSONObject("plugins");
@@ -235,13 +241,11 @@ public class PluginManager {
         JSONArray dependencies = (JSONArray) pluginInfo.get("dependencies");
 
         if (dependencies == null || dependencies.length() == 0) {
-            LOGGER.log(Level.INFO, plugin.getName() + " has no dependencies");
+            LOGGER.log(Level.FINE, "{0} has no dependencies", plugin.getName());
             return;
         }
 
         List<Plugin> dependentPlugins = new ArrayList<>();
-
-        LOGGER.log(Level.INFO, "Plugin depends on: ");
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
@@ -250,16 +254,18 @@ public class PluginManager {
             boolean isPluginOptional = dependency.getBoolean("optional");
             Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
             dependentPlugins.add(dependentPlugin);
-
-            LOGGER.log(Level.INFO, pluginName + ": " + pluginVersion);
         }
+
+        LOGGER.log(Level.FINE, "{0} depends on: {1}", new Object[]{plugin.getName(),
+                dependentPlugins.stream().map(p -> p.getName() + ": " + p.getVersion()).collect(
+                        Collectors.joining(", "))});
 
 
         for (Plugin dependency : dependentPlugins) {
             String dependencyName = dependency.getName();
             VersionNumber dependencyVersion = dependency.getVersion();
             if (dependency.getPluginOptional()) {
-                LOGGER.log(Level.INFO, "Skipping optional dependency " + dependencyName);
+                LOGGER.log(Level.FINE, "Skipping optional dependency {0}", dependencyName);
                 continue;
             }
 
@@ -272,17 +278,16 @@ public class PluginManager {
 
             if (installedVersion != null) {
                 if (installedVersion.compareTo(dependencyVersion) < 0) {
-                    LOGGER.log(Level.INFO, "Installed version of " + dependencyName + " is less than minimum " +
-                            "required version of " + dependencyVersion + ", upgrading bundled dependency");
+                    LOGGER.log(Level.FINE, "Installed version of {0} is less than minimum required version of " +
+                            "{1}, upgrading bundled dependency", new Object[]{dependencyName, dependencyVersion});
                     downloadPlugin(dependency);
                 } else {
-                    LOGGER.log(Level.INFO, "Skipping already installed dependency " + dependencyName);
+                    LOGGER.log(Level.FINE, "Skipping already installed dependency {0}", dependencyName);
                 }
             } else {
                 downloadPlugin(dependency);
             }
         }
-
     }
 
 
@@ -292,7 +297,7 @@ public class PluginManager {
 
         if (installedPluginVersions.containsKey(pluginName) &&
                 installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
-            System.out.println(pluginName + " already installed, skipping");
+            LOGGER.log(Level.FINE, "{0} already installed, skipping", pluginName);
             return true;
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
@@ -307,6 +312,11 @@ public class PluginManager {
         if (successfulDownload) {
             installedPluginVersions.put(plugin.getName(), pluginVersion);
             resolveDependencies(plugin);
+        }
+
+        if (!successfulDownload) {
+            LOGGER.log(Level.FINE, "Unable to download {0}. Skipping....", plugin.getName());
+            failedPlugins.add(plugin);
         }
         return successfulDownload;
     }
@@ -324,7 +334,6 @@ public class PluginManager {
         }
 
         if (!StringUtils.isEmpty(pluginUrl)) {
-            LOGGER.log(Level.INFO, "Will use url: " + pluginUrl);
             urlString = pluginUrl;
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
             urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_LATEST, pluginName);
@@ -336,11 +345,13 @@ public class PluginManager {
             String incrementalsVersion = incrementalsVersionInfo[2];
             groupId = groupId.replace(".", "/");
 
-            String incrementalsVersionPath = String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
+            String incrementalsVersionPath =
+                    String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
             urlString = String.format("%s/%s/%s", JENKINS_INCREMENTALS_REPO_MIRROR, groupId, incrementalsVersionPath);
 
         } else {
-              urlString = String.format("%s/plugins/%s/%s/%s.hpi", JENKINS_UC_DOWNLOAD, pluginName, pluginVersion, pluginName);
+            urlString = String.format("%s/plugins/%s/%s/%s.hpi", JENKINS_UC_DOWNLOAD, pluginName, pluginVersion,
+                    pluginName);
         }
 
         return urlString;
@@ -348,8 +359,7 @@ public class PluginManager {
 
 
     public boolean downloadToFile(String urlString, Plugin plugin) {
-        LOGGER.log(Level.INFO, "Downloading plugin: " + plugin.getName() + " from url: " + urlString);
-
+        LOGGER.log(Level.FINE, "Downloading plugin: {0} from url {1}", new Object[]{plugin.getName(), urlString});
         File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             HttpClientContext context = HttpClientContext.create();
@@ -362,7 +372,7 @@ public class PluginManager {
                 URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
                 FileUtils.copyURLToFile(location.toURL(), pluginFile);
             } catch (URISyntaxException | IOException e) {
-                LOGGER.log(Level.WARNING, "Unable to resolve plugin URL to download plugin");
+                LOGGER.log(Level.WARNING, "Unable to resolve URL to download {0}", plugin.getName());
                 return false;
             }
         } catch (IOException e) {
@@ -371,7 +381,7 @@ public class PluginManager {
         }
 
         //check integrity of plugin file
-        try (JarFile pluginJpi = new JarFile(pluginFile)){
+        try (JarFile pluginJpi = new JarFile(pluginFile)) {
         } catch (IOException e) {
             failedPlugins.add(plugin);
             LOGGER.log(Level.WARNING, "Downloaded file is not a valid ZIP");
@@ -384,14 +394,15 @@ public class PluginManager {
 
     public String getJenkinsVersionFromWar() {
         //java -jar $JENKINS_WAR --version
-        try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
-            Manifest manifest = jenkinsWar.getManifest();
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue("Jenkins-Version");
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Unable to open war file");
+        if (jenkinsWarFile.exists()) {
+            try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
+                Manifest manifest = jenkinsWar.getManifest();
+                Attributes attributes = manifest.getMainAttributes();
+                return attributes.getValue("Jenkins-Version");
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Unable to open war file");
+            }
         }
-
         return "";
     }
 
@@ -403,7 +414,7 @@ public class PluginManager {
             Attributes attributes = manifest.getMainAttributes();
             return attributes.getValue("Plugin-Version");
         } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Unable to get plugin version from " + file.toString());
+            LOGGER.log(Level.WARNING, "Unable to get plugin version from {0}", file.toString());
         }
         return "";
     }
@@ -413,7 +424,6 @@ public class PluginManager {
         FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
         //only lists files in same directory, does not list files recursively
-        System.out.println("\nInstalled plugins: ");
         File[] files = refDir.listFiles(fileFilter);
 
         if (files != null) {
@@ -422,9 +432,10 @@ public class PluginManager {
                 VersionNumber pluginVersion = new VersionNumber(getPluginVersion(file));
                 installedPluginVersions.put(pluginName, pluginVersion);
                 installedPlugins.add(pluginName);
-		System.out.println(pluginName);
             }
         }
+
+        LOGGER.log(Level.FINE, "Installed plugins: {0}", installedPlugins.stream().collect(Collectors.joining(", ")));
 
         return installedPlugins;
     }
@@ -440,7 +451,7 @@ public class PluginManager {
             try {
                 jenkinsWarUri = new URI("jar:" + path.toUri());
             } catch (URISyntaxException e) {
-                LOGGER.log(Level.WARNING, "Error retrieving " + jenkinsWarFile.toString() + " to find bundled plugins");
+                LOGGER.log(Level.WARNING, "Error retrieving {0} to find bundled plugins", jenkinsWarFile.toString());
                 return bundledPlugins;
             }
 
@@ -449,14 +460,12 @@ public class PluginManager {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
                 Stream<Path> walk = Files.walk(warPath);
-                System.out.println("\nWar bundled plugins: ");
                 for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
                     Path file = it.next();
                     if (matcher.matches(file)) {
                         Path fileName = file.getFileName();
                         if (fileName != null) {
                             bundledPlugins.add(fileName.toString());
-                            System.out.println(fileName.toString());
                             //because can't convert a ZipPath to a file with file.toFile();
                             InputStream in = Files.newInputStream(file);
                             final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
@@ -473,12 +482,14 @@ public class PluginManager {
                     }
                 }
             } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Error finding bundled plugins from " + jenkinsWarFile.toString());
+                LOGGER.log(Level.WARNING, "Error finding bundled plugins from {0}", jenkinsWarFile.toString());
             }
 
         } else {
-            LOGGER.log(Level.INFO, "War not found, installing all plugins: " + jenkinsWarFile.toString());
+            LOGGER.log(Level.INFO, "War {0} not found, downloading all plugins", jenkinsWarFile.toString());
         }
+
+        LOGGER.log(Level.FINE, "War bundled plugins: {0}", bundledPlugins.stream().collect(Collectors.joining(",")));
 
         return bundledPlugins;
     }

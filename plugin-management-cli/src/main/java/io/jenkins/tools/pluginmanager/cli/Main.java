@@ -21,7 +21,6 @@ public class Main {
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) throws IOException {
-
         List<Plugin> plugins = new ArrayList<>();
 
         CliOptions options = new CliOptions();
@@ -36,6 +35,7 @@ public class Main {
 
         Config cfg = new Config();
 
+        cfg.setOutputVerbose(options.isOutputVerbose());
         cfg.setShowWarnings(options.isShowWarnings());
         cfg.setShowAllWarnings(options.isShowAllWarnings());
 
@@ -46,53 +46,57 @@ public class Main {
             }
         }
 
+        StringBuilder optionInfo = new StringBuilder();
+
         if (options.getPluginTxt() == null) {
-            System.out.println("No file containing list of plugins to be downloaded entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_TXT);
+            optionInfo.append("No file containing list of plugins to be downloaded entered. " +
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_TXT + "\n");
             cfg.setPluginTxt(Settings.DEFAULT_PLUGIN_TXT);
         }
         else {
-            System.out.println("File containing list of plugins to be downloaded: " + options.getPluginTxt());
+            optionInfo.append("File containing list of plugins to be downloaded: " + options.getPluginTxt() + "\n");
             cfg.setPluginTxt(options.getPluginTxt());
         }
 
 
         if (options.getPluginDir() == null) {
-            System.out.println("No directory to download plugins to entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
+            optionInfo.append("No directory to download plugins to entered. " +
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR + "\n");
             cfg.setPluginDir(Settings.DEFAULT_PLUGIN_DIR);
         }
         else {
-            System.out.println("Plugin download location: " + options.getPluginDir());
+            optionInfo.append("Plugin download location: " + options.getPluginDir() + "\n");
             cfg.setPluginDir(options.getPluginDir());
         }
 
 
         if (options.getJenkinsWar() == null) {
-            System.out.println("No war entered. Will use default of " + Settings.DEFAULT_JENKINS_WAR);
+            optionInfo.append("No war entered. Will use default of " + Settings.DEFAULT_JENKINS_WAR + "\n");
             cfg.setJenkinsWar(Settings.DEFAULT_JENKINS_WAR);
         }
         else {
-            System.out.println("Will use war file: " + options.getJenkinsWar());
+            optionInfo.append("Will use war file: " + options.getJenkinsWar() + "\n");
             cfg.setJenkinsWar(options.getJenkinsWar());
         }
 
-        System.out.println("Show all security warnings: " + options.isShowAllWarnings());
+        optionInfo.append("Show all security warnings: " + options.isShowAllWarnings());
+
+        LOGGER.log(Level.INFO, optionInfo.toString());
 
         if (Files.exists(cfg.getPluginTxt().toPath())) {
             try {
                 Scanner scanner = new Scanner(cfg.getPluginTxt(), StandardCharsets.UTF_8.name());
-                System.out.println("Reading in plugins from " + cfg.getPluginTxt().toString() + "\n");
+                LOGGER.log(Level.INFO, "Reading in plugins from {0}", cfg.getPluginTxt().toString());
                 while (scanner.hasNextLine()) {
                     Plugin plugin = parsePluginLine(scanner.nextLine());
                     plugins.add(plugin);
                 }
             } catch (FileNotFoundException e) {
-                System.out.println("Unable to open " + cfg.getPluginTxt());
+                LOGGER.log(Level.WARNING, "Unable to open {0}", cfg.getPluginTxt());
             }
         }
         else {
-            System.out.println(cfg.getPluginTxt() + " file does not exist");
+            LOGGER.log(Level.WARNING, "{0} file does not exist", cfg.getPluginTxt());
         }
 
         cfg.setPlugins(plugins);
