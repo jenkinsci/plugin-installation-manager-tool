@@ -39,11 +39,9 @@ public class Main {
         cfg.setShowWarnings(options.isShowWarnings());
         cfg.setShowAllWarnings(options.isShowAllWarnings());
 
-        String[] pluginsFromCLI = options.getPlugins();
-        if (pluginsFromCLI != null) {
-            for (String pluginLine : pluginsFromCLI) {
-                plugins.add(parsePluginLine(pluginLine));
-            }
+        List<String> pluginsFromCLI = options.getPlugins();
+        for (String pluginLine : pluginsFromCLI) {
+            plugins.add(parsePluginLine(pluginLine));
         }
 
         StringBuilder optionInfo = new StringBuilder();
@@ -57,7 +55,6 @@ public class Main {
             optionInfo.append("File containing list of plugins to be downloaded: " + options.getPluginTxt() + "\n");
             cfg.setPluginTxt(options.getPluginTxt());
         }
-
 
         if (options.getPluginDir() == null) {
             optionInfo.append("No directory to download plugins to entered. " +
