@@ -29,6 +29,13 @@
         <module>plugin-management-cli</module>
     </modules>
 
+
+    <scm>
+        <connection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</developerConnection>
+        <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
+        <tag>HEAD</tag>
+    </scm>
     <licenses>
         <license>
             <name>The MIT license</name>
