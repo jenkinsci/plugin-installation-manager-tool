@@ -151,7 +151,7 @@ public class PluginManager {
     public void checkVersionSpecificUpdateCenter() {
         //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
-            JENKINS_UC_LATEST = new StringBuilder(JENKINS_UC).append(jenkinsVersion).toString();
+            JENKINS_UC_LATEST = JENKINS_UC + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
                 try (CloseableHttpResponse response = httpclient.execute(httpget)) {
