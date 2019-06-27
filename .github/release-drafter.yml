@@ -1,3 +1,2 @@
 _extends: .github
-#FIXME: change role-strategy to your component
-tag-template: role-strategy-$NEXT_MINOR_VERSION
+tag-template: plugin-installation-manager-tool-$NEXT_MINOR_VERSION
