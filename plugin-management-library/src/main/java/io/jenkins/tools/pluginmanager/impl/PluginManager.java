@@ -103,9 +103,8 @@ public class PluginManager {
         }
 
         jenkinsVersion = getJenkinsVersionFromWar();
-        checkVersionSpecificUpdateCenter();
 
-        String url;
+        checkVersionSpecificUpdateCenter();
 
         getSecurityWarnings();
 
@@ -127,6 +126,7 @@ public class PluginManager {
 
 
     public void getSecurityWarnings() {
+        LOGGER.info("Getting security warnings");
         JSONObject updateCenterJson = getUpdateCenterJson();
         JSONArray warnings = updateCenterJson.getJSONArray("warnings");
 
@@ -160,7 +160,8 @@ public class PluginManager {
     public void checkVersionSpecificUpdateCenter() {
         //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
-            JENKINS_UC_LATEST = new StringBuilder(JENKINS_UC).append(jenkinsVersion).toString();
+            JENKINS_UC_LATEST = JENKINS_UC + "/" + jenkinsVersion;
+            LOGGER.log(Level.INFO, "Check for version specific update center at url {0}", JENKINS_UC_LATEST);
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
                 try (CloseableHttpResponse response = httpclient.execute(httpget)) {
@@ -169,12 +170,17 @@ public class PluginManager {
                     }
                 } catch (IOException e) {
                     JENKINS_UC_LATEST = "";
-                    LOGGER.log(Level.FINE, "No version specific update center for Jenkins version {0}", jenkinsVersion);
+                    LOGGER.log(Level.FINE, "No version specific update center for Jenkins version " + jenkinsVersion, e);
                 }
             } catch (IOException e) {
                 JENKINS_UC_LATEST = "";
-                LOGGER.log(Level.WARNING, "Unable to check if version specific update center for Jenkins version {0}",
-                        jenkinsVersion);
+
+                String logMessage = "Unable to check if version specific update center for Jenkins version " + jenkinsVersion;
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, logMessage, e);
+                } else {
+                    LOGGER.log(Level.WARNING, logMessage);
+                }
             }
         }
     }
@@ -186,6 +192,7 @@ public class PluginManager {
                 Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
         ) {
             if (failedPlugins.size() > 0) {
+                LOGGER.info("Writing failed plugins to file");
                 for (Plugin plugin : failedPlugins) {
                     String failedPluginName = plugin.getName();
                     fstream.write(failedPluginName + "\n");
@@ -396,9 +403,11 @@ public class PluginManager {
             try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
                 Manifest manifest = jenkinsWar.getManifest();
                 Attributes attributes = manifest.getMainAttributes();
-                return attributes.getValue("Jenkins-Version");
+                String value = attributes.getValue("Jenkins-Version");
+                LOGGER.info("Jenkins version is: " + value);
+                return value;
             } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Unable to open war file");
+                LOGGER.log(Level.WARNING, "Unable to open war file", e);
             }
         }
         return "";
@@ -418,6 +427,7 @@ public class PluginManager {
     }
 
     public List<String> installedPlugins() {
+        LOGGER.info("Fetching installed plugins");
         List<String> installedPlugins = new ArrayList<>();
         FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
@@ -440,6 +450,8 @@ public class PluginManager {
 
 
     public List<String> bundledPlugins() {
+        LOGGER.info("Fetching bundled plugins");
+
         List<String> bundledPlugins = new ArrayList<>();
 
         if (jenkinsWarFile.exists()) {
