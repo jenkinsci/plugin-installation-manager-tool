@@ -29,13 +29,13 @@
         <module>plugin-management-cli</module>
     </modules>
 
-
     <scm>
         <connection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</developerConnection>
         <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
         <tag>${scmTag}</tag>
     </scm>
+
     <licenses>
         <license>
             <name>The MIT license</name>
@@ -43,6 +43,21 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>https://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>org.powermock</groupId>
