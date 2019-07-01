@@ -1,0 +1,3 @@
+_extends: .github
+version-template: $MAJOR.$MINOR-alpha-$PATCH
+tag-template: plugin-installation-manager-tool-$NEXT_MINOR_VERSION
