@@ -23,10 +23,14 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -66,7 +70,8 @@ public class PluginManager {
     private File jenkinsWarFile;
     private Map<String, VersionNumber> installedPluginVersions;
     private Map<String, VersionNumber> bundledPluginVersions;
-    private List<SecurityWarning> allSecurityWarnings;
+    private Set <SecurityWarning> allSecurityWarnings;
+    JSONObject updateCenterJson;
     Config cfg;
 
 
@@ -78,7 +83,7 @@ public class PluginManager {
         bundledPluginVersions = new HashMap<>();
         refDir = cfg.getPluginDir();
         this.cfg = cfg;
-        allSecurityWarnings = new ArrayList<>();
+        allSecurityWarnings = new HashSet();
     }
 
 
@@ -91,6 +96,8 @@ public class PluginManager {
             }
         }
 
+        updateCenterJson = getUpdateCenterJson();
+
         jenkinsVersion = getJenkinsVersionFromWar();
         checkVersionSpecificUpdateCenter();
 
@@ -98,13 +105,17 @@ public class PluginManager {
 
         getSecurityWarnings();
 
+        /*
         if (cfg.isShowAllWarnings()) {
-            for (int i = 0; i < allSecurityWarnings.size(); i++) {
-                SecurityWarning securityWarning = allSecurityWarnings.get(i);
+            Iterator<SecurityWarning> i = allSecurityWarnings.iterator();
+
+
+            for (SecurityWarning securityWarning: allSecurityWarnings.()) {
                 System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
             }
         }
-
+        */
+        findPluginsAndDependencies(cfg.getPlugins());
         bundledPlugins();
         installedPlugins();
 
@@ -116,6 +127,28 @@ public class PluginManager {
 
     }
 
+    public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
+        Map<String, Plugin> allPluginDependencies = new HashMap<>();
+
+        if (updateCenterJson == null) {
+            return allPluginDependencies;
+        }
+
+        for (Plugin requestedPlugin : requestedPlugins) {
+            List<Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin);
+            for (Plugin dependentPlugin : dependencies) {
+                if (!allPluginDependencies.containsKey(dependentPlugin.getName())) {
+                    allPluginDependencies.put(dependentPlugin.getName(), dependentPlugin);
+                } else {
+                    Plugin existingDependency = allPluginDependencies.get(dependentPlugin.getName());
+                    if (existingDependency.getVersion().compareTo(dependentPlugin.getVersion()) < 0) {
+                        allPluginDependencies.replace(existingDependency.getName(), dependentPlugin);
+                    }
+                }
+            }
+        }
+        return allPluginDependencies;
+    }
 
     public void getSecurityWarnings() {
         JSONObject updateCenterJson = getUpdateCenterJson();
@@ -224,12 +257,11 @@ public class PluginManager {
     }
 
 
-    public void resolveDependencies(Plugin plugin) {
-        JSONObject updateCenterJson = getUpdateCenterJson();
-
+    public List<Plugin> resolveDirectDependencies(Plugin plugin) {
+        List<Plugin> dependentPlugins = new LinkedList<>();
         if (updateCenterJson == null) {
             System.out.println("Unable to get update center json");
-            return;
+            return dependentPlugins;
         }
 
         JSONObject plugins = updateCenterJson.getJSONObject("plugins");
@@ -238,10 +270,8 @@ public class PluginManager {
 
         if (dependencies == null || dependencies.length() == 0) {
             System.out.println(plugin.getName() + " has no dependencies");
-            return;
+            return dependentPlugins;
         }
-
-        List<Plugin> dependentPlugins = new ArrayList<>();
 
         System.out.println(plugin.getName() + " depends on: ");
 
@@ -252,11 +282,44 @@ public class PluginManager {
             boolean isPluginOptional = dependency.getBoolean("optional");
             Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
             dependentPlugins.add(dependentPlugin);
-
-            System.out.println(pluginName + ": " + pluginVersion);
         }
+        plugin.setDependencies(dependentPlugins);
+        return dependentPlugins;
+
+    }
+
+    public List<Plugin> resolveRecursiveDependencies(Plugin plugin) {
+        Deque<Plugin> queue = new LinkedList<>();
+        Set<String> visited = new HashSet<>();
+        List<Plugin> recursiveDependencies = new ArrayList<>();
+
+        visited.add(plugin.getName());
+
+        while (queue.size() != 0) {
+            Plugin dependency = queue.poll();
+            recursiveDependencies.add(dependency);
+
+            if (dependency.getDependencies().isEmpty()) {
+                dependency.setDependencies(resolveDirectDependencies(dependency));
+            }
+            Iterator<Plugin> i = dependency.getDependencies().iterator();
+
+            while (i.hasNext()) {
+                Plugin p = i.next();
+                if (!visited.contains(p.getName())) {
+                    visited.add(p.getName());
+                    queue.add(p);
+                }
+            }
+
+        }
+        return recursiveDependencies;
+    }
 
 
+
+
+/*
         for (Plugin dependency : dependentPlugins) {
             String dependencyName = dependency.getName();
             VersionNumber dependencyVersion = dependency.getVersion();
@@ -286,6 +349,7 @@ public class PluginManager {
         }
 
     }
+    */
 
 
     public boolean downloadPlugin(Plugin plugin) {
@@ -308,7 +372,7 @@ public class PluginManager {
         }
         if (successfulDownload) {
             installedPluginVersions.put(plugin.getName(), pluginVersion);
-            resolveDependencies(plugin);
+            //resolveDependencies(plugin);
         }
         return successfulDownload;
     }
