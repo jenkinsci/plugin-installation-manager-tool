@@ -12,6 +12,10 @@ public class Config {
     private boolean showWarnings;
     private String jenkinsWar;
     private List<Plugin> plugins;
+    private String jenkinsUc;
+    private String jenkinsUcExperimental;
+    private String jenkinsIncrementalsRepoMirror;
+
 
     public void setPluginDir(File pluginDir) {
         this.pluginDir = pluginDir;
@@ -59,6 +63,30 @@ public class Config {
 
     public List<Plugin> getPlugins() {
         return plugins;
+    }
+
+    public void setJenkinsUc(String jenkinsUc) {
+        this.jenkinsUc = jenkinsUc;
+    }
+
+    public void setJenkinsUcExperimental(String jenkinsUcExperimental) {
+        this.jenkinsUcExperimental = jenkinsUcExperimental;
+    }
+
+    public void setJenkinsIncrementalsRepoMirror(String jenkinsIncrementalsRepoMirror) {
+        this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+    }
+
+    public String getJenkinsUc() {
+        return jenkinsUc;
+    }
+
+    public String getJenkinsUcExperimental() {
+        return jenkinsUcExperimental;
+    }
+
+    public String getJenkinsIncrementalsRepoMirror() {
+        return jenkinsIncrementalsRepoMirror;
     }
 
     public Config() {

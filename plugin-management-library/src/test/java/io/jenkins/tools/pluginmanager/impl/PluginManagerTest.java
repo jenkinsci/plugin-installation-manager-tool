@@ -45,6 +45,10 @@ public class PluginManagerTest {
         cfg = new Config();
         cfg.setJenkinsWar(Settings.DEFAULT_JENKINS_WAR);
         cfg.setPluginDir(Files.createTempDirectory("plugins").toFile());
+        cfg.setJenkinsIncrementalsRepoMirror("https://repo.jenkins-ci.org/incrementals");
+        cfg.setJenkinsUcExperimental("https://updates.jenkins.io/experimental");
+        cfg.setJenkinsUc("https://updates.jenkins.io");
+
         pm = new PluginManager(cfg);
     }
 
@@ -72,7 +76,7 @@ public class PluginManagerTest {
 
         pm.checkVersionSpecificUpdateCenter();
 
-        String expected = new StringBuilder(PluginManager.JENKINS_UC).append(pm.getJenkinsVersion()).toString();
+        String expected = new StringBuilder(cfg.getJenkinsUc()).append("/").append(pm.getJenkinsVersion()).toString();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
 
         //Test where version specific update center doesn't exist
@@ -209,7 +213,7 @@ public class PluginManagerTest {
 
         plugin.setVersion(experimentalVersion);
 
-        String experimentalUrl = PluginManager.JENKINS_UC_EXPERIMENTAL + "/latest/pluginName.hpi";
+        String experimentalUrl = cfg.getJenkinsUcExperimental() + "/latest/pluginName.hpi";
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber incrementalVersion =
@@ -217,7 +221,7 @@ public class PluginManagerTest {
 
         plugin.setVersion(incrementalVersion);
 
-        String incrementalUrl = PluginManager.JENKINS_INCREMENTALS_REPO_MIRROR +
+        String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
                 "/org/jenkins-ci/plugins/workflow/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
@@ -226,7 +230,7 @@ public class PluginManagerTest {
 
         plugin.setVersion(otherVersion);
 
-        String otherURL = PluginManager.JENKINS_UC_DOWNLOAD + "/plugins/pluginName/otherversion/pluginName.hpi";
+        String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
 
         Assert.assertEquals(otherURL, pm.getPluginDownloadUrl(plugin));
     }
