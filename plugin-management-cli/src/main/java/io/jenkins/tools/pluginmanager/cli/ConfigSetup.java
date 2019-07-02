@@ -13,26 +13,26 @@ import org.apache.commons.lang3.StringUtils;
 
 
 public class ConfigSetup {
-    List<Plugin> plugins;
-    Config cfg;
-    CliOptions options;
+    private List<Plugin> plugins;
+    private CliOptions options;
 
-    public ConfigSetup(Config cfg, CliOptions options) {
+    public ConfigSetup(CliOptions options) {
         plugins = new ArrayList<>();
-        this.cfg = cfg;
         this.options = options;
     }
 
-    public void setup() {
-        getPlugins();
-        getPluginDir();
-        getWar();
-        getUpdateCenters();
-        getWarnings();
+    public Config setup() {
+        Config cfg = new Config();
+        getPlugins(cfg);
+        getPluginDir(cfg);
+        getWar(cfg);
+        getUpdateCenters(cfg);
+        getWarnings(cfg);
+        return cfg;
     }
 
 
-    public void getPlugins() {
+    public void getPlugins(Config cfg) {
         List<String> pluginsFromCLI = options.getPlugins();
         for (String pluginLine : pluginsFromCLI) {
             plugins.add(parsePluginLine(pluginLine));
@@ -80,7 +80,7 @@ public class ConfigSetup {
         return new Plugin(pluginName, pluginVersion, pluginUrl);
     }
 
-    public void getPluginDir() {
+    public void getPluginDir(Config cfg) {
         if (options.getPluginDir() == null) {
             System.out.println("No directory to download plugins entered. " +
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
@@ -92,7 +92,7 @@ public class ConfigSetup {
     }
 
 
-    public void getWar() {
+    public void getWar(Config cfg) {
         if (options.getJenkinsWar() == null) {
             System.out.println("No war entered. Will use default of " + Settings.DEFAULT_JENKINS_WAR);
             cfg.setJenkinsWar(Settings.DEFAULT_JENKINS_WAR);
@@ -103,8 +103,19 @@ public class ConfigSetup {
     }
 
 
-    public void getUpdateCenters() {
-        String jenkinsUc = "";
+    public void getUpdateCenters(Config cfg) {
+        String jenkinsUc = getUpdateCenter();
+        cfg.setJenkinsUc(jenkinsUc);
+
+        String jenkinsUcExperimental = getExperimentalUpdateCenter();
+        cfg.setJenkinsUcExperimental(jenkinsUcExperimental);
+
+        String jenkinsIncrementalsRepo = getIncrementalsMirror();
+        cfg.setJenkinsIncrementalsRepoMirror(jenkinsIncrementalsRepo);
+    }
+
+    public String getUpdateCenter() {
+        String jenkinsUc;
         if (!StringUtils.isEmpty(options.getJenkinsUc())) {
             jenkinsUc = options.getJenkinsUc();
             System.out.println("Using update center " + jenkinsUc + " specified with CLI option");
@@ -112,14 +123,15 @@ public class ConfigSetup {
             jenkinsUc = System.getenv("JENKINS_UC");
             System.out.println("Using update center " + jenkinsUc + " from JENKINS_UC environment variable");
         } else {
-            jenkinsUc = "https://updates.jenkins.io";
-            System.out.println(
-                    "No CLI option or environment variable set for update center, using default of " + jenkinsUc);
+            jenkinsUc = Settings.DEFAULT_JENKINS_UC;
+            System.out.println("No CLI option or environment variable set for update center, using default of " +
+                    jenkinsUc);
         }
+        return jenkinsUc;
+    }
 
-        cfg.setJenkinsUc(jenkinsUc);
-
-        String jenkinsUcExperimental = "";
+    public String getExperimentalUpdateCenter() {
+        String jenkinsUcExperimental;
         if (!StringUtils.isEmpty(options.getJenkinsUcExperimental())) {
             jenkinsUcExperimental = options.getJenkinsUcExperimental();
             System.out.println(
@@ -129,15 +141,16 @@ public class ConfigSetup {
             System.out.println("Using experimental update center " + jenkinsUcExperimental +
                     " from JENKINS_UC_EXPERIMENTAL environemnt variable");
         } else {
-            jenkinsUcExperimental = "https://updates.jenkins.io/experimental";
+            jenkinsUcExperimental = Settings.DEFAULT_JENKINS_UC_EXPERIMENTAL;
             System.out.println(
                     "No CLI option or environment variable set for experimental update center, using default of " +
                             jenkinsUcExperimental);
         }
+        return jenkinsUcExperimental;
+    }
 
-        cfg.setJenkinsUcExperimental(jenkinsUcExperimental);
-
-        String jenkinsIncrementalsRepo = "";
+    public String getIncrementalsMirror() {
+        String jenkinsIncrementalsRepo;
         if (!StringUtils.isEmpty(options.getJenkinsIncrementalsRepoMirror())) {
             jenkinsIncrementalsRepo = options.getJenkinsIncrementalsRepoMirror();
             System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo + " specified with CLI option");
@@ -146,14 +159,16 @@ public class ConfigSetup {
             System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo +
                     " from JENKINS_INCREMENTALS_REPO_MIRROR environment variable");
         } else {
-            jenkinsIncrementalsRepo = "https://repo.jenkins-ci.org/incrementals";
+            jenkinsIncrementalsRepo = Settings.DEFAULT_JENKINS_INCREMENTALS_REPO_MIRROR;
             System.out.println("No CLI option or environment variable set for incrementals mirror, using default of " +
                     jenkinsIncrementalsRepo);
         }
-        cfg.setJenkinsIncrementalsRepoMirror(jenkinsIncrementalsRepo);
+        return jenkinsIncrementalsRepo;
     }
 
-    public void getWarnings() {
+
+
+    public void getWarnings(Config cfg) {
         cfg.setShowWarnings(options.isShowWarnings());
         cfg.setShowAllWarnings(options.isShowAllWarnings());
         System.out.println("Show all security warnings: " + options.isShowAllWarnings());

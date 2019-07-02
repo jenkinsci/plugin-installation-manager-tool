@@ -12,9 +12,9 @@ public class Config {
     private boolean showWarnings;
     private String jenkinsWar;
     private List<Plugin> plugins;
-    private String jenkinsUc;
-    private String jenkinsUcExperimental;
-    private String jenkinsIncrementalsRepoMirror;
+    private String jenkinsUc = Settings.DEFAULT_JENKINS_UC;
+    private String jenkinsUcExperimental = Settings.DEFAULT_JENKINS_UC_EXPERIMENTAL;
+    private String jenkinsIncrementalsRepoMirror = Settings.DEFAULT_JENKINS_INCREMENTALS_REPO_MIRROR;
 
 
     public void setPluginDir(File pluginDir) {
