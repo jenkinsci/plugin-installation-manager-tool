@@ -21,6 +21,11 @@ public class ConfigSetup {
         this.options = options;
     }
 
+    /**
+     * Creates a configuration class with configurations specified from the CLI and/or environment variables.
+     *
+     * @return a configuration class that can be passed to the PluginManager class
+     */
     public Config setup() {
         Config cfg = new Config();
         getPlugins(cfg);
@@ -31,7 +36,12 @@ public class ConfigSetup {
         return cfg;
     }
 
-
+    /**
+     * Creates a list plugins specified in the CLI option and/or the plugins.txt file and adds them to the configuration
+     * class
+     *
+     * @param cfg the configuration class
+     */
     public void getPlugins(Config cfg) {
         List<String> pluginsFromCLI = options.getPlugins();
         for (String pluginLine : pluginsFromCLI) {
@@ -65,6 +75,13 @@ public class ConfigSetup {
         cfg.setPlugins(plugins);
     }
 
+    /**
+     * For each plugin specified in the CLI using the --plugins option or line in the plugins.txt file, creates a Plugin
+     * object containing the  plugin name (required), version (optional), and url (optional)
+     *
+     * @param pluginLine plugin information to parse
+     * @return plugin object containing name, version, and/or url
+     */
     public Plugin parsePluginLine(String pluginLine) {
         String[] pluginInfo = pluginLine.split(":");
         String pluginName = pluginInfo[0];
@@ -80,6 +97,11 @@ public class ConfigSetup {
         return new Plugin(pluginName, pluginVersion, pluginUrl);
     }
 
+    /**
+     * Gets the user specified plugin download directory from the CLI option and sets this in the configuration class
+     *
+     * @param cfg the configuration class, which
+     */
     public void getPluginDir(Config cfg) {
         if (options.getPluginDir() == null) {
             System.out.println("No directory to download plugins entered. " +
@@ -91,7 +113,11 @@ public class ConfigSetup {
         }
     }
 
-
+    /**
+     * Gets the user specified Jenkins war from the CLI option and sets this in the configuration class
+     *
+     * @param cfg the configuration class
+     */
     public void getWar(Config cfg) {
         if (options.getJenkinsWar() == null) {
             System.out.println("No war entered. Will use default of " + Settings.DEFAULT_JENKINS_WAR);
@@ -102,7 +128,12 @@ public class ConfigSetup {
         }
     }
 
-
+    /**
+     * Gets the update center, experimental update center, and incrementals repository mirror specified in the CLI
+     * options or environment variable and sets this in the configuration class
+     *
+     * @param cfg the configuration class
+     */
     public void getUpdateCenters(Config cfg) {
         String jenkinsUc = getUpdateCenter();
         cfg.setJenkinsUc(jenkinsUc);
@@ -114,6 +145,12 @@ public class ConfigSetup {
         cfg.setJenkinsIncrementalsRepoMirror(jenkinsIncrementalsRepo);
     }
 
+    /**
+     * Determines the update center url string. If a value is set via CLI option, it will override a value set via
+     * environment variable. If neither are set, the default in the Settings class will be used.
+     *
+     * @return the update center url string
+     */
     public String getUpdateCenter() {
         String jenkinsUc;
         if (!StringUtils.isEmpty(options.getJenkinsUc())) {
@@ -130,6 +167,12 @@ public class ConfigSetup {
         return jenkinsUc;
     }
 
+    /**
+     * Determines the experimental update center url string. If a value is set via CLI option, it will override a value
+     * set via environment variable. If neither are set, the default in the Settings class will be used.
+     *
+     * @return the experimental update center url string
+     */
     public String getExperimentalUpdateCenter() {
         String jenkinsUcExperimental;
         if (!StringUtils.isEmpty(options.getJenkinsUcExperimental())) {
@@ -149,6 +192,12 @@ public class ConfigSetup {
         return jenkinsUcExperimental;
     }
 
+    /**
+     * Determines the incrementals repository mirror url string. If a value is set via CLI option, it will override a
+     * value set via environment variable. If neither are set, the default in the Settings class will be used.
+     *
+     * @return the incrementals repository mirror url string
+     */
     public String getIncrementalsMirror() {
         String jenkinsIncrementalsRepo;
         if (!StringUtils.isEmpty(options.getJenkinsIncrementalsRepoMirror())) {
@@ -166,12 +215,14 @@ public class ConfigSetup {
         return jenkinsIncrementalsRepo;
     }
 
-
-
+    /**
+     * Gets the value to show all security warnings from the CLI options and sets this value in the configuration class
+     *
+     * @param cfg the configuration class
+     */
     public void getWarnings(Config cfg) {
         cfg.setShowWarnings(options.isShowWarnings());
         cfg.setShowAllWarnings(options.isShowAllWarnings());
         System.out.println("Show all security warnings: " + options.isShowAllWarnings());
     }
-
 }

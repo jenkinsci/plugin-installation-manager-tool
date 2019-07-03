@@ -38,8 +38,7 @@ The following custom version specifiers can also be used:
 * `experimental` - downloads the latest version from the [experimental update center](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/), which offers Alpha and Beta versions of plugins. Default value: [https://updates.jenkins.io/experimental](https://updates.jenkins.io/experimental)
 * `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).  
 
-There is currently no way to change the update centers from their default values, but this will be [changed in future development](https://issues.jenkins-ci.org/browse/JENKINS-58104). 
-
+#### Examples
 Currently, a very simplistic parsing is implemented (splitting on `:`). If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:
 
 * `github-branch-source` - will download the latest version
@@ -57,4 +56,3 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 ```
 
 For plugins listed in a .txt file, each plugin must be listed on a new line. More [robust parsing](https://issues.jenkins-ci.org/browse/JENKINS-58126) and other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
-

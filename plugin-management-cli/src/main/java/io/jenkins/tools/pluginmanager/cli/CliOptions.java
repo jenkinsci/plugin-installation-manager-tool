@@ -2,20 +2,24 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
+import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
+import org.kohsuke.args4j.spi.URLOptionHandler;
 
 
 public class CliOptions {
     //path must include plugins.txt
-    @Option(name = "--pluginTxtPath", usage = "Path to plugins.txt")
+    @Option(name = "--pluginTxtPath", usage = "Path to plugins.txt", handler = FileOptionHandler.class)
     public File pluginTxt;
 
-    @Option(name = "--pluginDirPath", usage = "Directory in which to install plugins")
+    @Option(name = "--pluginDirPath", usage = "Directory in which to install plugins",
+            handler = FileOptionHandler.class)
     public File pluginDir;
 
     @Option(name = "--plugins", usage = "List of plugins to install, separated by a space",
@@ -36,20 +40,23 @@ public class CliOptions {
 
     @Option(name = "--jenkins-update-center",
             usage = "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI " +
-                    "option or environment variable, will default to " + Settings.DEFAULT_JENKINS_UC)
-    public String jenkinsUc;
+                    "option or environment variable, will default to " + Settings.DEFAULT_JENKINS_UC,
+            handler = URLOptionHandler.class)
+    public URL jenkinsUc;
 
     @Option(name = "--jenkins-experimental-update-center",
             usage = "Sets experimental update center; will override JENKINS_UC_EXPERIMENTAL environment variable. If " +
                     "not set via CLI option or environment variable, will default to " +
-                    Settings.DEFAULT_JENKINS_UC_EXPERIMENTAL)
-    public String jenkinsUcExperimental;
+                    Settings.DEFAULT_JENKINS_UC_EXPERIMENTAL,
+            handler = URLOptionHandler.class)
+    public URL jenkinsUcExperimental;
 
     @Option(name = "--jenkins-incrementals-repo-mirror",
             usage = "Set Maven mirror to be used to download plugins from the Incrementals repository, will override " +
                     "the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If not set via CLI option or " +
-                    "environment variable, will default to " + Settings.DEFAULT_JENKINS_INCREMENTALS_REPO_MIRROR)
-    public String jenkinsIncrementalsRepoMirror;
+                    "environment variable, will default to " + Settings.DEFAULT_JENKINS_INCREMENTALS_REPO_MIRROR,
+            handler = URLOptionHandler.class)
+    public URL jenkinsIncrementalsRepoMirror;
 
 
     public File getPluginTxt() {
@@ -80,15 +87,15 @@ public class CliOptions {
     }
 
     public String getJenkinsUc() {
-        return jenkinsUc;
+        return jenkinsUc == null ? "" : jenkinsUc.toString();
     }
 
     public String getJenkinsUcExperimental() {
-        return jenkinsUcExperimental;
+        return jenkinsUcExperimental == null ? "" : jenkinsUcExperimental.toString();
     }
 
     public String getJenkinsIncrementalsRepoMirror() {
-        return jenkinsIncrementalsRepoMirror;
+        return jenkinsIncrementalsRepoMirror == null ? "" : jenkinsIncrementalsRepoMirror.toString();
     }
 
 }
