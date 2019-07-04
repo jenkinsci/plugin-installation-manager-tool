@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class SecurityWarning {
 
@@ -53,7 +54,11 @@ public class SecurityWarning {
     }
 
     public void addSecurityVersion(String lastVersion, String pattern) {
-        securityVersionList.add(new SecurityVersion(message, url));
+        securityVersionList.add(new SecurityVersion(lastVersion, pattern));
+    }
+
+    public List<SecurityVersion> getSecurityVersions() {
+        return securityVersionList;
     }
 
     public SecurityWarning(String id, String message, String name, String url) {
@@ -66,18 +71,18 @@ public class SecurityWarning {
 
     static class SecurityVersion {
         String lastVersion;
-        String pattern;
+        Pattern pattern;
 
-        public SecurityVersion(String lastVersion, String pattern) {
+        public SecurityVersion(String lastVersion, String patternString) {
             this.lastVersion = lastVersion;
-            this.pattern = pattern;
+            pattern = Pattern.compile(patternString);
         }
 
         public String getLastVersion() {
             return lastVersion;
         }
 
-        public String getPattern() {
+        public Pattern getPattern() {
             return pattern;
         }
 
@@ -85,7 +90,7 @@ public class SecurityWarning {
             this.lastVersion = lastVersion;
         }
 
-        public void setPattern(String pattern) {
+        public void setPattern(Pattern pattern) {
             this.pattern = pattern;
         }
     }
