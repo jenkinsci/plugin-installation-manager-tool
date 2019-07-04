@@ -15,26 +15,29 @@ import org.kohsuke.args4j.spi.URLOptionHandler;
 
 public class CliOptions {
     //path must include plugins.txt
-    @Option(name = "--pluginTxtPath", usage = "Path to plugins.txt", handler = FileOptionHandler.class)
+    @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt file",
+            handler = FileOptionHandler.class)
     public File pluginTxt;
 
-    @Option(name = "--pluginDirPath", usage = "Directory in which to install plugins",
+    @Option(name = "--plugin-download-directory", aliases = {"-d"},
+            usage = "Path to directory in which to install plugins",
             handler = FileOptionHandler.class)
     public File pluginDir;
 
-    @Option(name = "--plugins", usage = "List of plugins to install, separated by a space",
+    @Option(name = "--plugins", aliases = {"-p"}, usage = "List of plugins to install, separated by a space",
             handler = StringArrayOptionHandler.class)
     public String[] plugins = new String[0];
 
-    @Option(name = "--war", usage = "Path to Jenkins war file")
+    @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
     public String jenkinsWarFile;
 
-    @Option(name = "--viewSecurityWarnings",
+    @Option(name = "--view-security-warnings",
             usage = "Set to true to show specified plugins that have security warnings",
             handler = BooleanOptionHandler.class)
     public boolean showWarnings;
 
-    @Option(name = "--viewAllSecurityWarnings", usage = "Set to true to show all plugins that have security warnings",
+    @Option(name = "--view-all-security-warnings",
+            usage = "Set to true to show all plugins that have security warnings",
             handler = BooleanOptionHandler.class)
     public boolean showAllWarnings;
 

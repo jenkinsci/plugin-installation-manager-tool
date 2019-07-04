@@ -10,16 +10,16 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 #### Getting Started
 ```
 mvn clean install 
-java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --war /file/path/jenkins.war --pluginTxtPath /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 #### CLI Options
-* `--pluginTxtPath`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored.
-* `--pluginDirPath`: (optional) Path to the directory in which to install plugins. Directory will be created if it does not exist. If no directory is entered, directory will default to ./plugins.
-* `--plugins`: (optional) List of plugins to install (see plugin format below), separated by a space. 
-* `--war`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
-* `--viewSecurityWarnings`: (optional) Set to true to show if any of the user specified plugins have security warnings (not yet implemented).
-* `--viewAllSecurityWarnings`: (optional) Set to true to show all plugins that have security warnings.
+* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored. 
+* `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins. Directory will be created if it does not exist. If no directory is entered, directory will default to ./plugins.
+* `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space. 
+* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
+* `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings (not yet implemented).
+* `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--jenkins-update-center`: (optional) Sets the main update center, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io.
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental.
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
@@ -52,7 +52,7 @@ Currently, a very simplistic parsing is implemented (splitting on `:`). If an ur
 If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon can be interpretted as the end of the command.
 
 ```
-java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --plugins "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
+java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
 For plugins listed in a .txt file, each plugin must be listed on a new line. More [robust parsing](https://issues.jenkins-ci.org/browse/JENKINS-58126) and other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
