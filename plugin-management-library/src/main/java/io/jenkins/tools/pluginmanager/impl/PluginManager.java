@@ -198,7 +198,7 @@ public class PluginManager {
 
     public JSONObject getUpdateCenterJson() {
         URL updateCenter;
-        String jenkinsUcJson = cfg.getJenkinsUc()+"/update-center.actual.json";
+        String jenkinsUcJson = cfg.getJenkinsUc() + "/update-center.actual.json";
         try {
             updateCenter = new URL(jenkinsUcJson);
         } catch (MalformedURLException e) {
