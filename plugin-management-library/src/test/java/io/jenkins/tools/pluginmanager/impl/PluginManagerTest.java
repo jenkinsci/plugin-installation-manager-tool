@@ -37,17 +37,15 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
         URI.class, FileUtils.class, URL.class})
 public class PluginManagerTest {
-    PluginManager pm;
-    Config cfg;
+    private PluginManager pm;
+    private Config cfg;
 
     @Before
     public void setUpPM() throws IOException {
-        cfg = new Config();
-        cfg.setJenkinsWar(Settings.DEFAULT_JENKINS_WAR);
-        cfg.setPluginDir(Files.createTempDirectory("plugins").toFile());
-        cfg.setJenkinsIncrementalsRepoMirror("https://repo.jenkins-ci.org/incrementals");
-        cfg.setJenkinsUcExperimental("https://updates.jenkins.io/experimental");
-        cfg.setJenkinsUc("https://updates.jenkins.io");
+        cfg = Config.builder()
+            .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .build();
 
         pm = new PluginManager(cfg);
     }
@@ -76,7 +74,7 @@ public class PluginManagerTest {
 
         pm.checkVersionSpecificUpdateCenter();
 
-        String expected = new StringBuilder(cfg.getJenkinsUc()).append("/").append(pm.getJenkinsVersion()).toString();
+        String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
 
         //Test where version specific update center doesn't exist
@@ -242,8 +240,9 @@ public class PluginManagerTest {
         File testWar = new File(warURL.getFile());
 
         //the only time the file for a particular war string is created is in the PluginManager constructor
-        Config config = new Config();
-        config.setJenkinsWar(testWar.toString());
+        Config config = Config.builder()
+                .withJenkinsWar(testWar.toString())
+                .build();
         PluginManager pluginManager = new PluginManager(config);
         Assert.assertEquals("2.164.1", pluginManager.getJenkinsVersionFromWar());
     }
@@ -254,8 +253,9 @@ public class PluginManagerTest {
         URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());
 
-        Config config = new Config();
-        config.setJenkinsWar(testWar.toString());
+        Config config = Config.builder()
+                .withJenkinsWar(testWar.toString())
+                .build();
         PluginManager pluginManager = new PluginManager(config);
 
         List<String> expectedPlugins = new ArrayList<>();
