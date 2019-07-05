@@ -2,94 +2,156 @@ package io.jenkins.tools.pluginmanager.config;
 
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * Configuration for the plugin installation manager tool.
+ * <br/>
+ * Construct it with
+ * {@code
+ * Config.builder()
+ * ...
+ * build()
+ * }
+ * <br/>
+ * Defaults for update centers will be set for you
+ */
 public class Config {
     private File pluginDir;
-    private File pluginTxt;
     private boolean showWarnings;
+    private boolean showAllWarnings;
     private String jenkinsWar;
     private List<Plugin> plugins;
-    private String jenkinsUc = Settings.DEFAULT_JENKINS_UC;
-    private String jenkinsUcExperimental = Settings.DEFAULT_JENKINS_UC_EXPERIMENTAL;
-    private String jenkinsIncrementalsRepoMirror = Settings.DEFAULT_JENKINS_INCREMENTALS_REPO_MIRROR;
+    private URL jenkinsUc;
+    private URL jenkinsUcExperimental;
+    private URL jenkinsIncrementalsRepoMirror;
 
-
-    public void setPluginDir(File pluginDir) {
+    private Config(
+            File pluginDir,
+            boolean showWarnings,
+            boolean showAllWarnings,
+            String jenkinsWar,
+            List<Plugin> plugins,
+            URL jenkinsUc,
+            URL jenkinsUcExperimental,
+            URL jenkinsIncrementalsRepoMirror
+    ) {
         this.pluginDir = pluginDir;
-    }
-
-    public void setPluginTxt(File pluginTxt) {
-        this.pluginTxt =pluginTxt;
+        this.showWarnings = showWarnings;
+        this.showAllWarnings = showAllWarnings;
+        this.jenkinsWar = jenkinsWar;
+        this.plugins = plugins;
+        this.jenkinsUc = jenkinsUc;
+        this.jenkinsUcExperimental = jenkinsUcExperimental;
+        this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
     }
 
     public File getPluginDir() {
         return pluginDir;
     }
 
-    public void setShowWarnings(boolean showWarnings) {
-        this.showWarnings = showWarnings;
-    }
-
     public boolean isShowWarnings() {
         return showWarnings;
     }
 
-    public void setShowAllWarnings(boolean showWarnings) {
-        this.showWarnings = showWarnings;
-    }
-
     public boolean isShowAllWarnings() {
-        return showWarnings;
-    }
-
-    public File getPluginTxt() {
-        return pluginTxt;
-    }
-
-    public void setJenkinsWar(String jenkinsWar) {
-        this.jenkinsWar = jenkinsWar;
+        return showAllWarnings;
     }
 
     public String getJenkinsWar() {
         return jenkinsWar;
     }
 
-    public void setPlugins(List<Plugin> plugins) {
-        this.plugins = plugins;
-    }
-
     public List<Plugin> getPlugins() {
         return plugins;
     }
 
-    public void setJenkinsUc(String jenkinsUc) {
-        this.jenkinsUc = jenkinsUc;
-    }
-
-    public void setJenkinsUcExperimental(String jenkinsUcExperimental) {
-        this.jenkinsUcExperimental = jenkinsUcExperimental;
-    }
-
-    public void setJenkinsIncrementalsRepoMirror(String jenkinsIncrementalsRepoMirror) {
-        this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
-    }
-
-    public String getJenkinsUc() {
+    public URL getJenkinsUc() {
         return jenkinsUc;
     }
 
-    public String getJenkinsUcExperimental() {
+    public URL getJenkinsUcExperimental() {
         return jenkinsUcExperimental;
     }
 
-    public String getJenkinsIncrementalsRepoMirror() {
+    public URL getJenkinsIncrementalsRepoMirror() {
         return jenkinsIncrementalsRepoMirror;
     }
 
-    public Config() {
-        plugins = new ArrayList<>();
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private File pluginDir;
+        private boolean showWarnings;
+        private boolean showAllWarnings;
+        private String jenkinsWar;
+        private List<Plugin> plugins = new ArrayList<>();
+        ;
+        private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
+        private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
+        private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
+
+        private Builder() {
+        }
+
+        public Builder withPluginDir(File pluginDir) {
+            this.pluginDir = pluginDir;
+            return this;
+        }
+
+        public Builder withShowWarnings(boolean showWarnings) {
+            this.showWarnings = showWarnings;
+            return this;
+        }
+
+        public Builder withShowAllWarnings(boolean showAllWarnings) {
+            this.showAllWarnings = showAllWarnings;
+            return this;
+        }
+
+
+        public Builder withJenkinsWar(String jenkinsWar) {
+            this.jenkinsWar = jenkinsWar;
+            return this;
+        }
+
+        public Builder withPlugins(List<Plugin> plugins) {
+            this.plugins = plugins;
+            return this;
+        }
+
+        public Builder withJenkinsUc(URL jenkinsUc) {
+            this.jenkinsUc = jenkinsUc;
+            return this;
+        }
+
+        public Builder withJenkinsUcExperimental(URL jenkinsUcExperimental) {
+            this.jenkinsUcExperimental = jenkinsUcExperimental;
+            return this;
+        }
+
+        public Builder withJenkinsIncrementalsRepoMirror(URL jenkinsIncrementalsRepoMirror) {
+            this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+            return this;
+        }
+
+        public Config build() {
+            return new Config(
+                    pluginDir,
+                    showWarnings,
+                    showAllWarnings,
+                    jenkinsWar,
+                    plugins,
+                    jenkinsUc,
+                    jenkinsUcExperimental,
+                    jenkinsIncrementalsRepoMirror
+            );
+        }
+
+
     }
 }
