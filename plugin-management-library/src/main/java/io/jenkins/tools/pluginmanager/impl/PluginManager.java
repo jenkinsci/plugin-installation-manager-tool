@@ -54,11 +54,6 @@ public class PluginManager {
     private File refDir;
 
     private String JENKINS_UC_LATEST = "";
-    public static final String JENKINS_UC = "https://updates.jenkins.io";
-    public static final String JENKINS_UC_EXPERIMENTAL = JENKINS_UC + "/experimental";
-    public static final String JENKINS_UC_DOWNLOAD = JENKINS_UC + "/download";
-    public static final String JENKINS_UC_JSON = JENKINS_UC + "/update-center.json";
-    public static final String JENKINS_INCREMENTALS_REPO_MIRROR = "https://repo.jenkins-ci.org/incrementals";
     public static final String SEPARATOR = File.separator;
 
     private String jenkinsVersion;
@@ -151,7 +146,7 @@ public class PluginManager {
     public void checkVersionSpecificUpdateCenter() {
         //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
-            JENKINS_UC_LATEST = JENKINS_UC + "/" + jenkinsVersion;
+            JENKINS_UC_LATEST = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
                 try (CloseableHttpResponse response = httpclient.execute(httpget)) {
@@ -203,9 +198,9 @@ public class PluginManager {
 
     public JSONObject getUpdateCenterJson() {
         URL updateCenter;
-
+        String jenkinsUcJson = cfg.getJenkinsUc() + "/update-center.actual.json";
         try {
-            updateCenter = new URL(JENKINS_UC_JSON);
+            updateCenter = new URL(jenkinsUcJson);
         } catch (MalformedURLException e) {
             e.printStackTrace();
             return null;
@@ -331,16 +326,16 @@ public class PluginManager {
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
             urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_LATEST, pluginName);
         } else if (pluginVersion.equals("experimental")) {
-            urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_EXPERIMENTAL, pluginName);
+            urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
         } else if (pluginVersion.contains("incrementals")) {
             String[] incrementalsVersionInfo = pluginVersion.split(";");
             String groupId = incrementalsVersionInfo[1];
             String incrementalsVersion = incrementalsVersionInfo[2];
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath = String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
-            urlString = String.format("%s/%s/%s", JENKINS_INCREMENTALS_REPO_MIRROR, groupId, incrementalsVersionPath);
+            urlString = String.format("%s/%s/%s", cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
-              urlString = String.format("%s/plugins/%s/%s/%s.hpi", JENKINS_UC_DOWNLOAD, pluginName, pluginVersion, pluginName);
+            urlString = String.format("%s/download/plugins/%s/%s/%s.hpi", cfg.getJenkinsUc(), pluginName, pluginVersion, pluginName);
         }
 
         return urlString;
