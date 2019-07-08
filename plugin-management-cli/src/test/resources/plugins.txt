@@ -1,0 +1,8 @@
+git:   latest
+
+job-import-plugin:2.1
+     #   should not be read
+#structs:1.6
+docker
+
+cloudbees-bitbucket-branch-source:2.4.4
