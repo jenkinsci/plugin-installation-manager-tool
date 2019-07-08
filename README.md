@@ -26,7 +26,7 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 
 
 #### Plugin Input Format
-The expected format for plugins is `artifact ID:version:download url`
+The expected format for plugins is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
