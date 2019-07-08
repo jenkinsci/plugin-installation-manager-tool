@@ -84,12 +84,12 @@ class CliOptions {
                 .withPluginDir(getPluginDir())
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
+                .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
                 .build();
     }
-
 
     private File getPluginTxt() {
         if (pluginTxt == null) {
