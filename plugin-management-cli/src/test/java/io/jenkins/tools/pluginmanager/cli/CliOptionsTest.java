@@ -3,16 +3,19 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import static org.junit.Assert.assertEquals;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.mockito.Mockito.when;
+
+
 
 
 @RunWith(PowerMockRunner.class)
@@ -32,22 +35,22 @@ public class CliOptionsTest {
     public void setupDefaultsTest() throws CmdLineException {
         parser.parseArgument();
 
-        PowerMockito.mockStatic(System.class);
+        mockStatic(System.class);
 
-        Mockito.when(System.getenv("JENKINS_UC")).thenReturn("");
-        Mockito.when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn("");
-        Mockito.when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn("");
+        when(System.getenv("JENKINS_UC")).thenReturn("");
+        when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn("");
+        when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn("");
 
         Config cfg = options.setup();
 
-        Assert.assertEquals(Settings.DEFAULT_PLUGIN_DIR.toString(), cfg.getPluginDir().toString());
-        Assert.assertEquals(Settings.DEFAULT_WAR, cfg.getJenkinsWar());
-        Assert.assertEquals(false, cfg.isShowAllWarnings());
-        Assert.assertEquals(false, cfg.isShowWarnings());
-        Assert.assertEquals(Settings.DEFAULT_UPDATE_CENTER_LOCATION, cfg.getJenkinsUc().toString());
-        Assert.assertEquals(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
+        assertEquals(Settings.DEFAULT_PLUGIN_DIR.toString(), cfg.getPluginDir().toString());
+        assertEquals(Settings.DEFAULT_WAR, cfg.getJenkinsWar());
+        assertEquals(false, cfg.isShowAllWarnings());
+        assertEquals(false, cfg.isShowWarnings());
+        assertEquals(Settings.DEFAULT_UPDATE_CENTER_LOCATION, cfg.getJenkinsUc().toString());
+        assertEquals(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
                 cfg.getJenkinsUcExperimental().toString());
-        Assert.assertEquals(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
+        assertEquals(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
                 cfg.getJenkinsIncrementalsRepoMirror().toString());
     }
 
@@ -66,8 +69,8 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        Assert.assertEquals(pluginDir, cfg.getPluginDir().toString());
-        Assert.assertEquals(jenkinsWar, cfg.getJenkinsWar());
+        assertEquals(pluginDir, cfg.getPluginDir().toString());
+        assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
 
 
@@ -91,7 +94,7 @@ public class CliOptionsTest {
         parser.parseArgument("--war", jenkinsWar);
 
         Config cfg = options.setup();
-        Assert.assertEquals(jenkinsWar, cfg.getJenkinsWar());
+        assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
 
     @Test
@@ -102,7 +105,7 @@ public class CliOptionsTest {
         parser.parseArgument("--plugin-download-directory", pluginDir);
 
         Config cfg = options.setup();
-        Assert.assertEquals(pluginDir, cfg.getPluginDir().toString());
+        assertEquals(pluginDir, cfg.getPluginDir().toString());
     }
 
     @Test
@@ -111,10 +114,10 @@ public class CliOptionsTest {
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
 
-        PowerMockito.mockStatic(System.class);
-        Mockito.when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
-        Mockito.when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
-        Mockito.when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
+        mockStatic(System.class);
+        when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
+        when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
+        when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
 
         String ucCli = "https://updates.jenkins.io/cli";
         String experiementalCli = "https://updates.jenkins.io/experimental/cli";
@@ -127,9 +130,9 @@ public class CliOptionsTest {
         Config cfg = options.setup();
 
         // Cli options should override environment variables
-        Assert.assertEquals(ucCli, cfg.getJenkinsUc().toString());
-        Assert.assertEquals(experiementalCli, cfg.getJenkinsUcExperimental().toString());
-        Assert.assertEquals(incrementalsCli, cfg.getJenkinsIncrementalsRepoMirror().toString());
+        assertEquals(ucCli, cfg.getJenkinsUc().toString());
+        assertEquals(experiementalCli, cfg.getJenkinsUcExperimental().toString());
+        assertEquals(incrementalsCli, cfg.getJenkinsIncrementalsRepoMirror().toString());
     }
 
     @Test
@@ -138,23 +141,23 @@ public class CliOptionsTest {
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
 
-        PowerMockito.mockStatic(System.class);
-        Mockito.when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
-        Mockito.when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
-        Mockito.when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
+        mockStatic(System.class);
+        when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
+        when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
+        when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
 
         Config cfg = options.setup();
-        Assert.assertEquals(ucEnvVar, cfg.getJenkinsUc().toString());
-        Assert.assertEquals(experimentalUcEnvVar, cfg.getJenkinsUcExperimental().toString());
-        Assert.assertEquals(incrementalsEnvVar, cfg.getJenkinsIncrementalsRepoMirror().toString());
+        assertEquals(ucEnvVar, cfg.getJenkinsUc().toString());
+        assertEquals(experimentalUcEnvVar, cfg.getJenkinsUcExperimental().toString());
+        assertEquals(incrementalsEnvVar, cfg.getJenkinsIncrementalsRepoMirror().toString());
     }
 
     @Test
     public void setupSecurityWarningsTest() throws CmdLineException {
         parser.parseArgument("--view-all-security-warnings", "--view-security-warnings");
         Config cfg = options.setup();
-        Assert.assertEquals(true, cfg.isShowAllWarnings());
-        Assert.assertEquals(true, cfg.isShowWarnings());
+        assertEquals(true, cfg.isShowAllWarnings());
+        assertEquals(true, cfg.isShowWarnings());
     }
 }
 
