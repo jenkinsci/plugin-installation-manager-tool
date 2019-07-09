@@ -3,17 +3,18 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Arrays;;
 import java.util.List;
-import java.util.Scanner;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.FileOptionHandler;
@@ -130,6 +131,10 @@ class CliOptions {
         }
     }
 
+    /**
+     * Parses user specified plugins from CLI and .txt file; creates and returns a list of corresponding plugin objects
+     * @return list of plugins representing user-specified input
+     */
     private List<Plugin> getPlugins() {
         if (plugins == null) {
             return new ArrayList<>();
@@ -141,13 +146,18 @@ class CliOptions {
 
         File pluginFileLocation = getPluginTxt();
         if (Files.exists(pluginFileLocation.toPath())) {
-            try (Scanner scanner = new Scanner(pluginFileLocation, StandardCharsets.UTF_8.name())) {
-                System.out.println("Reading in plugins from " + pluginFileLocation.toString() + "\n");
-                while (scanner.hasNextLine()) {
-                    Plugin plugin = parsePluginLine(scanner.nextLine());
-                    mappedPlugins.add(plugin);
-                }
-            } catch (FileNotFoundException e) {
+            try (BufferedReader bufferedReader = Files.newBufferedReader(pluginFileLocation.toPath(),
+                    StandardCharsets.UTF_8))
+            {
+                System.out.println("Reading in plugins from " + pluginFileLocation + "\n");
+                List<Plugin> pluginsFromFile = bufferedReader.lines()
+                        .map(line -> line.replaceAll("\\s", ""))
+                        .filter(line -> !line.startsWith("#"))
+                        .filter(line -> line.length() > 0)
+                        .map(line -> parsePluginLine(line))
+                        .collect(toList());
+                mappedPlugins.addAll(pluginsFromFile);
+            } catch (IOException e) {
                 System.out.println("Unable to open " + pluginFileLocation);
             }
         } else {
@@ -169,13 +179,28 @@ class CliOptions {
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
-        if (pluginInfo.length >= 2) {
-            pluginVersion = pluginInfo[1];
-        }
-        if (pluginInfo.length == 3) {
-            pluginUrl = pluginInfo[2];
+
+        // "http, https, ftp" are valid
+        UrlValidator urlValidator = new UrlValidator();
+
+        if (pluginInfo.length == 2) {
+            if (urlValidator.isValid(pluginInfo[1])) {
+                pluginUrl = pluginInfo[1];
+            }
+            else {
+                pluginVersion = pluginInfo[1];
+            }
         }
 
+        if (pluginInfo.length >= 3) {
+            pluginVersion = pluginInfo[1];
+            if (urlValidator.isValid(pluginInfo[2])) {
+                pluginUrl = pluginInfo[2];
+            }
+            else {
+                System.out.println("Invalid URL entered, will ignore");
+            }
+        }
         return new Plugin(pluginName, pluginVersion, pluginUrl);
     }
 
