@@ -105,7 +105,7 @@ public class PluginManager {
 
         downloadPlugins(plugins);
 
-        writeFailedPluginsToFile();
+        outputFailedPlugins();
 
         //clean up locks
 
@@ -162,29 +162,19 @@ public class PluginManager {
                 System.out.println(
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
-
         }
-
     }
 
-
-    public void writeFailedPluginsToFile() {
-        try (
-          FileOutputStream fileOutputStream = new FileOutputStream("failedplugins.txt");
-          Writer fstream = new OutputStreamWriter(fileOutputStream, StandardCharsets.UTF_8)
-        ) {
-                if (failedPlugins.size() > 0) {
-                    System.out.println("Some plugins failed to download: ");
-                    for (Plugin plugin : failedPlugins) {
-                        String failedPluginName = plugin.getName();
-                        System.out.println(failedPluginName);
-                        fstream.write(failedPluginName + "\n");
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+    public void outputFailedPlugins() {
+        if (failedPlugins.size() > 0) {
+            System.out.println("Some plugins failed to download: ");
+            for (Plugin plugin : failedPlugins) {
+                String failedPluginName = plugin.getName();
+                System.out.println(failedPluginName);
             }
         }
+        System.exit(1);
+    }
 
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
@@ -295,7 +285,7 @@ public class PluginManager {
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin);
         if (!successfulDownload) {
-            //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
+            //some plugins don't follow the rules about artifact ID, i.e. docker-plugin
             String newPluginName = plugin.getName() + "-plugin";
             plugin.setName(newPluginName);
             pluginDownloadUrl = getPluginDownloadUrl(plugin);

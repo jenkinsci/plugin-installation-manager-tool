@@ -107,14 +107,18 @@ class CliOptions {
      *
      */
     private File getPluginDir() {
-        if (pluginDir == null) {
+        if (pluginDir != null) {
+            System.out.println("Plugin download location: " + pluginDir);
+            return pluginDir;
+        } else if (!StringUtils.isEmpty(System.getenv("REF")))  {
+            System.out.println("No directory to download plugins entered. " +
+                    "Will use location specified in REF environment variable: " + System.getenv("REF"));
+            return new File(System.getenv("REF"));
+        }
+
             System.out.println("No directory to download plugins entered. " +
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
             return Settings.DEFAULT_PLUGIN_DIR;
-        } else {
-            System.out.println("Plugin download location: " + pluginDir);
-            return pluginDir;
-        }
     }
 
     /**
