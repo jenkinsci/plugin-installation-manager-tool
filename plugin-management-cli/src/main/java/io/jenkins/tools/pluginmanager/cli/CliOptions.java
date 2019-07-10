@@ -93,13 +93,11 @@ class CliOptions {
 
     private File getPluginTxt() {
         if (pluginTxt == null) {
-            System.out.println("No file containing list of plugins to be downloaded entered. Will use default of " +
-                    Settings.DEFAULT_PLUGIN_TXT);
-            return Settings.DEFAULT_PLUGIN_TXT;
+            System.out.println("No file containing list of plugins to be downloaded entered.");
         } else {
             System.out.println("File containing list of plugins to be downloaded: " + pluginTxt);
-            return pluginTxt;
         }
+        return pluginTxt;
     }
 
     /**
@@ -110,12 +108,11 @@ class CliOptions {
         if (pluginDir != null) {
             System.out.println("Plugin download location: " + pluginDir);
             return pluginDir;
-        } else if (!StringUtils.isEmpty(System.getenv("REF")))  {
+        } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR")))  {
             System.out.println("No directory to download plugins entered. " +
-                    "Will use location specified in REF environment variable: " + System.getenv("REF"));
-            return new File(System.getenv("REF"));
+                    "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
+            return new File(System.getenv("PLUGIN_DIR"));
         }
-
             System.out.println("No directory to download plugins entered. " +
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
             return Settings.DEFAULT_PLUGIN_DIR;
@@ -149,6 +146,9 @@ class CliOptions {
                 .collect(toList());
 
         File pluginFileLocation = getPluginTxt();
+        if (pluginFileLocation == null) {
+            return mappedPlugins;
+        }
         if (Files.exists(pluginFileLocation.toPath())) {
             try (BufferedReader bufferedReader = Files.newBufferedReader(pluginFileLocation.toPath(),
                     StandardCharsets.UTF_8))
@@ -165,7 +165,7 @@ class CliOptions {
                 System.out.println("Unable to open " + pluginFileLocation);
             }
         } else {
-            System.out.println(pluginFileLocation + " file does not exist");
+            System.out.println(pluginFileLocation + " File does not exist");
         }
 
         return mappedPlugins;

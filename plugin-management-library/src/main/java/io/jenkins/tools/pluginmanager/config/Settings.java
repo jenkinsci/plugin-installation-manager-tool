@@ -6,8 +6,7 @@ import java.net.URL;
 
 public class Settings {
 
-    public static final File DEFAULT_PLUGIN_TXT = new File(System.getProperty("user.dir") + File.separator + "plugins.txt");
-    public static final File DEFAULT_PLUGIN_DIR = new File("/usr/share/jenkins/ref/plugins");
+    public static final File DEFAULT_PLUGIN_DIR;
     public static final String DEFAULT_WAR;
     public static final URL DEFAULT_UPDATE_CENTER;
     public static final String DEFAULT_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io";
@@ -27,10 +26,11 @@ public class Settings {
 
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
             DEFAULT_WAR = "C:\\ProgramData\\Jenkins\\jenkins.war";
+            DEFAULT_PLUGIN_DIR = new File("C:\\ProgramData\\Jenkins\\Reference\\Plugins");
         }
         else {
             DEFAULT_WAR = "/usr/share/jenkins/jenkins.war";
+            DEFAULT_PLUGIN_DIR = new File("/usr/share/jenkins/ref/plugins");
         }
-
     }
 }

@@ -7,14 +7,11 @@ import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -168,10 +165,7 @@ public class PluginManager {
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
-            for (Plugin plugin : failedPlugins) {
-                String failedPluginName = plugin.getName();
-                System.out.println(failedPluginName);
-            }
+            failedPlugins.stream().map(Plugin::getName).forEach(System.out::println);
         }
         System.exit(1);
     }
