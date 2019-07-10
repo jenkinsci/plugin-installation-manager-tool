@@ -4,21 +4,26 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
+import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.mockito.Mockito.when;
+
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({CliOptions.class, System.class})
@@ -26,6 +31,9 @@ public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
     List<Plugin> txtRequestedPlugins;
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void createParser() throws CmdLineException {
@@ -74,32 +82,36 @@ public class CliOptionsTest {
 
 
     @Test
-    public void setupAliasTest() throws CmdLineException {
+    public void setupAliasTest() throws CmdLineException, IOException {
         String pluginTxtFile = this.getClass().getResource("/emptyplugins.txt").toString();
         String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
-        File file = new File(pluginTxtFile);
-        String pluginDir = file.getParent() + "/plugins";
+        String pluginDir = temporaryFolder.newFolder("plugins").toString();
 
         parser.parseArgument("-f", pluginTxtFile,
                 "-d", pluginDir,
                 "-w", jenkinsWar,
-                "-p", "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
+                "-p",
+                "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Plugin displayUrlPlugin = new Plugin("display-url-api", "latest",
                 "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Config cfg = options.setup();
 
+        assertEquals(cfg.getPluginDir().toString(), pluginDir);
+        assertEquals(cfg.getJenkinsWar(), jenkinsWar);
         assertEquals(cfg.getPlugins().size(), 1);
         assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
     }
 
-
     @Test
-    public void setupPluginsTest() throws CmdLineException {
-        String pluginTxtFile = this.getClass().getResource("/plugins.txt").toString();
+    public void setupPluginsTest() throws CmdLineException, IOException, URISyntaxException {
+        File pluginTxtFile = new File(this.getClass().getResource("/plugins.txt").toURI());
 
-        parser.parseArgument("--plugin-file", pluginTxtFile,
+        File pluginFile = temporaryFolder.newFile("plugins.txt");
+        FileUtils.copyFile(pluginTxtFile, pluginFile);
+
+        parser.parseArgument("--plugin-file", pluginFile.toString(),
                 "--plugins", "ssh-slaves:1.10 mailer cobertura:experimental");
 
         List<Plugin> requestedPlugins = new ArrayList<>(txtRequestedPlugins);
@@ -112,15 +124,25 @@ public class CliOptionsTest {
         assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
 
         List<String> cfgPluginInfo = new ArrayList<>();
+        List<String> requestedPluginInfo = new ArrayList<>();
 
-        for (Plugin p: cfg.getPlugins()) {
+        for (Plugin p : cfg.getPlugins()) {
             cfgPluginInfo.add(p.toString());
+            System.out.println("cfg: " + p.toString());
+        }
+        for (Plugin p : requestedPlugins) {
+            requestedPluginInfo.add(p.toString());
+            System.out.println("req: " + p.toString());
         }
 
-        for (Plugin p: requestedPlugins) {
-           assertThat(cfgPluginInfo, contains(p.toString()));
+        Collections.sort(cfgPluginInfo);
+        Collections.sort(requestedPluginInfo);
+
+        for (int i = 0; i < cfgPluginInfo.size(); i++) {
+            assertEquals(cfgPluginInfo.get(i), requestedPluginInfo.get(i));
         }
     }
+
 
     @Test
     public void setupWarTest() throws CmdLineException {
@@ -132,10 +154,10 @@ public class CliOptionsTest {
         assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
 
+
     @Test
-    public void setupPluginDirTest() throws CmdLineException {
-        File file = new File(this.getClass().getResource("/plugins.txt").toString());
-        String pluginDir = file.getParent().toString() + "/plugins";
+    public void setupPluginDirTest() throws CmdLineException, IOException {
+        String pluginDir = temporaryFolder.newFolder("plugins").toString();
 
         parser.parseArgument("--plugin-download-directory", pluginDir);
 
