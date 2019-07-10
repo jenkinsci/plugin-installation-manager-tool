@@ -4,7 +4,6 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
@@ -20,9 +19,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.mockito.Mockito.when;
-
-
-
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({CliOptions.class, System.class})
@@ -89,21 +85,18 @@ public class CliOptionsTest {
                 "-w", jenkinsWar,
                 "-p", "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
-
         Plugin displayUrlPlugin = new Plugin("display-url-api", "latest",
                 "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Config cfg = options.setup();
 
-        assertEquals(pluginDir, cfg.getPluginDir().toString());
-        assertEquals(jenkinsWar, cfg.getJenkinsWar());
         assertEquals(cfg.getPlugins().size(), 1);
         assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
     }
 
 
     @Test
-    public void setupPluginsTest() throws CmdLineException, URISyntaxException {
+    public void setupPluginsTest() throws CmdLineException {
         String pluginTxtFile = this.getClass().getResource("/plugins.txt").toString();
 
         parser.parseArgument("--plugin-file", pluginTxtFile,
@@ -115,7 +108,6 @@ public class CliOptionsTest {
         requestedPlugins.add(new Plugin("cobertura", "experimental", null));
 
         Config cfg = options.setup();
-
 
         assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
 
@@ -130,7 +122,6 @@ public class CliOptionsTest {
         }
     }
 
-
     @Test
     public void setupWarTest() throws CmdLineException {
         String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
@@ -140,8 +131,6 @@ public class CliOptionsTest {
         Config cfg = options.setup();
         assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
-
-
 
     @Test
     public void setupPluginDirTest() throws CmdLineException {
@@ -206,5 +195,3 @@ public class CliOptionsTest {
         assertEquals(true, cfg.isShowWarnings());
     }
 }
-
-
