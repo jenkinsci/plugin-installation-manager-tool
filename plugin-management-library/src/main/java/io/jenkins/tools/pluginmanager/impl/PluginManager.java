@@ -44,36 +44,35 @@ import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 public class PluginManager {
     private List<Plugin> plugins;
     private List<Plugin> failedPlugins;
     private File refDir;
-
-    private String JENKINS_UC_LATEST = "";
-    public static final String SEPARATOR = File.separator;
-
+    private String jenkinsUcLatest = "";
     private String jenkinsVersion;
-
     private File jenkinsWarFile;
     private Map<String, VersionNumber> installedPluginVersions;
     private Map<String, VersionNumber> bundledPluginVersions;
     private List<SecurityWarning> allSecurityWarnings;
-    Config cfg;
+    private Config cfg;
 
+    public static final String SEPARATOR = File.separator;
 
     public PluginManager(Config cfg) {
+        this.cfg = cfg;
         plugins = cfg.getPlugins();
-        failedPlugins = new ArrayList();
+        refDir = cfg.getPluginDir();
         jenkinsWarFile = new File(cfg.getJenkinsWar());
+        failedPlugins = new ArrayList();
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
-        refDir = cfg.getPluginDir();
-        this.cfg = cfg;
         allSecurityWarnings = new ArrayList<>();
     }
 
-
+    /**
+     * Drives the process to download plugins. Calls methods to find installed plugins, download plugins, and output
+     * the failed plugins
+     */
     public void start() {
         if (!refDir.exists()) {
             try {
@@ -86,8 +85,6 @@ public class PluginManager {
         jenkinsVersion = getJenkinsVersionFromWar();
         checkVersionSpecificUpdateCenter();
 
-        String url;
-
         getSecurityWarnings();
 
         if (cfg.isShowAllWarnings()) {
@@ -99,16 +96,14 @@ public class PluginManager {
 
         bundledPlugins();
         installedPlugins();
-
         downloadPlugins(plugins);
-
         outputFailedPlugins();
-
-        //clean up locks
-
     }
 
-
+    /**
+     * Gets the security warnings for plugins from the update center json and creates a list of all teh security
+     * warnings
+     */
     public void getSecurityWarnings() {
         JSONObject updateCenterJson = getUpdateCenterJson();
         JSONArray warnings = updateCenterJson.getJSONArray("warnings");
@@ -140,28 +135,35 @@ public class PluginManager {
     }
 
 
+    /**
+     * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
+     * center url String to include Jenkins Version. Otherwise, sets update center url String to ""
+     */
     public void checkVersionSpecificUpdateCenter() {
         //check if version specific update center
         if (!StringUtils.isEmpty(jenkinsVersion)) {
-            JENKINS_UC_LATEST = cfg.getJenkinsUc() + "/" + jenkinsVersion;
+            jenkinsUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-                HttpGet httpget = new HttpGet(JENKINS_UC_LATEST);
+                HttpGet httpget = new HttpGet(jenkinsUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httpget)) {
                     if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                        JENKINS_UC_LATEST = "";
+                        jenkinsUcLatest = "";
                     }
                 } catch (IOException e) {
-                    JENKINS_UC_LATEST = "";
+                    jenkinsUcLatest = "";
                     System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
                 }
             } catch (IOException e) {
-                JENKINS_UC_LATEST = "";
+                jenkinsUcLatest= "";
                 System.out.println(
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
         }
     }
 
+    /**
+     * Prints out plugins that failed to download. Exits with status of 1 if any plugins failed to download.
+     */
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
@@ -170,6 +172,10 @@ public class PluginManager {
         System.exit(1);
     }
 
+    /**
+     * Downloads a list of plugins
+     * @param plugins list of plugins to download
+     */
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
             boolean successfulDownload = downloadPlugin(plugin);
@@ -180,6 +186,10 @@ public class PluginManager {
         }
     }
 
+    /**
+     * Gets the update center json for the update center set in the config file
+     * @return JSONObject corresponding to update center json
+     */
     public JSONObject getUpdateCenterJson() {
         URL updateCenter;
         String jenkinsUcJson = cfg.getJenkinsUc() + "/update-center.actual.json";
@@ -192,8 +202,6 @@ public class PluginManager {
 
         try {
             String updateCenterText = IOUtils.toString(updateCenter, Charset.forName("UTF-8"));
-            updateCenterText = updateCenterText.replace("updateCenter.post(\n", "");
-            updateCenterText = updateCenterText.replace(");", ""); //should probably make this more robust
             JSONObject updateCenterJson = new JSONObject(updateCenterText);
             return updateCenterJson;
         } catch (IOException e) {
@@ -202,7 +210,12 @@ public class PluginManager {
         }
     }
 
-
+    /**
+     * Finds the dependencies for a plugin using the update center json. Skips downloading dependencies that are
+     * optional or have already been installed. If an installed version of a plugin is lower than the required version,
+     * will download the higher version of the plugin to replace the currently installed version.
+     * @param plugin for which to find and download dependencies
+     */
     public void resolveDependencies(Plugin plugin) {
         JSONObject updateCenterJson = getUpdateCenterJson();
 
@@ -235,7 +248,6 @@ public class PluginManager {
             System.out.println(pluginName + ": " + pluginVersion);
         }
 
-
         for (Plugin dependency : dependentPlugins) {
             String dependencyName = dependency.getName();
             VersionNumber dependencyVersion = dependency.getVersion();
@@ -266,7 +278,12 @@ public class PluginManager {
 
     }
 
-
+    /**
+     * Downloads a plugin, skipping if already installed or bundled in the war. A plugin's dependencies will be
+     * resolved after the plugin is downloaded.
+     * @param plugin to download
+     * @return
+     */
     public boolean downloadPlugin(Plugin plugin) {
         String pluginName = plugin.getName();
         VersionNumber pluginVersion = plugin.getVersion();
@@ -292,7 +309,13 @@ public class PluginManager {
         return successfulDownload;
     }
 
-
+    /**
+     * Determines the plugin download url. If a url is specified from the CLI or plugins file, that url will be used
+     * and the plugin verison and Jenkins version will be ignored. If no url is specified, the url will be
+     * determined from the Jenkins update center and plugin name.
+     * @param plugin
+     * @return
+     */
     public String getPluginDownloadUrl(Plugin plugin) {
         String pluginName = plugin.getName();
         String pluginVersion = plugin.getVersion().toString();
@@ -307,8 +330,8 @@ public class PluginManager {
         if (!StringUtils.isEmpty(pluginUrl)) {
             System.out.println("Will use url: " + pluginUrl);
             urlString = pluginUrl;
-        } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(JENKINS_UC_LATEST)) {
-            urlString = String.format("%s/latest/%s.hpi", JENKINS_UC_LATEST, pluginName);
+        } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(jenkinsUcLatest)) {
+            urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
         } else if (pluginVersion.equals("experimental")) {
             urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
         } else if (pluginVersion.contains("incrementals")) {
@@ -325,7 +348,12 @@ public class PluginManager {
         return urlString;
     }
 
-
+    /**
+     * Downloads a plugin from a url
+     * @param urlString url to download the plugin from
+     * @param plugin Plugin object representing plugin to be downloaded
+     * @return true if download is successful, false otherwise
+     */
     public boolean downloadToFile(String urlString, Plugin plugin) {
         System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
 
@@ -349,7 +377,7 @@ public class PluginManager {
             return false;
         }
 
-        //check integrity of plugin file
+        // Check integrity of plugin file
         try (JarFile pluginJpi = new JarFile(pluginFile)){
         } catch (IOException e) {
             failedPlugins.add(plugin);
@@ -360,9 +388,11 @@ public class PluginManager {
         return true;
     }
 
-
+    /**
+     * Gets the Jenkins version from the manifest in the Jenkins war specified in the Config class
+     * @return Jenkins version
+     */
     public String getJenkinsVersionFromWar() {
-        //java -jar $JENKINS_WAR --version
         try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
             Manifest manifest = jenkinsWar.getManifest();
             Attributes attributes = manifest.getMainAttributes();
@@ -374,9 +404,12 @@ public class PluginManager {
         return "";
     }
 
-
+    /**
+     * Finds the plugin version by reading the manifest of a .hpi or .jpi file
+     * @param file plugin .hpi or .jpi of which to get the version
+     * @return plugin version
+     */
     public String getPluginVersion(File file) {
-        //this is also done in the existing plugin manager from core - should I do this a similar way to that instead?
         try (JarFile pluginJpi = new JarFile(file)) {
             Manifest manifest = pluginJpi.getManifest();
             Attributes attributes = manifest.getMainAttributes();
@@ -387,11 +420,15 @@ public class PluginManager {
         return "";
     }
 
+    /**
+     * Finds all the plugins and their versions currently in the plugin directory specified in the Config class
+     * @return list of names of plugins that are installed in the plugin directory
+     */
     public List<String> installedPlugins() {
         List<String> installedPlugins = new ArrayList<>();
         FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
-        //only lists files in same directory, does not list files recursively
+        // Only lists files in same directory, does not list files recursively
         System.out.println("\nInstalled plugins: ");
         File[] files = refDir.listFiles(fileFilter);
 
@@ -408,12 +445,15 @@ public class PluginManager {
         return installedPlugins;
     }
 
-
+    /**
+     * Finds the plugins and their versions bundled in the war file specified in the Config class. Does not include
+     * detached plugins.
+     * @return list of names of plugins that are currently installed in the war
+     */
     public List<String> bundledPlugins() {
         List<String> bundledPlugins = new ArrayList<>();
 
         if (jenkinsWarFile.exists()) {
-            //for i in $(jar tf $JENKINS_WAR | grep -E '[^detached-]plugins.*\..pi' | sort)
             Path path = Paths.get(jenkinsWarFile.toString());
             URI jenkinsWarUri;
             try {
@@ -423,7 +463,7 @@ public class PluginManager {
                 return bundledPlugins;
             }
 
-            //walk through war contents and find bundled plugins
+            // Walk through war contents and find bundled plugins
             try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
@@ -436,7 +476,7 @@ public class PluginManager {
                         if (fileName != null) {
                             bundledPlugins.add(fileName.toString());
                             System.out.println(fileName.toString());
-                            //because can't convert a ZipPath to a file with file.toFile();
+                            // Because can't convert a ZipPath to a file with file.toFile()
                             InputStream in = Files.newInputStream(file);
                             final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
                             try (FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
@@ -462,23 +502,35 @@ public class PluginManager {
         return bundledPlugins;
     }
 
+    /**
+     * Sets Jenkins Version. Jenkins version also set based on Jenkins war manifest
+     * @param jenkinsVersion
+     */
     public void setJenkinsVersion(String jenkinsVersion) {
         this.jenkinsVersion = jenkinsVersion;
     }
 
+    /**
+     * Gets the Jenkins version
+     * @return the Jenkins version
+     */
     public String getJenkinsVersion() {
         return jenkinsVersion;
     }
 
+    /**
+     * Gets the update center url string
+     * @return Jenkins update center url string
+     */
     public String getJenkinsUCLatest() {
-        return JENKINS_UC_LATEST;
+        return jenkinsUcLatest;
     }
 
+    /**
+     * Sets the update center url string
+     * @param updateCenterLatest String in which to set the update center url string
+     */
     public void setJenkinsUCLatest(String updateCenterLatest) {
-        JENKINS_UC_LATEST = updateCenterLatest;
+        jenkinsUcLatest = updateCenterLatest;
     }
 }
-
-
-
-
