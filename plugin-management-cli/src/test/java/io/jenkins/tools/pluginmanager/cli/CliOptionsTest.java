@@ -2,7 +2,11 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,7 +15,9 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.mockito.Mockito.when;
 
@@ -23,11 +29,27 @@ import static org.mockito.Mockito.when;
 public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
+    List<Plugin> txtRequestedPlugins;
 
     @Before
     public void createParser() throws CmdLineException {
         options = new CliOptions();
         parser = new CmdLineParser(options);
+
+        //corresponds to plugins in plugin.txt
+        txtRequestedPlugins = new ArrayList<>();
+        txtRequestedPlugins.add(new Plugin("git", "latest", null));
+        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null));
+        txtRequestedPlugins.add(new Plugin("docker", "latest", null));
+        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null));
+        txtRequestedPlugins.add(new Plugin("script-security", "latest",
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi"));
+        txtRequestedPlugins.add(new Plugin("workflow-step-api",
+                "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74", null));
+        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null));
+        txtRequestedPlugins.add(new Plugin("junit", "experimental", null));
+        txtRequestedPlugins.add(new Plugin("credentials", "2.2.0",
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"));
     }
 
 
@@ -57,7 +79,7 @@ public class CliOptionsTest {
 
     @Test
     public void setupAliasTest() throws CmdLineException {
-        String pluginTxtFile = this.getClass().getResource("/plugins.txt").toString();
+        String pluginTxtFile = this.getClass().getResource("/emptyplugins.txt").toString();
         String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
         File file = new File(pluginTxtFile);
         String pluginDir = file.getParent() + "/plugins";
@@ -65,25 +87,47 @@ public class CliOptionsTest {
         parser.parseArgument("-f", pluginTxtFile,
                 "-d", pluginDir,
                 "-w", jenkinsWar,
-                "-p", "ssh-slaves:1.10 mailer cobertura:experimental");
+                "-p", "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
+
+
+        Plugin displayUrlPlugin = new Plugin("display-url-api", "latest",
+                "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Config cfg = options.setup();
 
         assertEquals(pluginDir, cfg.getPluginDir().toString());
         assertEquals(jenkinsWar, cfg.getJenkinsWar());
+        assertEquals(cfg.getPlugins().size(), 1);
+        assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
     }
 
 
     @Test
-    public void setupPluginsTest() throws CmdLineException {
+    public void setupPluginsTest() throws CmdLineException, URISyntaxException {
         String pluginTxtFile = this.getClass().getResource("/plugins.txt").toString();
 
         parser.parseArgument("--plugin-file", pluginTxtFile,
                 "--plugins", "ssh-slaves:1.10 mailer cobertura:experimental");
 
+        List<Plugin> requestedPlugins = new ArrayList<>(txtRequestedPlugins);
+        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null));
+        requestedPlugins.add(new Plugin("mailer", "latest", null));
+        requestedPlugins.add(new Plugin("cobertura", "experimental", null));
+
         Config cfg = options.setup();
 
-        //TODO check plugin input
+
+        assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
+
+        List<String> cfgPluginInfo = new ArrayList<>();
+
+        for (Plugin p: cfg.getPlugins()) {
+            cfgPluginInfo.add(p.toString());
+        }
+
+        for (Plugin p: requestedPlugins) {
+           assertThat(cfgPluginInfo, contains(p.toString()));
+        }
     }
 
 
@@ -96,6 +140,8 @@ public class CliOptionsTest {
         Config cfg = options.setup();
         assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
+
+
 
     @Test
     public void setupPluginDirTest() throws CmdLineException {

@@ -89,4 +89,10 @@ public class Plugin {
         return dependents;
     }
 
+
+    @Override
+    public String toString() {
+        return name + " " + version + " " + url;
+    }
+
 }
