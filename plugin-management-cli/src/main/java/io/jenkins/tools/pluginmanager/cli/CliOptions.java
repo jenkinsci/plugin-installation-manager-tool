@@ -114,8 +114,8 @@ class CliOptions {
             return new File(System.getenv("PLUGIN_DIR"));
         }
             System.out.println("No directory to download plugins entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR);
-            return Settings.DEFAULT_PLUGIN_DIR;
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+            return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
     }
 
     /**

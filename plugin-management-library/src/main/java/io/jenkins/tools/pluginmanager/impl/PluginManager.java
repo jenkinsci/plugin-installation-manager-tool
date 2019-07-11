@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import java.io.File;
@@ -43,6 +44,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
 
 public class PluginManager {
     private List<Plugin> plugins;
@@ -101,7 +103,7 @@ public class PluginManager {
     }
 
     /**
-     * Gets the security warnings for plugins from the update center json and creates a list of all teh security
+     * Gets the security warnings for plugins from the update center json and creates a list of all the security
      * warnings
      */
     public void getSecurityWarnings() {
@@ -164,6 +166,7 @@ public class PluginManager {
     /**
      * Prints out plugins that failed to download. Exits with status of 1 if any plugins failed to download.
      */
+    @SuppressFBWarnings("DM_EXIT")
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
