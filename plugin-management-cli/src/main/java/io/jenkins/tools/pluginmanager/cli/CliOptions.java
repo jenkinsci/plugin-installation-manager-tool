@@ -84,12 +84,12 @@ class CliOptions {
                 .withPluginDir(getPluginDir())
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
+                .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
                 .build();
     }
-
 
     private File getPluginTxt() {
         if (pluginTxt == null) {
@@ -175,7 +175,7 @@ class CliOptions {
      * @return plugin object containing name, version, and/or url
      */
     private Plugin parsePluginLine(String pluginLine) {
-        String[] pluginInfo = pluginLine.split(":");
+        String[] pluginInfo = pluginLine.split(":", 3);
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
@@ -183,17 +183,11 @@ class CliOptions {
         // "http, https, ftp" are valid
         UrlValidator urlValidator = new UrlValidator();
 
-        if (pluginInfo.length == 2) {
-            if (urlValidator.isValid(pluginInfo[1])) {
-                pluginUrl = pluginInfo[1];
-            }
-            else {
+        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
                 pluginVersion = pluginInfo[1];
-            }
         }
 
         if (pluginInfo.length >= 3) {
-            pluginVersion = pluginInfo[1];
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             }

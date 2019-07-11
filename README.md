@@ -26,7 +26,7 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 
 
 #### Plugin Input Format
-The expected format for plugins is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
+The expected format for plugins is `artifact:version:url`
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
@@ -55,4 +55,4 @@ If a plugin to be downloaded from the incrementals repository is requested using
 java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
-For plugins listed in a .txt file, each plugin must be listed on a new line. More [robust parsing](https://issues.jenkins-ci.org/browse/JENKINS-58126) and other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
+For plugins listed in a .txt file, each plugin must be listed on a new line. Other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
