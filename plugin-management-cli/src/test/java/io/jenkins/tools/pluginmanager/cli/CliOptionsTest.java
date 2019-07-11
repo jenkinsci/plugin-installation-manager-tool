@@ -128,19 +128,15 @@ public class CliOptionsTest {
 
         for (Plugin p : cfg.getPlugins()) {
             cfgPluginInfo.add(p.toString());
-            System.out.println("cfg: " + p.toString());
         }
         for (Plugin p : requestedPlugins) {
             requestedPluginInfo.add(p.toString());
-            System.out.println("req: " + p.toString());
         }
 
         Collections.sort(cfgPluginInfo);
         Collections.sort(requestedPluginInfo);
 
-        for (int i = 0; i < cfgPluginInfo.size(); i++) {
-            assertEquals(cfgPluginInfo.get(i), requestedPluginInfo.get(i));
-        }
+        assertEquals(requestedPluginInfo, cfgPluginInfo);
     }
 
 
