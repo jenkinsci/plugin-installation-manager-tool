@@ -90,7 +90,6 @@ public class PluginManagerTest {
 
     @Test
     public void getPluginVersionTest() {
-
         URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File testJpi = new File(jpiURL.getFile());
 
@@ -115,13 +114,11 @@ public class PluginManagerTest {
         URL deliveryPipelineJpi = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File deliveryPipelineFile = new File(deliveryPipelineJpi.getFile());
 
-
         URL githubJpi = this.getClass().getResource("/github-branch-source.jpi");
         File githubFile = new File(githubJpi.getFile());
 
         FileUtils.copyFile(deliveryPipelineFile, tmp1);
         FileUtils.copyFile(githubFile, tmp2);
-
 
         expectedPlugins.add(FilenameUtils.getBaseName(tmp1.getName()));
         expectedPlugins.add(FilenameUtils.getBaseName(tmp2.getName()));
