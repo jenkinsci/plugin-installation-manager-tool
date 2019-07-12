@@ -14,10 +14,10 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 ```
 
 #### CLI Options
-* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored. 
-* `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins. Directory will be created if it does not exist. If no directory is entered, directory will default to ./plugins.
+* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install.
+* `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins, which can also be set via the PLUGIN_DIR environment variable (which replaces the previously used REF environment variable). If a CLI option is entered, it will override what is set in the environment variable.  If not set via CLI option or environment, will default to /usr/share/jenkins/ref/plugins or C:\ProgramData\Jenkins\Reference\Plugins, depending on the user's OS.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space. 
-* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
+* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings (not yet implemented).
 * `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--jenkins-update-center`: (optional) Sets the main update center, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io.
@@ -26,7 +26,7 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 
 
 #### Plugin Input Format
-The expected format for plugins is `artifact:version:url`
+The expected format for plugins is `artifact Id:version:url`
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
@@ -39,7 +39,7 @@ The following custom version specifiers can also be used:
 * `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).  
 
 #### Examples
-Currently, a very simplistic parsing is implemented (splitting on `:`). If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:
+If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:
 
 * `github-branch-source` - will download the latest version
 * `github-branch-source:latest` - will download the latest version

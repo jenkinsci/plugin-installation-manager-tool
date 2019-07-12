@@ -69,7 +69,7 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(Settings.DEFAULT_PLUGIN_DIR.toString(), cfg.getPluginDir().toString());
+        assertEquals(Settings.DEFAULT_PLUGIN_DIR_LOCATION, cfg.getPluginDir().toString());
         assertEquals(Settings.DEFAULT_WAR, cfg.getJenkinsWar());
         assertEquals(false, cfg.isShowAllWarnings());
         assertEquals(false, cfg.isShowWarnings());
