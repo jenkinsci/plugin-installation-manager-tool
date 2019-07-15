@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.impl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
@@ -46,12 +47,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 
+
 public class PluginManager {
     private List<Plugin> plugins;
     private List<Plugin> failedPlugins;
     private File refDir;
     private String jenkinsUcLatest = "";
-    private String jenkinsVersion;
+    private VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
     private Map<String, VersionNumber> installedPluginVersions;
     private Map<String, VersionNumber> bundledPluginVersions;
@@ -85,7 +87,7 @@ public class PluginManager {
         }
 
         jenkinsVersion = getJenkinsVersionFromWar();
-        checkVersionSpecificUpdateCenter();
+        checkAndSetVersionSpecificUpdateCenter();
 
         getSecurityWarnings();
 
@@ -107,7 +109,11 @@ public class PluginManager {
      * warnings
      */
     public void getSecurityWarnings() {
-        JSONObject updateCenterJson = getUpdateCenterJson();
+        JSONObject updateCenterJson = getJson(cfg.getJenkinsUc() + "/update-center.actual.json");
+        if (updateCenterJson == null) {
+            System.out.println("Unable to get update center json");
+            return;
+        }
         JSONArray warnings = updateCenterJson.getJSONArray("warnings");
 
         for (int i = 0; i < warnings.length(); i++) {
@@ -141,9 +147,9 @@ public class PluginManager {
      * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
      * center url String to include Jenkins Version. Otherwise, sets update center url String to ""
      */
-    public void checkVersionSpecificUpdateCenter() {
+    public void checkAndSetVersionSpecificUpdateCenter() {
         //check if version specific update center
-        if (!StringUtils.isEmpty(jenkinsVersion)) {
+        if (jenkinsVersion == null || !StringUtils.isEmpty(jenkinsVersion.toString())) {
             jenkinsUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpGet httpget = new HttpGet(jenkinsUcLatest);
@@ -190,22 +196,23 @@ public class PluginManager {
     }
 
     /**
-     * Gets the update center json for the update center set in the config file
-     * @return JSONObject corresponding to update center json
+     *  Gets the json object at the given url
+     *
+     * @param urlString string representing the url from which to get the json object
+     * @return json object
      */
-    public JSONObject getUpdateCenterJson() {
-        URL updateCenter;
-        String jenkinsUcJson = cfg.getJenkinsUc() + "/update-center.actual.json";
+    public JSONObject getJson(String urlString) {
+        URL url;
         try {
-            updateCenter = new URL(jenkinsUcJson);
+            url = new URL(urlString);
         } catch (MalformedURLException e) {
             e.printStackTrace();
             return null;
         }
 
         try {
-            String updateCenterText = IOUtils.toString(updateCenter, Charset.forName("UTF-8"));
-            JSONObject updateCenterJson = new JSONObject(updateCenterText);
+            String urlText = IOUtils.toString(url, Charset.forName("UTF-8"));
+            JSONObject updateCenterJson = new JSONObject(urlText);
             return updateCenterJson;
         } catch (IOException e) {
             e.printStackTrace();
@@ -214,13 +221,13 @@ public class PluginManager {
     }
 
     /**
-     * Finds the dependencies for a plugin using the update center json. Skips downloading dependencies that are
-     * optional or have already been installed. If an installed version of a plugin is lower than the required version,
-     * will download the higher version of the plugin to replace the currently installed version.
+     * Finds the dependencies for a plugin using the update center plugin-versions json. Skips downloading dependencies
+     * that are optional or have already been installed. If an installed version of a plugin is lower than the required
+     * version, will download the higher version of the plugin to replace the currently installed version.
      * @param plugin for which to find and download dependencies
      */
     public void resolveDependencies(Plugin plugin) {
-        JSONObject updateCenterJson = getUpdateCenterJson();
+        JSONObject updateCenterJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
 
         if (updateCenterJson == null) {
             System.out.println("Unable to get update center json");
@@ -229,7 +236,34 @@ public class PluginManager {
 
         JSONObject plugins = updateCenterJson.getJSONObject("plugins");
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
-        JSONArray dependencies = (JSONArray) pluginInfo.get("dependencies");
+        JSONObject specificVersionInfo = null;
+
+        if (plugin.getVersion().toString().equals("latest")) {
+            Iterator versionIterator = pluginInfo.keys();
+            List<Object> versions = new ArrayList<>();
+            versionIterator.forEachRemaining(v -> versions.add((String) v));
+
+            // find dependencies for latest plugin or latest plugin that is compatible with a specific Jenkins version
+            // assumes that plugin info will be sorted by version
+            if (StringUtils.isEmpty(jenkinsUcLatest)) {
+                specificVersionInfo = (JSONObject) pluginInfo.get((String) versions.get(versions.size()-1));
+                System.out.println("version" + versions.get(versions.size()-1));
+            } else {
+                System.out.println("no jenkins uc latest");
+                for (int i = versions.size() - 1; i >= 0; i--) {
+                    System.out.println("version" + versions.get(i));
+                    specificVersionInfo = (JSONObject) pluginInfo.get((String) versions.get(i));
+                    System.out.println("required core " + specificVersionInfo.getString("requiredCore"));
+                    if (new VersionNumber(specificVersionInfo.getString("requiredCore")).compareTo(jenkinsVersion)  <= 0) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+        }
+
+        JSONArray dependencies = (JSONArray) specificVersionInfo.get("dependencies");
 
         if (dependencies == null || dependencies.length() == 0) {
             System.out.println(plugin.getName() + " has no dependencies");
@@ -395,16 +429,16 @@ public class PluginManager {
      * Gets the Jenkins version from the manifest in the Jenkins war specified in the Config class
      * @return Jenkins version
      */
-    public String getJenkinsVersionFromWar() {
+    public VersionNumber getJenkinsVersionFromWar() {
         try (JarFile jenkinsWar = new JarFile(jenkinsWarFile)) {
             Manifest manifest = jenkinsWar.getManifest();
             Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue("Jenkins-Version");
+            return new VersionNumber(attributes.getValue("Jenkins-Version"));
         } catch (IOException e) {
             System.out.println("Unable to open war file");
         }
 
-        return "";
+        return null;
     }
 
     /**
@@ -509,7 +543,7 @@ public class PluginManager {
      * Sets Jenkins Version. Jenkins version also set based on Jenkins war manifest
      * @param jenkinsVersion
      */
-    public void setJenkinsVersion(String jenkinsVersion) {
+    public void setJenkinsVersion(VersionNumber jenkinsVersion) {
         this.jenkinsVersion = jenkinsVersion;
     }
 
@@ -517,7 +551,7 @@ public class PluginManager {
      * Gets the Jenkins version
      * @return the Jenkins version
      */
-    public String getJenkinsVersion() {
+    public VersionNumber getJenkinsVersion() {
         return jenkinsVersion;
     }
 

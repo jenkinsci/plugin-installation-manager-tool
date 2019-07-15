@@ -12,6 +12,7 @@ public class Settings {
     public static final String DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io/experimental";
     public static final URL DEFAULT_INCREMENTALS_REPO_MIRROR;
     public static final String DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION = "https://repo.jenkins-ci.org/incrementals";
+    public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/current/plugin-versions.json";
 
     static {
         try {
@@ -25,8 +26,7 @@ public class Settings {
         if (System.getProperty("os.name").toLowerCase().contains("windows")) {
             DEFAULT_WAR = "C:\\ProgramData\\Jenkins\\jenkins.war";
             DEFAULT_PLUGIN_DIR_LOCATION = "C:\\ProgramData\\Jenkins\\Reference\\Plugins";
-        }
-        else {
+        } else {
             DEFAULT_WAR = "/usr/share/jenkins/jenkins.war";
             DEFAULT_PLUGIN_DIR_LOCATION = "/usr/share/jenkins/ref/plugins";
         }
