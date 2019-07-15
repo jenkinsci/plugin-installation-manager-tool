@@ -247,13 +247,9 @@ public class PluginManager {
             // assumes that plugin info will be sorted by version
             if (StringUtils.isEmpty(jenkinsUcLatest)) {
                 specificVersionInfo = (JSONObject) pluginInfo.get((String) versions.get(versions.size()-1));
-                System.out.println("version" + versions.get(versions.size()-1));
             } else {
-                System.out.println("no jenkins uc latest");
                 for (int i = versions.size() - 1; i >= 0; i--) {
-                    System.out.println("version" + versions.get(i));
                     specificVersionInfo = (JSONObject) pluginInfo.get((String) versions.get(i));
-                    System.out.println("required core " + specificVersionInfo.getString("requiredCore"));
                     if (new VersionNumber(specificVersionInfo.getString("requiredCore")).compareTo(jenkinsVersion)  <= 0) {
                         break;
                     }
