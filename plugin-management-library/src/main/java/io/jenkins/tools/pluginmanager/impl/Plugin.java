@@ -7,6 +7,7 @@ import java.util.jar.JarFile;
 
 public class Plugin {
     private String name;
+    private String originalName;
     private VersionNumber version;
     private String url;
     private JarFile jarFile;
@@ -17,14 +18,17 @@ public class Plugin {
 
     public Plugin(String name, String version, String url) {
         this.name = name;
+        this.originalName = name;
         this.version = new VersionNumber(version);
         this.url = url;
         this.dependencies = new ArrayList<>();
         this.dependents = new ArrayList<>();
+
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
         this.name = name;
+        this.originalName = name;
         this.version = new VersionNumber(version);
         this.isPluginOptional = isPluginOptional;
     }
@@ -73,6 +77,10 @@ public class Plugin {
         return jarFile;
     }
 
+    public String getOriginalName() {
+        return originalName;
+    }
+
     public void setDependencies(List<Plugin> dependencies) {
         this.dependencies = dependencies;
     }
@@ -88,7 +96,6 @@ public class Plugin {
     public List<Plugin> getDependents() {
         return dependents;
     }
-
 
     @Override
     public String toString() {
