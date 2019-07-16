@@ -54,7 +54,7 @@ public class PluginManagerTest {
     @Test
     public void checkVersionSpecificUpdateCenterTest() throws Exception {
         //Test where version specific update center exists
-        pm.setJenkinsVersion("2.176");
+        pm.setJenkinsVersion(new VersionNumber("2.176"));
 
         PowerMockito.mockStatic(HttpClients.class);
         CloseableHttpClient httpclient = Mockito.mock(CloseableHttpClient.class);
@@ -72,7 +72,7 @@ public class PluginManagerTest {
         int statusCode = HttpStatus.SC_OK;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
-        pm.checkVersionSpecificUpdateCenter();
+        pm.checkAndSetVersionSpecificUpdateCenter();
 
         String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
@@ -81,7 +81,7 @@ public class PluginManagerTest {
         statusCode = HttpStatus.SC_BAD_REQUEST;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
-        pm.checkVersionSpecificUpdateCenter();
+        pm.checkAndSetVersionSpecificUpdateCenter();
 
         expected = "";
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
@@ -241,7 +241,7 @@ public class PluginManagerTest {
                 .withJenkinsWar(testWar.toString())
                 .build();
         PluginManager pluginManager = new PluginManager(config);
-        Assert.assertEquals("2.164.1", pluginManager.getJenkinsVersionFromWar());
+        Assert.assertEquals(new VersionNumber("2.164.1").compareTo(pluginManager.getJenkinsVersionFromWar()), 0);
     }
 
 
