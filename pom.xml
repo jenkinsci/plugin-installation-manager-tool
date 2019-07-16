@@ -20,7 +20,7 @@
 
     <groupId>io.jenkins.plugin-management</groupId>
     <artifactId>jenkins-plugin-management-parent-pom</artifactId>
-    <version>0.1-alpha-4</version>
+    <version>0.1-alpha-5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
 
@@ -33,7 +33,7 @@
         <connection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</developerConnection>
         <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
-        <tag>jenkins-plugin-management-parent-pom-0.1-alpha-4</tag>
+        <tag>${scmTag}</tag>
     </scm>
 
     <licenses>
