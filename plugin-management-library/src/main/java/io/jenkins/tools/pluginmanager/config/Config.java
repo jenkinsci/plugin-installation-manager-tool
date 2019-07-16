@@ -8,14 +8,12 @@ import java.util.List;
 
 /**
  * Configuration for the plugin installation manager tool.
- * <br/>
  * Construct it with
  * {@code
  * Config.builder()
  * ...
  * build()
  * }
- * <br/>
  * Defaults for update centers will be set for you
  */
 public class Config {

@@ -315,7 +315,7 @@ public class PluginManager {
      * Downloads a plugin, skipping if already installed or bundled in the war. A plugin's dependencies will be
      * resolved after the plugin is downloaded.
      * @param plugin to download
-     * @return
+     * @return boolean signifying if plugin was successful
      */
     public boolean downloadPlugin(Plugin plugin) {
         String pluginName = plugin.getName();
@@ -346,8 +346,8 @@ public class PluginManager {
      * Determines the plugin download url. If a url is specified from the CLI or plugins file, that url will be used
      * and the plugin verison and Jenkins version will be ignored. If no url is specified, the url will be
      * determined from the Jenkins update center and plugin name.
-     * @param plugin
-     * @return
+     * @param plugin to download
+     * @return  url to download plugin from
      */
     public String getPluginDownloadUrl(Plugin plugin) {
         String pluginName = plugin.getName();
@@ -537,7 +537,7 @@ public class PluginManager {
 
     /**
      * Sets Jenkins Version. Jenkins version also set based on Jenkins war manifest
-     * @param jenkinsVersion
+     * @param jenkinsVersion version of Jenkins, used for checking/setting version specific update center
      */
     public void setJenkinsVersion(VersionNumber jenkinsVersion) {
         this.jenkinsVersion = jenkinsVersion;
