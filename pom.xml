@@ -9,7 +9,7 @@
     </parent>
 
     <properties>
-        <revision>0.1-alpha-3</revision>
+        <revision>0.1-alpha-4</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <!-- Version of Maven Components -->
@@ -20,7 +20,7 @@
 
     <groupId>io.jenkins.plugin-management</groupId>
     <artifactId>jenkins-plugin-management-parent-pom</artifactId>
-    <version>0.1-alpha-3</version>
+    <version>${revision}${changelist}</version>
     <packaging>pom</packaging>
     <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
 
@@ -33,7 +33,7 @@
         <connection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</developerConnection>
         <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
-        <tag>jenkins-plugin-management-parent-pom-0.1-alpha-3</tag>
+        <tag>${scmTag}</tag>
     </scm>
 
     <licenses>
