@@ -72,7 +72,7 @@ public class PluginManagerTest {
         int statusCode = HttpStatus.SC_OK;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
-        pm.checkAndSetVersionSpecificUpdateCenter();
+        pm.checkAndSetLatestUpdateCenter();
 
         String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
@@ -81,9 +81,9 @@ public class PluginManagerTest {
         statusCode = HttpStatus.SC_BAD_REQUEST;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
-        pm.checkAndSetVersionSpecificUpdateCenter();
+        pm.checkAndSetLatestUpdateCenter();
 
-        expected = "";
+        expected = cfg.getJenkinsUc().toString();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
     }
 
@@ -212,12 +212,12 @@ public class PluginManagerTest {
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber incrementalVersion =
-                new VersionNumber("incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74");
+                new VersionNumber("incrementals;org.jenkins-ci.plugins.pluginName;2.19-rc289.d09828a05a74");
 
         plugin.setVersion(incrementalVersion);
 
         String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
-                "/org/jenkins-ci/plugins/workflow/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
+                "/org/jenkins-ci/plugins/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 
