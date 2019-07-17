@@ -1,16 +1,16 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import hudson.util.VersionNumber;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.JarFile;
 
 public class Plugin {
     private String name;
     private String originalName;
     private VersionNumber version;
     private String url;
-    private JarFile jarFile;
+    private File file;
     private boolean isPluginOptional;
     private List<Plugin> dependencies;
     private List<Plugin> dependents;
@@ -45,8 +45,8 @@ public class Plugin {
         this.url = url;
     }
 
-    public void setJarFile(JarFile jarFile) {
-        this.jarFile = jarFile;
+    public void setFile(File file) {
+        this.file = file;
     }
 
     public void setPluginOptional(boolean isPluginOptional) {
@@ -73,8 +73,8 @@ public class Plugin {
         return isPluginOptional;
     }
 
-    public JarFile getJarFile() {
-        return jarFile;
+    public File getFile() {
+        return file;
     }
 
     public String getOriginalName() {
