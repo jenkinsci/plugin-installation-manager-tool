@@ -182,7 +182,7 @@ public class PluginManager {
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
-            failedPlugins.stream().map(Plugin::getName).forEach(System.out::println);
+            failedPlugins.stream().map(p -> p.getOriginalName() + " or " + p.getName()).forEach(System.out::println);
         }
         System.exit(1);
     }
