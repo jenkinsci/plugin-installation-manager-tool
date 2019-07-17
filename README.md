@@ -14,7 +14,8 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 ```
 
 #### CLI Options
-* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored. 
+* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored.
+* `--plugin-yaml` or `-y`: (optional) Path to yaml file containing plugins to install.
 * `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins. Directory will be created if it does not exist. If no directory is entered, directory will default to ./plugins.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space. 
 * `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
@@ -26,7 +27,7 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 
 
 #### Plugin Input Format
-The expected format for plugins is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
+The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
@@ -37,6 +38,19 @@ The following custom version specifiers can also be used:
 * `latest` - downloads the latest version from the main update center [https://updates.jenkins.io](https://updates.jenkins.io)
 * `experimental` - downloads the latest version from the [experimental update center](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/), which offers Alpha and Beta versions of plugins. Default value: [https://updates.jenkins.io/experimental](https://updates.jenkins.io/experimental)
 * `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).  
+
+Plugins can also be entered in a yaml file with the following format:
+```
+plugins:
+  - artifactId: plugin1_artifactId
+    version: plugin1_version
+    url: plugin1_url
+  - artifactId: plugin2_artifactId
+    version: plugin2_version
+  ...
+```
+As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default. 
+
 
 #### Examples
 Currently, a very simplistic parsing is implemented (splitting on `:`). If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:

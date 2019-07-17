@@ -1,7 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import io.jenkins.tools.pluginmanager.impl.Plugins;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,10 +11,11 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
+
 
 import static java.util.stream.Collectors.toList;
 
@@ -30,7 +30,6 @@ public class PluginParser {
 
     public List<Plugin> parsePluginTxtFile(File pluginTxtFile) {
         List<Plugin> pluginsFromTxt = new ArrayList<>();
-
         if (fileExists(pluginTxtFile)) {
             try (BufferedReader bufferedReader = Files.newBufferedReader(pluginTxtFile.toPath(),
                     StandardCharsets.UTF_8)) {
@@ -51,23 +50,30 @@ public class PluginParser {
 
     public List<Plugin> parsePluginYamlFile(File pluginYamlFile) {
         List<Plugin> pluginsFromYaml = new ArrayList<>();
-        /*
         if (fileExists(pluginYamlFile)) {
-            final Constructor pluginConstructor = new Constructor(Plugins.class);
-            final TypeDescription typeDescription = new TypeDescription(Plugin.class);
-            Yaml yaml = new Yaml(new Constructor(Plugins.class));
+            Yaml yaml = new Yaml();
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
-                Iterable<Object> itr = yaml.loadAll(inputStream);
-                for (Object o: itr) {
-                    System.out.println("Loaded object type: " + o.getClass());
-                    System.out.println(o);
+                Map map = (Map) yaml.load(inputStream);
+                List plugins = (List) map.get("plugins");
+                for (Object p : plugins) {
+                    Map pluginInfo = (Map) p;
+                    Object nameObject = pluginInfo.get("artifactId");
+                    String name = nameObject == null ? null : nameObject.toString();
+                    if (StringUtils.isEmpty(name)) {
+                        System.out.println("artifactId is required, skipping...");
+                        continue;
+                    }
+                    Object versionObject = pluginInfo.get("version");
+                    String version = versionObject == null ? "latest" : versionObject.toString();
+                    Object urlObject = pluginInfo.get("url");
+                    String url = urlObject == null ? null : urlObject.toString();
+                    Plugin plugin = new Plugin(name.toString(), version, url);
+                    pluginsFromYaml.add(plugin);
                 }
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 System.out.println("Unable to open " + pluginsFromYaml);
             }
         }
-        */
         return pluginsFromYaml;
     }
 
