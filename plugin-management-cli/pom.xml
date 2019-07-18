@@ -56,9 +56,4 @@
         </plugins>
     </build>
 
-
-
-  <scm>
-    <tag>plugin-management-library-0.1-alpha-4</tag>
-  </scm>
 </project>
