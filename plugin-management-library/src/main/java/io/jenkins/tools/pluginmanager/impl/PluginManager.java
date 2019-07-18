@@ -248,11 +248,14 @@ public class PluginManager {
 
         if (ucJson.equals(pluginInfoJson)) {
             //plugin-versions.json has a slightly different structure than other update center json
-            JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
-            return (JSONArray) specificVersionInfo.get("dependencies");
+            if (pluginInfo.has(plugin.getVersion().toString())) {
+                JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+                return (JSONArray) specificVersionInfo.get("dependencies");
+            }
         } else {
-            return (JSONArray) pluginInfo.get("dependencies");
+                return (JSONArray) pluginInfo.get("dependencies");
         }
+        return null;
     }
 
     /**
@@ -300,12 +303,16 @@ public class PluginManager {
         } else if (version.equals("latest")) {
             dependencies = getPluginDependencyJsonArray(plugin, latestUcJson);
         } else if (version.equals("experimental")) {
-            dependencies = getPluginDependencyJsonArray(plugin, experimentalUcJson);
+            dependencies = getPluginDependencyJsonArray(plugin,  experimentalUcJson);
         } else {
             dependencies = getPluginDependencyJsonArray(plugin, pluginInfoJson);
         }
+        if (dependencies == null) {
+            resolveDependenciesFromManifest(plugin);
+            return;
+        }
 
-        if (dependencies == null || dependencies.length() == 0) {
+        if (dependencies.length() == 0) {
             System.out.println(plugin.getName() + " has no dependencies");
             return;
         }
