@@ -8,6 +8,8 @@ properties([[$class: 'BuildDiscarderProperty',
 List platforms = ['linux', 'windows']
 Map branches = [:]
 
+echo 'am i trusted?'
+
 for (int i = 0; i < platforms.size(); ++i) {
     String label = platforms[i]
     branches[label] = {
