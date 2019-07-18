@@ -82,14 +82,14 @@ public class CliOptionsTest {
 
 
     @Test
-    public void setupAliasTest() throws CmdLineException, IOException {
-        String pluginTxtFile = this.getClass().getResource("/emptyplugins.txt").toString();
-        String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
-        String pluginDir = temporaryFolder.newFolder("plugins").toString();
+    public void setupAliasTest() throws CmdLineException, IOException, URISyntaxException {
+        File pluginTxtFile = new File(this.getClass().getResource("/emptyplugins.txt").toURI());
+        File jenkinsWar = new File(this.getClass().getResource("/jenkinstest.war").toURI());
+        File pluginDir = temporaryFolder.newFolder("plugins");
 
-        parser.parseArgument("-f", pluginTxtFile,
-                "-d", pluginDir,
-                "-w", jenkinsWar,
+        parser.parseArgument("-f", pluginTxtFile.toString(),
+                "-d", pluginDir.toString(),
+                "-w", jenkinsWar.toString(),
                 "-p",
                 "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
@@ -98,8 +98,8 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(cfg.getPluginDir().toString(), pluginDir);
-        assertEquals(cfg.getJenkinsWar(), jenkinsWar);
+        assertEquals(cfg.getPluginDir(), pluginDir);
+        assertEquals(cfg.getJenkinsWar(), jenkinsWar.toString());
         assertEquals(cfg.getPlugins().size(), 1);
         assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
     }
