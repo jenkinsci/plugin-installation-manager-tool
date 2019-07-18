@@ -217,7 +217,7 @@ public class PluginManagerTest {
         plugin.setVersion(incrementalVersion);
 
         String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
-                "/org/jenkins-ci/plugins/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
+                "/org/jenkins-ci/plugins/pluginName/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 

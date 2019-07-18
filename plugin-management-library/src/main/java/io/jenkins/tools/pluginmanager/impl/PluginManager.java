@@ -440,7 +440,7 @@ public class PluginManager {
             String incrementalsVersion = incrementalsVersionInfo[2];
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath =
-                    String.format("%s/%s-%s.hpi", incrementalsVersion, pluginName, incrementalsVersion);
+                    String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
             urlString =
                     String.format("%s/%s/%s", cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
