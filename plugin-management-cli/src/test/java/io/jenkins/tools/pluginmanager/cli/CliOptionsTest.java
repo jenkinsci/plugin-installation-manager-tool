@@ -42,6 +42,8 @@ public class CliOptionsTest {
 
         //corresponds to plugins in plugin.txt
         txtRequestedPlugins = new ArrayList<>();
+        txtRequestedPlugins.add(new Plugin("google-api-client-plugin",
+                "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi"));
         txtRequestedPlugins.add(new Plugin("git", "latest", null));
         txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null));
         txtRequestedPlugins.add(new Plugin("docker", "latest", null));
@@ -54,6 +56,7 @@ public class CliOptionsTest {
         txtRequestedPlugins.add(new Plugin("junit", "experimental", null));
         txtRequestedPlugins.add(new Plugin("credentials", "2.2.0",
                 "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"));
+        txtRequestedPlugins.add(new Plugin("blueocean", "latest", null));
     }
 
 

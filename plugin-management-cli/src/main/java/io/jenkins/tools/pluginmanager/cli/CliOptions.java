@@ -155,6 +155,7 @@ class CliOptions {
             {
                 System.out.println("Reading in plugins from " + pluginFileLocation + "\n");
                 List<Plugin> pluginsFromFile = bufferedReader.lines()
+                        .map(line -> line.replaceAll("\\s#+.*", ""))
                         .map(line -> line.replaceAll("\\s", ""))
                         .filter(line -> !line.startsWith("#"))
                         .filter(line -> line.length() > 0)
