@@ -20,9 +20,14 @@ public class Main {
             throw new IOException("Failed to read command-line arguments", e);
         }
 
-        Config cfg = options.setup();
-        PluginManager pm = new PluginManager(cfg);
-        pm.start();
+        if (options.isShowVersion()) {
+            options.showVersion();
+        }
+        else {
+            Config cfg = options.setup();
+            PluginManager pm = new PluginManager(cfg);
+            pm.start();
+        }
     }
 
 }

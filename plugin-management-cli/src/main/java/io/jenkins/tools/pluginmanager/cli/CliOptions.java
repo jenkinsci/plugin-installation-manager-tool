@@ -6,6 +6,7 @@ import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -13,6 +14,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;;
 import java.util.List;
+import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.kohsuke.args4j.Option;
@@ -72,6 +74,9 @@ class CliOptions {
             ,
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
+
+    @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
+    private boolean showVersion;
 
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
@@ -292,5 +297,29 @@ class CliOptions {
                     jenkinsIncrementalsRepo);
         }
         return jenkinsIncrementalsRepo;
+    }
+
+    /**
+     * Prints out the Plugin Management Tool version
+     */
+    public void showVersion() {
+        try (InputStream propertyInputStream = this.getClass().getResourceAsStream("/.properties")) {
+            if (propertyInputStream == null) {
+                System.out.println("Unable to find .properties");
+            }
+            final Properties properties = new Properties();
+            properties.load(propertyInputStream);
+            System.out.println("Version: " + properties.getProperty("project.version"));
+        } catch (IOException e) {
+            System.out.println("Unable to get version");
+        }
+    }
+
+    /**
+     * Returns if user requested to see the tool version from the CLI options
+     * @return true if user passed in option to see version, false otherwise
+     */
+    public boolean isShowVersion() {
+        return showVersion;
     }
 }

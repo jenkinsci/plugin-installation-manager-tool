@@ -10,7 +10,7 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 #### Getting Started
 ```
 mvn clean install 
-java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/plugin-management-tool.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 #### CLI Options
@@ -23,7 +23,7 @@ java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-wi
 * `--jenkins-update-center`: (optional) Sets the main update center, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io.
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental.
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
-
+* `--version` or `-v`: (optional) Displays the plugin managment tool version and exits.
 
 #### Plugin Input Format
 The expected format for plugins is `artifact Id:version:url`
@@ -49,10 +49,13 @@ If an url is included, then a placeholder should be included for the version. Ex
 * `github-branch-source:https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will treat the url like the version, which is not likely the behavior you want
 * `github-branch-source::https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will download plugin from url 
 
-If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon can be interpretted as the end of the command.
+If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpretted as the end of the command.
 
 ```
-java -jar plugin-management-cli/target/plugin-management-cli-1.0-SNAPSHOT-jar-with-dependencies.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
+java -jar plugin-management-cli/target/plugin-management-tool.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
-For plugins listed in a .txt file, each plugin must be listed on a new line. Other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
+For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out. Other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
+
+#### Other Information
+The plugin manager tries to use update center json to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information in the provided in the MANIFEST.MF file after the plugin has been downloaded.
