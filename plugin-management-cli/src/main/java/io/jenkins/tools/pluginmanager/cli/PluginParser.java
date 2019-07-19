@@ -114,14 +114,13 @@ public class PluginParser {
         }
 
         if (pluginInfo.length >= 3) {
+            pluginVersion = pluginInfo[1];
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
-            }
-            else {
-                System.out.println("Invalid URL entered, will ignore");
+            } else {
+              System.out.println("Invalid URL entered, will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl);
-
     }
 }
