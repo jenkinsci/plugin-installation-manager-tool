@@ -101,7 +101,7 @@ public class PluginParser {
      * @return plugin object containing name, version, and/or url
      */
     private Plugin parsePluginLine(String pluginLine) {
-        String[] pluginInfo = pluginLine.split(":");
+        String[] pluginInfo = pluginLine.split(":", 3);
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
@@ -109,22 +109,19 @@ public class PluginParser {
         // "http, https, ftp" are valid
         UrlValidator urlValidator = new UrlValidator();
 
-        if (pluginInfo.length == 2) {
-            if (urlValidator.isValid(pluginInfo[1])) {
-                pluginUrl = pluginInfo[1];
-            } else {
-                pluginVersion = pluginInfo[1];
-            }
+        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
+            pluginVersion = pluginInfo[1];
         }
 
         if (pluginInfo.length >= 3) {
-            pluginVersion = pluginInfo[1];
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
-            } else {
+            }
+            else {
                 System.out.println("Invalid URL entered, will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl);
+
     }
 }

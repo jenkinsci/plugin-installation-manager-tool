@@ -4,7 +4,6 @@ import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.JarFile;
 import org.apache.commons.lang3.StringUtils;
 
 public class Plugin {
@@ -18,6 +17,7 @@ public class Plugin {
     private List<Plugin> dependents;
 
     public Plugin(String name, String version, String url) {
+        this.originalName = name;
         this.name = name;
         if (StringUtils.isEmpty(version)) {
             version = "latest";
@@ -31,6 +31,7 @@ public class Plugin {
 
     public Plugin(String name, String version, boolean isPluginOptional) {
         this.name = name;
+        this.originalName = name;
         if (StringUtils.isEmpty(version)) {
             version = "latest";
         }
