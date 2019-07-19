@@ -48,3 +48,6 @@ for (int i = 0; i < platforms.size(); ++i) {
         }
     }
 }
+
+parallel branches
+infra.maybePublishIncrementals()
