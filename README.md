@@ -58,4 +58,4 @@ java -jar plugin-management-cli/target/plugin-management-tool.jar -p "workflow-s
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out. Other [import formats](https://issues.jenkins-ci.org/browse/JENKINS-58147) coming soon. 
 
 #### Other Information
-The plugin manager tries to use update center json to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information in the provided in the MANIFEST.MF file after the plugin has been downloaded.
+The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file.

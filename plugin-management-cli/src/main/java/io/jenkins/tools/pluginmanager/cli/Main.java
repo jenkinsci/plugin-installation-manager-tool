@@ -22,6 +22,7 @@ public class Main {
 
         if (options.isShowVersion()) {
             options.showVersion();
+            System.exit(0);
         }
         else {
             Config cfg = options.setup();

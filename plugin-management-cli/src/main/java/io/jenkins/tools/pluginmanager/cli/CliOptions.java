@@ -305,13 +305,15 @@ class CliOptions {
     public void showVersion() {
         try (InputStream propertyInputStream = this.getClass().getResourceAsStream("/.properties")) {
             if (propertyInputStream == null) {
-                System.out.println("Unable to find .properties");
+                System.out.println("No version information available");
+                System.exit(1);
             }
             final Properties properties = new Properties();
             properties.load(propertyInputStream);
             System.out.println("Version: " + properties.getProperty("project.version"));
         } catch (IOException e) {
-            System.out.println("Unable to get version");
+            System.out.println("No version information available");
+            System.exit(1);
         }
     }
 
