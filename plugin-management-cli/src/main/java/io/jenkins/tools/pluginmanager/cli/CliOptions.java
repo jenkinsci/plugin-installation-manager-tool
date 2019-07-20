@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
@@ -299,23 +300,29 @@ class CliOptions {
         return jenkinsIncrementalsRepo;
     }
 
+
     /**
      * Prints out the Plugin Management Tool version
      */
     public void showVersion() {
-        try (InputStream propertyInputStream = this.getClass().getResourceAsStream("/.properties")) {
+        try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
             if (propertyInputStream == null) {
                 System.out.println("No version information available");
-                System.exit(1);
+                return;
             }
             final Properties properties = new Properties();
             properties.load(propertyInputStream);
             System.out.println("Version: " + properties.getProperty("project.version"));
         } catch (IOException e) {
             System.out.println("No version information available");
-            System.exit(1);
         }
     }
+
+    public InputStream getPropertiesInputStream(String path) {
+        InputStream inputStream = this.getClass().getResourceAsStream(path);
+        return inputStream;
+    }
+
 
     /**
      * Returns if user requested to see the tool version from the CLI options

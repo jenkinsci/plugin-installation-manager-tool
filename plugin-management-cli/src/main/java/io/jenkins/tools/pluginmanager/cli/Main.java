@@ -1,13 +1,14 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
 import java.io.IOException;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
-
 public class Main {
+    @SuppressFBWarnings("DM_EXIT")
     public static void main(String[] args) throws IOException {
         CliOptions options = new CliOptions();
         CmdLineParser parser = new CmdLineParser(options);
@@ -22,13 +23,12 @@ public class Main {
 
         if (options.isShowVersion()) {
             options.showVersion();
-            System.exit(0);
         }
-        else {
-            Config cfg = options.setup();
-            PluginManager pm = new PluginManager(cfg);
-            pm.start();
-        }
+
+        Config cfg = options.setup();
+        PluginManager pm = new PluginManager(cfg);
+        pm.start();
+
     }
 
 }
