@@ -13,7 +13,7 @@ public class Plugin {
     private File file;
     private boolean isPluginOptional;
     private List<Plugin> dependencies;
-    private List<Plugin> dependents;
+    private Plugin parent;
 
 
     public Plugin(String name, String version, String url) {
@@ -22,7 +22,7 @@ public class Plugin {
         this.version = new VersionNumber(version);
         this.url = url;
         this.dependencies = new ArrayList<>();
-        this.dependents = new ArrayList<>();
+        this.parent = this;
 
     }
 
@@ -31,6 +31,8 @@ public class Plugin {
         this.originalName = name;
         this.version = new VersionNumber(version);
         this.isPluginOptional = isPluginOptional;
+        this.dependencies = new ArrayList<>();
+        this.parent = this;
     }
 
     public void setName(String name) {
@@ -89,12 +91,12 @@ public class Plugin {
         return dependencies;
     }
 
-    public void setDependent(Plugin dependent) {
-        dependents.add(dependent);
+    public void setParent(Plugin parent) {
+        this.parent = parent;
     }
 
-    public List<Plugin> getDependents() {
-        return dependents;
+    public Plugin getParent() {
+        return parent;
     }
 
     @Override

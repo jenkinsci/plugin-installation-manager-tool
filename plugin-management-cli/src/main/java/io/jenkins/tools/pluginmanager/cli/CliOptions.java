@@ -41,8 +41,17 @@ class CliOptions {
     @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
     private String jenkinsWarFile;
 
+    @Option(name = "--list", aliases = {"-l"}, usage = "Lists all plugins currently installed and if given a list of " +
+            "plugins to install either via file or CLI option, all plugins that will be installed by the tool",
+            handler = BooleanOptionHandler.class)
+    private boolean showPluginsToBeDownloaded;
+
+    @Option(name = "--available-updates", aliases = {"-u"}, usage = "Set to true to see if any updates are available for the " +
+            "requested or currently installed plugins", handler = BooleanOptionHandler.class)
+    private boolean showAvailableUpdates;
+
     @Option(name = "--view-security-warnings",
-            usage = "Set to true to show specified plugins that have security warnings",
+            usage = "Show if any security warnings exist for the requested or currently installed plugins",
             handler = BooleanOptionHandler.class)
     private boolean showWarnings;
 
@@ -88,6 +97,8 @@ class CliOptions {
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
+                .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
+                .withShowAvailableUpdates(isShowAvailableUpdates())
                 .build();
     }
 
@@ -208,6 +219,14 @@ class CliOptions {
 
     private boolean isShowAllWarnings() {
         return showAllWarnings;
+    }
+
+    private boolean isShowPluginsToBeDownloaded() {
+        return showPluginsToBeDownloaded;
+    }
+
+    private boolean isShowAvailableUpdates() {
+        return showAvailableUpdates;
     }
 
     /**

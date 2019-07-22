@@ -20,6 +20,8 @@ public class Config {
     private File pluginDir;
     private boolean showWarnings;
     private boolean showAllWarnings;
+    private boolean showAvailableUpdates;
+    private boolean showPluginsToBeDownloaded;
     private String jenkinsWar;
     private List<Plugin> plugins;
     private URL jenkinsUc;
@@ -30,6 +32,8 @@ public class Config {
             File pluginDir,
             boolean showWarnings,
             boolean showAllWarnings,
+            boolean showAvailableUpdates,
+            boolean showPluginsToBeDownloaded,
             String jenkinsWar,
             List<Plugin> plugins,
             URL jenkinsUc,
@@ -39,6 +43,8 @@ public class Config {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
         this.showAllWarnings = showAllWarnings;
+        this.showAvailableUpdates = showAvailableUpdates;
+        this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
         this.jenkinsUc = jenkinsUc;
@@ -57,6 +63,12 @@ public class Config {
     public boolean isShowAllWarnings() {
         return showAllWarnings;
     }
+
+    public boolean isShowAvailableUpdates() {
+        return showAvailableUpdates;
+    }
+
+    public boolean isShowPluginsToBeDownloaded() { return showPluginsToBeDownloaded; }
 
     public String getJenkinsWar() {
         return jenkinsWar;
@@ -86,9 +98,10 @@ public class Config {
         private File pluginDir;
         private boolean showWarnings;
         private boolean showAllWarnings;
+        private boolean showAvailableUpdates;
+        private boolean showPluginsToBeDownloaded;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
-        ;
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
@@ -111,6 +124,15 @@ public class Config {
             return this;
         }
 
+        public Builder withShowAvailableUpdates(boolean showAvailableUpdates) {
+            this.showAvailableUpdates = showAvailableUpdates;
+            return this;
+        }
+
+        public Builder withShowPluginsToBeDownloaded(boolean showPluginsToBeDownloaded) {
+            this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
+            return this;
+        }
 
         public Builder withJenkinsWar(String jenkinsWar) {
             this.jenkinsWar = jenkinsWar;
@@ -142,6 +164,8 @@ public class Config {
                     pluginDir,
                     showWarnings,
                     showAllWarnings,
+                    showAvailableUpdates,
+                    showPluginsToBeDownloaded,
                     jenkinsWar,
                     plugins,
                     jenkinsUc,
