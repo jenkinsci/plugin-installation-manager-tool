@@ -43,10 +43,12 @@ Plugins can also be entered in a yaml file with the following format:
 ```
 plugins:
   - artifactId: plugin1_artifactId
-    version: plugin1_version
-    url: plugin1_url
+    source: 
+      version: plugin1_version
+      url: plugin1_url
   - artifactId: plugin2_artifactId
-    version: plugin2_version
+    source:
+      version: plugin2_version
   ...
 ```
 As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default.

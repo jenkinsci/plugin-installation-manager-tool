@@ -1,38 +1,49 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({PluginParser.class})
 public class PluginParserTest {
     PluginParser pluginParser;
-    List<Plugin> expectedPlugins;
+    List<String> expectedPluginInfo;
 
     @Before
     public void setup() {
-         pluginParser = new PluginParser();
+        pluginParser = new PluginParser();
 
-        expectedPlugins = new ArrayList<>();
-        expectedPlugins.add(new Plugin("git", "latest", null));
-        expectedPlugins.add(new Plugin("job-import-plugin", "2.1", null));
-        expectedPlugins.add(new Plugin("docker", "latest", null));
-        expectedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null));
-        expectedPlugins.add(new Plugin("script-security", "latest",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi"));
-        expectedPlugins.add(new Plugin("workflow-step-api",
-                "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74", null));
-        expectedPlugins.add(new Plugin("matrix-project", "latest", null));
-        expectedPlugins.add(new Plugin("junit", "experimental", null));
-        expectedPlugins.add(new Plugin("credentials", "2.2.0",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"));
+        expectedPluginInfo = new ArrayList<>();
+        expectedPluginInfo.add(new Plugin("git", "latest", null).toString());
+        expectedPluginInfo.add(new Plugin("job-import-plugin", "2.1", null).toString());
+        expectedPluginInfo.add(new Plugin("docker", "latest", null).toString());
+        expectedPluginInfo.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null).toString());
+        expectedPluginInfo.add(new Plugin("script-security", "latest",
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi").toString());
+        expectedPluginInfo.add(new Plugin("workflow-step-api",
+                "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74", null).toString());
+        expectedPluginInfo.add(new Plugin("matrix-project", "latest", null).toString());
+        expectedPluginInfo.add(new Plugin("junit", "experimental", null).toString());
+        expectedPluginInfo.add(new Plugin("credentials", "2.2.0",
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi").toString());
+
+        Collections.sort(expectedPluginInfo);
 
     }
 
@@ -40,6 +51,7 @@ public class PluginParserTest {
     public void parsePluginsFromCliOptionTest() {
         String[] pluginInput = new String[]{"git", "job-import-plugin:2.1",
                 "docker:latest",
+                "cloudbees-bitbucket-branch-source:2.4.4",
                 "script-security::http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/" +
                         "script-security.hpi",
                 "workflow-step-api:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74",
@@ -49,16 +61,11 @@ public class PluginParserTest {
 
         List<Plugin> plugins = pluginParser.parsePluginsFromCliOption(pluginInput);
 
-        List<String> expectedPluginInfo = new ArrayList<>();
         List<String> pluginInfo = new ArrayList<>();
         for (Plugin p : plugins) {
             pluginInfo.add(p.toString());
         }
-        for (Plugin p : expectedPlugins) {
-            expectedPluginInfo.add(p.toString());
-        }
 
-        Collections.sort(expectedPluginInfo);
         Collections.sort(pluginInfo);
 
         assertEquals(expectedPluginInfo, pluginInfo);
@@ -69,17 +76,53 @@ public class PluginParserTest {
 
     }
 
+    @Test
     public void parsePluginTxtFileTest() throws URISyntaxException {
-        List<Plugin>  noFilePluginList = pluginParser.parsePluginTxtFile(null);
+        List<Plugin> noFilePluginList = pluginParser.parsePluginTxtFile(null);
         assertEquals(noFilePluginList.size(), 0);
 
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.txt").toURI());
 
         List<Plugin> pluginsFromFile = pluginParser.parsePluginTxtFile(pluginTxtFile);
 
+        List<String> pluginInfo = new ArrayList<>();
+        for (Plugin p : pluginsFromFile) {
+            pluginInfo.add(p.toString());
+        }
 
-
-
+        Collections.sort(pluginInfo);
+        assertEquals(expectedPluginInfo, pluginInfo);
     }
 
+
+    @Test
+    public void parsePluginYamlFileTest() throws URISyntaxException {
+        List<Plugin> noFilePluginList = pluginParser.parsePluginYamlFile(null);
+        assertEquals(noFilePluginList.size(), 0);
+
+        File pluginYmlFile = new File(this.getClass().getResource("/plugins.yaml").toURI());
+
+        List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
+
+        List<String> pluginInfo = new ArrayList<>();
+        for (Plugin p : pluginsFromYamlFile) {
+            System.out.println(p.toString());
+            pluginInfo.add(p.toString());
+        }
+
+        Collections.sort(pluginInfo);
+        assertEquals(expectedPluginInfo, pluginInfo);
+    }
+
+    public void fileExistsTest() throws URISyntaxException {
+        assertEquals(false, pluginParser.fileExists(null));
+
+        File pluginFile = new File(this.getClass().getResource("/plugins.yaml").toURI());
+        assertEquals(true, pluginParser.fileExists(pluginFile));
+
+        mockStatic(Files.class);
+
+        when(Files.exists(any(Path.class))).thenReturn(false);
+        assertEquals(false, pluginParser.fileExists(pluginFile));
+    }
 }

@@ -21,10 +21,12 @@ import static java.util.stream.Collectors.toList;
 
 public class PluginParser {
     public List<Plugin> parsePluginsFromCliOption(String[] plugins) {
-        List<Plugin> cliPlugins = Arrays.stream(plugins)
+        if (plugins == null) {
+            return new ArrayList<>();
+        }
+        return Arrays.stream(plugins)
                 .map(this::parsePluginLine)
                 .collect(toList());
-        return cliPlugins;
     }
 
 
@@ -55,6 +57,7 @@ public class PluginParser {
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
                 Map map = (Map) yaml.load(inputStream);
                 List plugins = (List) map.get("plugins");
+                UrlValidator urlValidator = new UrlValidator();
                 for (Object p : plugins) {
                     Map pluginInfo = (Map) p;
                     Object nameObject = pluginInfo.get("artifactId");
@@ -63,11 +66,22 @@ public class PluginParser {
                         System.out.println("artifactId is required, skipping...");
                         continue;
                     }
-                    Object versionObject = pluginInfo.get("version");
-                    String version = versionObject == null ? "latest" : versionObject.toString();
-                    Object urlObject = pluginInfo.get("url");
-                    String url = urlObject == null ? null : urlObject.toString();
-                    Plugin plugin = new Plugin(name.toString(), version, url);
+                    Map pluginSource = (Map) pluginInfo.get("source");
+                    Plugin plugin;
+                    if (pluginSource == null) {
+                        plugin = new Plugin(name, "latest", null);
+                    } else {
+                        Object versionObject = pluginSource.get("version");
+                        String version = versionObject == null ? "latest" : versionObject.toString();
+                        Object urlObject = pluginSource.get("url");
+                        String url;
+                        if (urlObject != null && urlValidator.isValid(urlObject.toString())) {
+                            url = urlObject.toString();
+                        } else {
+                            url = null;
+                        }
+                        plugin = new Plugin(name, version, url);
+                    }
                     pluginsFromYaml.add(plugin);
                 }
             } catch (IOException e) {
