@@ -50,12 +50,12 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean verbose;
 
-    @Option(name = "--available-updates", usage = "Show available plugin updates for the requested " +
-            "or currently installed plugins", handler = BooleanOptionHandler.class)
+    @Option(name = "--available-updates", usage = "Show available plugin updates for the requested plugins",
+            handler = BooleanOptionHandler.class)
     private boolean showAvailableUpdates;
 
     @Option(name = "--view-security-warnings",
-            usage = "Show if any security warnings exist for the requested or currently installed plugins",
+            usage = "Show if any security warnings exist for the requested plugins",
             handler = BooleanOptionHandler.class)
     private boolean showWarnings;
 

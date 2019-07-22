@@ -107,12 +107,12 @@ public class PluginManager {
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
-        showEffectivePluginSetWarnings(effectivePlugins);
-
+        showSpecificSecurityWarnings(pluginsToBeDownloaded);
+        showAvailableUpdates(pluginsToBeDownloaded);
 
         if (!cfg.isShowPluginsToBeDownloaded() && !cfg.isShowAllWarnings() && !cfg.isShowWarnings() &&
                 !cfg.isShowAvailableUpdates()) {
-            downloadPlugins(new ArrayList<>(pluginsToBeDownloaded));
+            downloadPlugins(pluginsToBeDownloaded);
             outputFailedPlugins();
         }
     }
@@ -203,7 +203,7 @@ public class PluginManager {
                 System.out.println(plugin.getName() + ": " + plugin.getVersion());
             }
 
-            System.out.println("\nEffective plugin set:");
+            System.out.println("\nSet of all existing plugins and plugins that will be downloaded:");
             for (Plugin plugin : effectivePlugins.values()) {
                 System.out.println(plugin.getName() + ": " + plugin.getVersion());
             }
@@ -258,15 +258,39 @@ public class PluginManager {
         }
     }
 
-    public void showEffectivePluginSetWarnings(Map<String, Plugin> plugins) {
+    /**
+     * Prints out security warning information for a list of plugins if isShowWarnings is set to true in the config
+     * file
+     * @param plugins
+     */
+    public void showSpecificSecurityWarnings(List<Plugin> plugins) {
         if (cfg.isShowWarnings()) {
             System.out.println("\nSecurity warnings:");
-            for (Plugin plugin : plugins.values()) {
+            for (Plugin plugin : plugins) {
                 if (warningExists(plugin)) {
                     String pluginName = plugin.getName();
                     System.out.println(String.format("%s (%s): %s %s", pluginName, plugin.getVersion(),
                             allSecurityWarnings.get(pluginName).getName(),
                             allSecurityWarnings.get(pluginName).getMessage()));
+                }
+            }
+        }
+    }
+
+    /**
+     *
+     * @param plugins List of plugins to check versions against latest versions in update center
+     */
+    public void showAvailableUpdates(List<Plugin> plugins) {
+        if (cfg.isShowAvailableUpdates()) {
+            System.out.println("\nAvailable updates:");
+            for (Plugin plugin : plugins) {
+                JSONObject pluginsJson = latestUcJson.getJSONObject("plugins");
+                JSONObject pluginInfo = (JSONObject) pluginsJson.get(plugin.getName());
+                VersionNumber latestVersion = new VersionNumber(pluginInfo.getString("version"));
+                if (plugin.getVersion().compareTo(latestVersion) < 0) {
+                    System.out.println(String.format("%s (%s) has an available update: %s", plugin.getName(),
+                            plugin.getVersion(), latestVersion));
                 }
             }
         }
@@ -328,7 +352,6 @@ public class PluginManager {
             failedPlugins.stream().map(p -> p.getOriginalName() + " or " + p.getName()).forEach(System.out::println);
             System.exit(1);
         }
-        System.exit(0);
     }
 
     /**
@@ -454,7 +477,11 @@ public class PluginManager {
 
         try {
             File tempFile = Files.createTempFile(plugin.getName(), ".jpi").toFile();
-            downloadPlugin(plugin, tempFile);
+            if (!downloadPlugin(plugin, tempFile)) {
+                System.out.println("Unable to resolve dependencies");
+                Files.delete(tempFile.toPath());
+                return dependentPlugins;
+            }
             String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
             String[] dependencies = dependencyString.split(",");
 
@@ -666,11 +693,10 @@ public class PluginManager {
      * @return true if download is successful, false otherwise
      */
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
-        System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
-
         File pluginFile;
         if (fileLocation == null) {
             pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
+            System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
         } else {
             pluginFile = fileLocation;
         }
