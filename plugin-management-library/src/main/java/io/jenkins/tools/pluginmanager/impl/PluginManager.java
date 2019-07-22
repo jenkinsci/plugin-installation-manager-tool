@@ -59,10 +59,13 @@ public class PluginManager {
     private Map<String, VersionNumber> installedPluginVersions;
     private Map<String, VersionNumber> bundledPluginVersions;
     private Map<String, SecurityWarning> allSecurityWarnings;
+    private Map<String, Plugin> allPluginsAndDependencies;
+    private List<Plugin> pluginsToBeDownloaded;
     private Config cfg;
     private JSONObject latestUcJson;
     private JSONObject experimentalUcJson;
     private JSONObject pluginInfoJson;
+    private boolean isVerbose;
 
     public static final String SEPARATOR = File.separator;
 
@@ -74,6 +77,8 @@ public class PluginManager {
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
         allSecurityWarnings = new HashMap<>();
+        allPluginsAndDependencies = new HashMap<>();
+        isVerbose = cfg.isVerbose();
     }
 
     /**
@@ -97,32 +102,69 @@ public class PluginManager {
         bundledPlugins();
         installedPlugins();
 
-        Map<String, Plugin> allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins());
+        allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins());
 
-        List<Plugin> pluginsToBeDownloaded = new ArrayList<>(allPluginsAndDependencies.values());
+        pluginsToBeDownloaded = findPluginsToDownload(allPluginsAndDependencies);
 
-        listPlugins(pluginsToBeDownloaded);
+        listPlugins();
 
-        downloadPlugins(new ArrayList<>(pluginsToBeDownloaded));
+        if (!cfg.isShowPluginsToBeDownloaded()) {
+            downloadPlugins(new ArrayList<>(pluginsToBeDownloaded));
+            outputFailedPlugins();
+        }
 
-        outputFailedPlugins();
+    }
+
+    public List<Plugin> findPluginsToDownload(Map<String, Plugin> requestedPlugins) {
+        List<Plugin> pluginsToDownload = new ArrayList<>();
+        VersionNumber installedVersion = null;
+        for (Map.Entry<String, Plugin> requestedPlugin : requestedPlugins.entrySet()) {
+            String pluginName = requestedPlugin.getKey();
+            Plugin plugin = requestedPlugin.getValue();
+            if (installedPluginVersions.containsKey(pluginName)) {
+                installedVersion = installedPluginVersions.get(pluginName);
+            } else if (bundledPluginVersions.containsKey(pluginName)) {
+                installedVersion = bundledPluginVersions.get(pluginName);
+            }
+            if (installedVersion == null) {
+                pluginsToDownload.add(plugin);
+            } else if (installedVersion.compareTo(plugin.getVersion()) < 0) {
+                if (isVerbose) {
+                    System.out.println("Installed version (" + installedVersion + ") of " + pluginName +
+                            " is less than minimum required version of " + plugin.getVersion() +
+                            ", bundled plugin will be upgraded");
+                }
+                pluginsToDownload.add(plugin);
+            }
+        }
+        return pluginsToDownload;
+
     }
 
 
-    public void listPlugins(List<Plugin> pluginsToBeDownloaded) {
+
+
+
+    public void listPlugins() {
         if (cfg.isShowPluginsToBeDownloaded()) {
-            System.out.println("Installed plugins:");
+            System.out.println("\nInstalled plugins:");
             for (Map.Entry<String, VersionNumber> installedPlugin: installedPluginVersions.entrySet()) {
                 System.out.println(installedPlugin.getKey() + " " + installedPlugin.getValue());
             }
 
-            System.out.println("Bundled plugins:");
+            System.out.println("\nBundled plugins:");
             for (Map.Entry<String, VersionNumber> bundledPlugin: bundledPluginVersions.entrySet()) {
                 System.out.println(bundledPlugin.getKey()+ " " + bundledPlugin.getValue());
             }
 
-            System.out.println("Plugins that will be downloaded:");
+            System.out.println("\nSet of all requested plugins:");
+            for (Plugin requestedPlugin: allPluginsAndDependencies.values()) {
+                System.out.println(requestedPlugin.getName() + " " + requestedPlugin.getVersion());
+            }
+
+            System.out.println("\nSet of all requested plPlugins that will be downloaded:");
             for (Plugin plugin : pluginsToBeDownloaded) {
+
                 System.out.println(plugin.getName() + " " + plugin.getVersion());
             }
         }
@@ -240,7 +282,7 @@ public class PluginManager {
      */
     public void downloadPlugins(List<Plugin> plugins) {
         for (Plugin plugin : plugins) {
-            boolean successfulDownload = downloadPlugin(plugin);
+            boolean successfulDownload = downloadPlugin(plugin, null);
             if (!successfulDownload) {
                 System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
                 failedPlugins.add(plugin);
@@ -263,35 +305,19 @@ public class PluginManager {
                 } else {
                     Plugin existingDependency = allPluginDependencies.get(dependencyName);
                     if (existingDependency.getVersion().compareTo(dependencyVersion) < 0) {
-                            /*
-                            System.out
-                                    .println("Version of " + dependencyName + " (" + existingDependency.getVersion()
-                                            + ") required by " + existingDependency.getParent().getName() + " (" +
-                                            existingDependency.getParent().getVersion() +
-                                            ") is lower than the version " +
-                                            "required (" + dependencyVersion + ") by " +
-                                            dependentPlugin.getParent().getName() + " (" +
-                                            dependentPlugin.getParent().getVersion() +
-                                            "), upgrading required plugin version");
-                            */
+                            if (isVerbose) {
+                                System.out
+                                        .println("Version of " + dependencyName + " (" + existingDependency.getVersion()
+                                                + ") required by " + existingDependency.getParent().getName() + " (" +
+                                                existingDependency.getParent().getVersion() +
+                                                ") is lower than the version " +
+                                                "required (" + dependencyVersion + ") by " +
+                                                dependentPlugin.getParent().getName() + " (" +
+                                                dependentPlugin.getParent().getVersion() +
+                                                "), upgrading required plugin version");
+                            }
                         allPluginDependencies.replace(existingDependency.getName(), dependentPlugin);
                     }
-                }
-
-                VersionNumber installedVersion = null;
-                if (installedPluginVersions.containsKey(dependencyName)) {
-                    installedVersion = installedPluginVersions.get(dependencyName);
-                } else if (bundledPluginVersions.containsKey(dependencyName)) {
-                    installedVersion = bundledPluginVersions.get(dependencyName);
-                }
-
-                if (installedVersion != null && installedVersion.compareTo(dependencyVersion) < 0) {
-                        /*
-                        System.out.println("Installed version (" + installedVersion + ") of " + dependencyName +
-                                " is less than minimum " +
-                                "required version of " + dependencyVersion + ", bundled plugin will be upgraded");
-                        */
-                    allPluginDependencies.put(dependencyName, dependentPlugin);
                 }
             }
         }
@@ -366,11 +392,14 @@ public class PluginManager {
         List<Plugin> dependentPlugins = new ArrayList<>();
 
         try {
-            final Path tempFile = Files.createTempFile(plugin.getName(), ".jpi");
-            String dependencyString = getAttributefromManifest(tempFile.toFile(), "Plugin-Dependencies");
+            File tempFile = Files.createTempFile(plugin.getName(), ".jpi").toFile();
+            downloadPlugin(plugin, tempFile);
+            String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
             String[] dependencies = dependencyString.split(",");
 
-            System.out.println("/n" + plugin.getName() + " depends on: ");
+            if (isVerbose) {
+                System.out.println("/n" + plugin.getName() + " depends on: ");
+            }
 
             boolean isPluginOptional = false;
 
@@ -385,7 +414,9 @@ public class PluginManager {
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
                 dependentPlugins.add(dependentPlugin);
 
-                System.out.println(pluginName + ": " + pluginVersion);
+                if (isVerbose) {
+                    System.out.println(pluginName + ": " + pluginVersion);
+                }
             }
             return dependentPlugins;
         }
@@ -421,12 +452,16 @@ public class PluginManager {
         }
 
         if (dependencies.length() == 0) {
-            System.out.println("\n" + plugin.getName() + " has no dependencies");
+            if (isVerbose) {
+                System.out.println("\n" + plugin.getName() + " has no dependencies");
+            }
             return dependentPlugins;
         }
 
 
-        System.out.println("\n" + plugin.getName() + " depends on: ");
+        if (isVerbose) {
+            System.out.println("\n" + plugin.getName() + " depends on: ");
+        }
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
@@ -436,7 +471,9 @@ public class PluginManager {
             Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
             dependentPlugins.add(dependentPlugin);
 
-            System.out.println(pluginName + ": " + pluginVersion);
+            if (isVerbose) {
+                System.out.println(pluginName + ": " + pluginVersion);
+            }
         }
         return dependentPlugins;
     }
@@ -468,13 +505,13 @@ public class PluginManager {
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
                     if (existingDependency.getVersion().compareTo(p.getVersion()) < 0) {
-                        /*
+                        if (isVerbose) {
                         System.out.println("Version of " + dependencyName + " ( " + existingDependency.getVersion()
                                 + " ) required by " + existingDependency.getParent().getName() + " (" +
                                 existingDependency.getParent().getVersion() + ") is lower than the version " +
                                 "required (" + p.getVersion() + ") by " + p.getParent().getName() + " (" +
                                 p.getParent().getVersion() + "), upgrading required plugin version");
-                        */
+                        }
                         recursiveDependencies.replace(dependencyName, existingDependency, p);
                     }
                 }
@@ -492,7 +529,7 @@ public class PluginManager {
      * @return boolean signifying if plugin was successful
      */
 
-    public boolean downloadPlugin(Plugin plugin) {
+    public boolean downloadPlugin(Plugin plugin, File location) {
         String pluginName = plugin.getName();
         VersionNumber pluginVersion = plugin.getVersion();
         if (installedPluginVersions.containsKey(pluginName) &&
@@ -501,13 +538,13 @@ public class PluginManager {
             return true;
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
-        boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin);
+        boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         if (!successfulDownload) {
             //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
             String newPluginName = plugin.getName() + "-plugin";
             plugin.setName(newPluginName);
             pluginDownloadUrl = getPluginDownloadUrl(plugin);
-            successfulDownload = downloadToFile(pluginDownloadUrl, plugin);
+            successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         }
         if (successfulDownload) {
             System.out.println("downloaded successful");
@@ -568,10 +605,16 @@ public class PluginManager {
      * @param plugin Plugin object representing plugin to be downloaded
      * @return true if download is successful, false otherwise
      */
-    public boolean downloadToFile(String urlString, Plugin plugin) {
+    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
         System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
 
-        File pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
+        File pluginFile;
+        if (fileLocation == null) {
+            pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
+        }
+        else {
+            pluginFile = fileLocation;
+        }
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             HttpClientContext context = HttpClientContext.create();
             HttpGet httpget = new HttpGet(urlString);

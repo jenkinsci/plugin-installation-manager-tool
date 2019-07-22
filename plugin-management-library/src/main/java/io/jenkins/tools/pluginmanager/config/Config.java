@@ -24,6 +24,7 @@ public class Config {
     private boolean showPluginsToBeDownloaded;
     private String jenkinsWar;
     private List<Plugin> plugins;
+    private boolean isVerbose;
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
@@ -34,6 +35,7 @@ public class Config {
             boolean showAllWarnings,
             boolean showAvailableUpdates,
             boolean showPluginsToBeDownloaded,
+            boolean isVerbose,
             String jenkinsWar,
             List<Plugin> plugins,
             URL jenkinsUc,
@@ -45,6 +47,7 @@ public class Config {
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
+        this.isVerbose = isVerbose;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
         this.jenkinsUc = jenkinsUc;
@@ -69,6 +72,10 @@ public class Config {
     }
 
     public boolean isShowPluginsToBeDownloaded() { return showPluginsToBeDownloaded; }
+
+    public boolean isVerbose() {
+        return isVerbose;
+    }
 
     public String getJenkinsWar() {
         return jenkinsWar;
@@ -100,6 +107,7 @@ public class Config {
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
+        private boolean isVerbose;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
@@ -144,6 +152,11 @@ public class Config {
             return this;
         }
 
+        public Builder withIsVerbose(boolean isVerbose) {
+            this.isVerbose = isVerbose;
+            return this;
+        }
+
         public Builder withJenkinsUc(URL jenkinsUc) {
             this.jenkinsUc = jenkinsUc;
             return this;
@@ -166,6 +179,7 @@ public class Config {
                     showAllWarnings,
                     showAvailableUpdates,
                     showPluginsToBeDownloaded,
+                    isVerbose,
                     jenkinsWar,
                     plugins,
                     jenkinsUc,

@@ -178,7 +178,7 @@ public class PluginManagerTest {
         JarFile pluginJpi = Mockito.mock(JarFile.class);
 
         PowerMockito.whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
-        Assert.assertTrue(pm.downloadToFile("downloadURL", plugin));
+        Assert.assertTrue(pm.downloadToFile("downloadURL", plugin, null));
     }
 
     @Test

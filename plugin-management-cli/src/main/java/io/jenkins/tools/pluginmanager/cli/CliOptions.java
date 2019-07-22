@@ -46,6 +46,9 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showPluginsToBeDownloaded;
 
+    @Option(name = "--verbose", usage="Output more plugin dependency information", handler = BooleanOptionHandler.class)
+    private boolean isVerbose;
+
     @Option(name = "--available-updates", aliases = {"-u"}, usage = "Set to true to see if any updates are available for the " +
             "requested or currently installed plugins", handler = BooleanOptionHandler.class)
     private boolean showAvailableUpdates;
@@ -99,6 +102,7 @@ class CliOptions {
                 .withShowAllWarnings(isShowAllWarnings())
                 .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
                 .withShowAvailableUpdates(isShowAvailableUpdates())
+                .withIsVerbose(isVerbose())
                 .build();
     }
 
@@ -227,6 +231,10 @@ class CliOptions {
 
     private boolean isShowAvailableUpdates() {
         return showAvailableUpdates;
+    }
+
+    private boolean isVerbose() {
+        return isVerbose;
     }
 
     /**
