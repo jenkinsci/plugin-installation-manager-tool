@@ -35,7 +35,7 @@ public class Config {
             boolean showAllWarnings,
             boolean showAvailableUpdates,
             boolean showPluginsToBeDownloaded,
-            boolean isVerbose,
+            boolean verbose,
             String jenkinsWar,
             List<Plugin> plugins,
             URL jenkinsUc,
@@ -47,7 +47,7 @@ public class Config {
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
-        this.isVerbose = isVerbose;
+        this.isVerbose = verbose;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
         this.jenkinsUc = jenkinsUc;
@@ -71,7 +71,9 @@ public class Config {
         return showAvailableUpdates;
     }
 
-    public boolean isShowPluginsToBeDownloaded() { return showPluginsToBeDownloaded; }
+    public boolean isShowPluginsToBeDownloaded() {
+        return showPluginsToBeDownloaded;
+    }
 
     public boolean isVerbose() {
         return isVerbose;
@@ -107,7 +109,7 @@ public class Config {
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
-        private boolean isVerbose;
+        private boolean verbose;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
@@ -152,8 +154,8 @@ public class Config {
             return this;
         }
 
-        public Builder withIsVerbose(boolean isVerbose) {
-            this.isVerbose = isVerbose;
+        public Builder withIsVerbose(boolean verbose) {
+            this.verbose = verbose;
             return this;
         }
 
@@ -179,7 +181,7 @@ public class Config {
                     showAllWarnings,
                     showAvailableUpdates,
                     showPluginsToBeDownloaded,
-                    isVerbose,
+                    verbose,
                     jenkinsWar,
                     plugins,
                     jenkinsUc,

@@ -46,11 +46,12 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showPluginsToBeDownloaded;
 
-    @Option(name = "--verbose", usage="Output more plugin dependency information", handler = BooleanOptionHandler.class)
-    private boolean isVerbose;
+    @Option(name = "--verbose", usage = "Output more plugin dependency information",
+            handler = BooleanOptionHandler.class)
+    private boolean verbose;
 
-    @Option(name = "--available-updates", aliases = {"-u"}, usage = "Set to true to see if any updates are available for the " +
-            "requested or currently installed plugins", handler = BooleanOptionHandler.class)
+    @Option(name = "--available-updates", usage = "Show available plugin updates for the requested " +
+            "or currently installed plugins", handler = BooleanOptionHandler.class)
     private boolean showAvailableUpdates;
 
     @Option(name = "--view-security-warnings",
@@ -73,15 +74,13 @@ class CliOptions {
             usage = "Sets experimental update center; will override JENKINS_UC_EXPERIMENTAL environment variable. If " +
                     "not set via CLI option or environment variable, will default to " +
                     Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
-            handler = URLOptionHandler.class
-    )
+            handler = URLOptionHandler.class)
     private URL jenkinsUcExperimental;
 
     @Option(name = "--jenkins-incrementals-repo-mirror",
             usage = "Set Maven mirror to be used to download plugins from the Incrementals repository, will override " +
                     "the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If not set via CLI option or " +
-                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION
-            ,
+                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
 
@@ -117,25 +116,23 @@ class CliOptions {
 
     /**
      * Gets the user specified plugin download directory from the CLI option and sets this in the configuration class
-     *
      */
     private File getPluginDir() {
         if (pluginDir != null) {
             System.out.println("Plugin download location: " + pluginDir);
             return pluginDir;
-        } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR")))  {
+        } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR"))) {
             System.out.println("No directory to download plugins entered. " +
                     "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
             return new File(System.getenv("PLUGIN_DIR"));
         }
-            System.out.println("No directory to download plugins entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
-            return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        System.out.println("No directory to download plugins entered. " +
+                "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
     }
 
     /**
      * Gets the user specified Jenkins war from the CLI option and sets this in the configuration class
-     *
      */
     private String getJenkinsWar() {
         if (jenkinsWarFile == null) {
@@ -149,6 +146,7 @@ class CliOptions {
 
     /**
      * Parses user specified plugins from CLI and .txt file; creates and returns a list of corresponding plugin objects
+     *
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
@@ -166,8 +164,7 @@ class CliOptions {
         }
         if (Files.exists(pluginFileLocation.toPath())) {
             try (BufferedReader bufferedReader = Files.newBufferedReader(pluginFileLocation.toPath(),
-                    StandardCharsets.UTF_8))
-            {
+                    StandardCharsets.UTF_8)) {
                 System.out.println("Reading in plugins from " + pluginFileLocation + "\n");
                 List<Plugin> pluginsFromFile = bufferedReader.lines()
                         .map(line -> line.replaceAll("\\s", ""))
@@ -182,7 +179,6 @@ class CliOptions {
         } else {
             System.out.println(pluginFileLocation + " File does not exist");
         }
-
         return mappedPlugins;
     }
 
@@ -203,14 +199,13 @@ class CliOptions {
         UrlValidator urlValidator = new UrlValidator();
 
         if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
-                pluginVersion = pluginInfo[1];
+            pluginVersion = pluginInfo[1];
         }
 
         if (pluginInfo.length >= 3) {
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
-            }
-            else {
+            } else {
                 System.out.println("Invalid URL entered, will ignore");
             }
         }
@@ -234,7 +229,7 @@ class CliOptions {
     }
 
     private boolean isVerbose() {
-        return isVerbose;
+        return verbose;
     }
 
     /**
