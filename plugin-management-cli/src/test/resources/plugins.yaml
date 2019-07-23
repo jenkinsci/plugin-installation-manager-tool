@@ -1,0 +1,34 @@
+jenkins:
+  systemMessage: "Testing"
+plugins:
+  - artifactId: git
+    source:
+      version: latest
+  - artifactId: job-import-plugin
+    source:
+      version: 2.1
+  - artifactId: docker
+  - artifactId: cloudbees-bitbucket-branch-source
+    source:
+      version: 2.4.4
+  - artifactId: script-security
+    source:
+      url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi
+  - artifactId: workflow-step-api
+    source:
+      version: "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
+  - artifactId: matrix-project
+    source:
+      url: httttp://ftp-chi.osuosl.org/pub/jenkins/plugins/matrix-project/1.7.1/matrix-project.hpi
+  - artifactId: junit
+    source:
+      version: experimental
+  - artifactId: credentials
+    source:
+      version: 2.2.0
+      url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
+tool:
+  git:
+    installations:
+    - home: "git"
+      name: "Default"

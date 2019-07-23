@@ -3,33 +3,29 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;;
 import java.util.List;
 import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
 
-import static java.util.stream.Collectors.toList;
 
 class CliOptions {
     //path must include plugins.txt
     @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt file",
             handler = FileOptionHandler.class)
     private File pluginTxt;
+
+    @Option (name= "--plugin-yaml", aliases = {"-y"}, usage = "Path to plugins.yaml file", handler = FileOptionHandler.class)
+    private File pluginYaml;
 
     @Option(name = "--plugin-download-directory", aliases = {"-d"},
             usage = "Path to directory in which to install plugins",
@@ -98,11 +94,20 @@ class CliOptions {
 
     private File getPluginTxt() {
         if (pluginTxt == null) {
-            System.out.println("No file containing list of plugins to be downloaded entered.");
+            System.out.println("No .txt file containing list of plugins to be downloaded entered.");
         } else {
             System.out.println("File containing list of plugins to be downloaded: " + pluginTxt);
         }
         return pluginTxt;
+    }
+
+    private File getPluginYaml() {
+        if (pluginYaml == null) {
+            System.out.println("No .yaml file containing list of plugins to be downloaded entered.");
+        } else {
+            System.out.println("Yaml file containing list of plugins to be downloaded: " + pluginYaml);
+        }
+        return  pluginYaml;
     }
 
     /**
@@ -142,71 +147,16 @@ class CliOptions {
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
-        if (plugins == null) {
-            return new ArrayList<>();
-        }
+        List<Plugin> requestedPlugins = new ArrayList<>();
+        PluginParser pluginParser = new PluginParser();
+      
+        requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
+        requestedPlugins.addAll(pluginParser.parsePluginTxtFile(getPluginTxt()));
+        requestedPlugins.addAll(pluginParser.parsePluginYamlFile(getPluginYaml()));
 
-        List<Plugin> mappedPlugins = Arrays.stream(plugins)
-                .map(this::parsePluginLine)
-                .collect(toList());
-
-        File pluginFileLocation = getPluginTxt();
-        if (pluginFileLocation == null) {
-            return mappedPlugins;
-        }
-        if (Files.exists(pluginFileLocation.toPath())) {
-            try (BufferedReader bufferedReader = Files.newBufferedReader(pluginFileLocation.toPath(),
-                    StandardCharsets.UTF_8))
-            {
-                System.out.println("Reading in plugins from " + pluginFileLocation + "\n");
-                List<Plugin> pluginsFromFile = bufferedReader.lines()
-                        .map(line -> line.replaceAll("\\s#+.*", ""))
-                        .map(line -> line.replaceAll("\\s", ""))
-                        .filter(line -> !line.startsWith("#"))
-                        .filter(line -> line.length() > 0)
-                        .map(line -> parsePluginLine(line))
-                        .collect(toList());
-                mappedPlugins.addAll(pluginsFromFile);
-            } catch (IOException e) {
-                System.out.println("Unable to open " + pluginFileLocation);
-            }
-        } else {
-            System.out.println(pluginFileLocation + " File does not exist");
-        }
-
-        return mappedPlugins;
+        return requestedPlugins;
     }
 
-    /**
-     * For each plugin specified in the CLI using the --plugins option or line in the plugins.txt file, creates a Plugin
-     * object containing the  plugin name (required), version (optional), and url (optional)
-     *
-     * @param pluginLine plugin information to parse
-     * @return plugin object containing name, version, and/or url
-     */
-    private Plugin parsePluginLine(String pluginLine) {
-        String[] pluginInfo = pluginLine.split(":", 3);
-        String pluginName = pluginInfo[0];
-        String pluginVersion = "latest";
-        String pluginUrl = null;
-
-        // "http, https, ftp" are valid
-        UrlValidator urlValidator = new UrlValidator();
-
-        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
-                pluginVersion = pluginInfo[1];
-        }
-
-        if (pluginInfo.length >= 3) {
-            if (urlValidator.isValid(pluginInfo[2])) {
-                pluginUrl = pluginInfo[2];
-            }
-            else {
-                System.out.println("Invalid URL entered, will ignore");
-            }
-        }
-        return new Plugin(pluginName, pluginVersion, pluginUrl);
-    }
 
     private boolean isShowWarnings() {
         return showWarnings;
