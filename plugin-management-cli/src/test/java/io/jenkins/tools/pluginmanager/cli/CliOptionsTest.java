@@ -98,10 +98,10 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(cfg.getPluginDir(), pluginDir);
-        assertEquals(cfg.getJenkinsWar(), jenkinsWar.toString());
-        assertEquals(cfg.getPlugins().size(), 1);
-        assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
+        assertEquals(pluginDir, cfg.getPluginDir());
+        assertEquals(jenkinsWar.toString(), cfg.getJenkinsWar());
+        assertEquals(1, cfg.getPlugins().size());
+        assertEquals(displayUrlPlugin.toString(), cfg.getPlugins().get(0).toString());
     }
 
     @Test
