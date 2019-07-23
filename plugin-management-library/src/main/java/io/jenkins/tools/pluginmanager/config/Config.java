@@ -24,7 +24,7 @@ public class Config {
     private boolean showPluginsToBeDownloaded;
     private String jenkinsWar;
     private List<Plugin> plugins;
-    private boolean isVerbose;
+    private boolean verbose;
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
@@ -47,7 +47,7 @@ public class Config {
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
-        this.isVerbose = verbose;
+        this.verbose = verbose;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
         this.jenkinsUc = jenkinsUc;
@@ -76,7 +76,7 @@ public class Config {
     }
 
     public boolean isVerbose() {
-        return isVerbose;
+        return verbose;
     }
 
     public String getJenkinsWar() {

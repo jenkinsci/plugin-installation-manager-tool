@@ -10,7 +10,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -31,6 +33,8 @@ import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import static org.junit.Assert.assertEquals;
 
 
 @RunWith(PowerMockRunner.class)
@@ -75,7 +79,7 @@ public class PluginManagerTest {
         pm.checkAndSetLatestUpdateCenter();
 
         String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
-        Assert.assertEquals(expected, pm.getJenkinsUCLatest());
+        assertEquals(expected, pm.getJenkinsUCLatest());
 
         //Test where version specific update center doesn't exist
         statusCode = HttpStatus.SC_BAD_REQUEST;
@@ -84,21 +88,72 @@ public class PluginManagerTest {
         pm.checkAndSetLatestUpdateCenter();
 
         expected = cfg.getJenkinsUc().toString();
-        Assert.assertEquals(expected, pm.getJenkinsUCLatest());
+        assertEquals(expected, pm.getJenkinsUCLatest());
     }
 
+
+    @Test
+    public void findPluginsToDownloadTest() {
+        Map<String, Plugin> requestedPlugins = new HashMap<>();
+
+        Map<String, VersionNumber> installedPlugins = new HashMap<>();
+        Map<String, VersionNumber> bundledPlugins = new HashMap<>();
+
+        List<Plugin> actualPlugins;
+
+        requestedPlugins.put("git", new Plugin("git", "1.0.0", null));
+
+        pm.setInstalledPluginVersions(installedPlugins);
+        pm.setBundledPluginVersions(bundledPlugins);
+
+        actualPlugins = pm.findPluginsToDownload(requestedPlugins);
+
+        assertEquals(actualPlugins.size(), 1);
+        assertEquals(actualPlugins.get(0).toString(), "git 1.0.0");
+
+        requestedPlugins.put("credentials", new Plugin("credentials", "2.1.14", null));
+        requestedPlugins.put("structs", new Plugin("structs", "1.18", null));
+        requestedPlugins.put("ssh-credentials", new Plugin("ssh-credentials", "1.13", null));
+
+        installedPlugins.put("git", new VersionNumber("1.1.1"));
+        installedPlugins.put("git-client", new VersionNumber("2.7.5"));
+
+        bundledPlugins.put("structs", new VersionNumber("1.16"));
+
+        pm.setInstalledPluginVersions(installedPlugins);
+        pm.setBundledPluginVersions(bundledPlugins);
+
+        actualPlugins = pm.findPluginsToDownload(requestedPlugins);
+
+        List<String> actual = new ArrayList<>();
+
+        for (Plugin p: actualPlugins) {
+            System.out.println(p.toString());
+            actual.add(p.toString());
+        }
+
+        Collections.sort(actual);
+
+        List<String> expected = new ArrayList<>();
+        expected.add("credentials 2.1.14");
+        expected.add("structs 1.18");
+        expected.add("ssh-credentials 1.13");
+        Collections.sort(expected);
+
+        assertEquals(expected, actual);
+    }
 
     @Test
     public void getPluginVersionTest() {
         URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File testJpi = new File(jpiURL.getFile());
 
-        Assert.assertEquals("1.3.2", pm.getPluginVersion(testJpi));
+        assertEquals("1.3.2", pm.getPluginVersion(testJpi));
 
         URL hpiURL = this.getClass().getResource("/ssh-credentials.hpi");
         File testHpi = new File(hpiURL.getFile());
 
-        Assert.assertEquals("1.10", pm.getPluginVersion(testHpi));
+        assertEquals("1.10", pm.getPluginVersion(testHpi));
     }
 
 
@@ -106,7 +161,7 @@ public class PluginManagerTest {
     public void installedPluginsTest() throws IOException {
         File pluginDir = cfg.getPluginDir();
 
-        List<String> expectedPlugins = new ArrayList<>();
+        Map<String, VersionNumber> expectedPlugins = new HashMap<>();
 
         File tmp1 = File.createTempFile("test", ".jpi", pluginDir);
         File tmp2 = File.createTempFile("test2", ".jpi", pluginDir);
@@ -120,15 +175,13 @@ public class PluginManagerTest {
         FileUtils.copyFile(deliveryPipelineFile, tmp1);
         FileUtils.copyFile(githubFile, tmp2);
 
-        expectedPlugins.add(FilenameUtils.getBaseName(tmp1.getName()));
-        expectedPlugins.add(FilenameUtils.getBaseName(tmp2.getName()));
+        expectedPlugins.put(FilenameUtils.getBaseName(tmp1.getName()), new VersionNumber("1.3.2"));
+        expectedPlugins.put(FilenameUtils.getBaseName(tmp2.getName()), new VersionNumber("1.8"));
 
-        List<String> actualPlugins = pm.installedPlugins();
+        Map<String, VersionNumber> actualPlugins = pm.installedPlugins();
 
-        Collections.sort(expectedPlugins);
-        Collections.sort(actualPlugins);
-
-        Assert.assertEquals(expectedPlugins, actualPlugins);
+        assertEquals(expectedPlugins.get(FilenameUtils.getBaseName(tmp1.getName())), actualPlugins.get(FilenameUtils.getBaseName(tmp1.getName())));
+        assertEquals(expectedPlugins.get(FilenameUtils.getBaseName(tmp2.getName())), actualPlugins.get(FilenameUtils.getBaseName(tmp2.getName())));
     }
 
 
@@ -185,7 +238,7 @@ public class PluginManagerTest {
     public void getPluginDownloadUrlTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL");
 
-        Assert.assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
+        assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
         plugin.setUrl("");
         pm.setJenkinsUCLatest("https://updates.jenkins.io/2.176");
@@ -196,20 +249,20 @@ public class PluginManagerTest {
 
         String latestUrl = pm.getJenkinsUCLatest() + "/latest/pluginName.hpi";
 
-        Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
+        assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber noVersion = new VersionNumber("");
 
         plugin.setVersion(noVersion);
 
-        Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
+        assertEquals(latestUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber experimentalVersion = new VersionNumber("experimental");
 
         plugin.setVersion(experimentalVersion);
 
         String experimentalUrl = cfg.getJenkinsUcExperimental() + "/latest/pluginName.hpi";
-        Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
+        assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber incrementalVersion =
                 new VersionNumber("incrementals;org.jenkins-ci.plugins.pluginName;2.19-rc289.d09828a05a74");
@@ -219,7 +272,7 @@ public class PluginManagerTest {
         String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
                 "/org/jenkins-ci/plugins/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
-        Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
+        assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 
         VersionNumber otherVersion = new VersionNumber("otherversion");
 
@@ -227,7 +280,7 @@ public class PluginManagerTest {
 
         String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
 
-        Assert.assertEquals(otherURL, pm.getPluginDownloadUrl(plugin));
+        assertEquals(otherURL, pm.getPluginDownloadUrl(plugin));
     }
 
 
@@ -241,7 +294,7 @@ public class PluginManagerTest {
                 .withJenkinsWar(testWar.toString())
                 .build();
         PluginManager pluginManager = new PluginManager(config);
-        Assert.assertEquals(new VersionNumber("2.164.1").compareTo(pluginManager.getJenkinsVersionFromWar()), 0);
+        assertEquals(new VersionNumber("2.164.1").compareTo(pluginManager.getJenkinsVersionFromWar()), 0);
     }
 
 
@@ -255,17 +308,18 @@ public class PluginManagerTest {
                 .build();
         PluginManager pluginManager = new PluginManager(config);
 
-        List<String> expectedPlugins = new ArrayList<>();
-        expectedPlugins.add("credentials.jpi");
-        expectedPlugins.add("display-url-api.jpi");
-        expectedPlugins.add("github-branch-source.hpi");
+        Map <String, VersionNumber> expectedPlugins = new HashMap<>();
+        expectedPlugins.put("credentials", new VersionNumber("2.1.18"));
+        expectedPlugins.put("display-url-api", new VersionNumber("2.0"));
+        expectedPlugins.put("github-branch-source", new VersionNumber("1.8"));
 
-        List<String> actualPlugins = pluginManager.bundledPlugins();
+        Map<String, VersionNumber> actualPlugins = pluginManager.bundledPlugins();
 
-        Collections.sort(expectedPlugins);
-        Collections.sort(actualPlugins);
+        assertEquals(expectedPlugins.get("credentials"), actualPlugins.get("credentials"));
+        assertEquals(expectedPlugins.get("github-branch-source"), actualPlugins.get("github-branch-source"));
+        assertEquals(expectedPlugins.get("display-url-api"), actualPlugins.get("display-url-api"));
 
-        Assert.assertEquals(expectedPlugins, actualPlugins);
+
     }
 
 }

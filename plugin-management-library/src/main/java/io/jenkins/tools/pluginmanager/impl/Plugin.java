@@ -23,7 +23,6 @@ public class Plugin {
         this.url = url;
         this.dependencies = new ArrayList<>();
         this.parent = this;
-
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
@@ -101,6 +100,9 @@ public class Plugin {
 
     @Override
     public String toString() {
+        if (url == null) {
+            return name + " " + version;
+        }
         return name + " " + version + " " + url;
     }
 
