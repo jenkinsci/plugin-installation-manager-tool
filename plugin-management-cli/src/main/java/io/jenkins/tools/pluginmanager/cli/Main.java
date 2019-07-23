@@ -21,18 +21,20 @@ public class Main {
             throw new IOException("Failed to read command-line arguments", e);
         }
 
-
-        if (options.isShowVersion()) {
-            try {
+        try {
+            if (options.isShowVersion()) {
                 options.showVersion();
-            } catch (IOException e) {
-                System.exit(1);
+                return;
             }
-        }
 
-        Config cfg = options.setup();
-        PluginManager pm = new PluginManager(cfg);
-        pm.start();
+            Config cfg = options.setup();
+            PluginManager pm = new PluginManager(cfg);
+            pm.start();
+        } catch (Exception e) {
+            // TODO add stacktrace during verbose mode
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
 
     }
 
