@@ -303,26 +303,24 @@ class CliOptions {
     /**
      * Prints out the Plugin Management Tool version
      */
-    public void showVersion() throws IOException {
+    public void showVersion() {
         try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
             if (propertyInputStream == null) {
-                System.out.println("No version information available");
-                return;
+                throw new VersionNotFoundException("No version information available");
             }
-            final Properties properties = new Properties();
+            Properties properties = new Properties();
             properties.load(propertyInputStream);
-            System.out.println("Version: " + properties.getProperty("project.version"));
+
+            System.out.println(properties.getProperty("project.version"));
         } catch (IOException e) {
-            System.out.println("No version information available");
-            throw new IOException(e);
+            throw new VersionNotFoundException("No version information available", e);
         }
     }
 
+    // visible for testing
     public InputStream getPropertiesInputStream(String path) {
-        InputStream inputStream = this.getClass().getResourceAsStream(path);
-        return inputStream;
+        return this.getClass().getResourceAsStream(path);
     }
-
 
     /**
      * Returns if user requested to see the tool version from the CLI options
