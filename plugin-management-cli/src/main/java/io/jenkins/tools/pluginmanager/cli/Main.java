@@ -21,8 +21,13 @@ public class Main {
             throw new IOException("Failed to read command-line arguments", e);
         }
 
+
         if (options.isShowVersion()) {
-            options.showVersion();
+            try {
+                options.showVersion();
+            } catch (IOException e) {
+                System.exit(1);
+            }
         }
 
         Config cfg = options.setup();

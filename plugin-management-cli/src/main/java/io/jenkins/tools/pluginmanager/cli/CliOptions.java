@@ -303,7 +303,7 @@ class CliOptions {
     /**
      * Prints out the Plugin Management Tool version
      */
-    public void showVersion() {
+    public void showVersion() throws IOException {
         try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
             if (propertyInputStream == null) {
                 System.out.println("No version information available");
@@ -314,6 +314,7 @@ class CliOptions {
             System.out.println("Version: " + properties.getProperty("project.version"));
         } catch (IOException e) {
             System.out.println("No version information available");
+            throw new IOException(e);
         }
     }
 
