@@ -78,6 +78,11 @@ public class PluginManagerTest {
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
 
         //Test where version specific update center doesn't exist
+        Mockito.when(HttpClients.createDefault()).thenReturn(httpclient);
+        PowerMockito.whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        Mockito.when(httpclient.execute(httpget)).thenReturn(response);
+        PowerMockito.when(response.getStatusLine()).thenReturn(statusLine);
+
         statusCode = HttpStatus.SC_BAD_REQUEST;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 

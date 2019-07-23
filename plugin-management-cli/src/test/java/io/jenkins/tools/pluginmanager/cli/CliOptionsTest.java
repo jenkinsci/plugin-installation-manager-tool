@@ -242,14 +242,14 @@ public class CliOptionsTest {
         when(properties.getProperty(any(String.class))).thenReturn(version);
 
         options.showVersion();
-        assertEquals(version +"\n", outContent.toString());
+        assertEquals(version, outContent.toString().trim());
 
         ByteArrayOutputStream aliasVersionOut = new ByteArrayOutputStream();
         System.setOut(new PrintStream(aliasVersionOut));
 
         parser.parseArgument("-v");
         options.showVersion();
-        assertEquals(version +"\n", outContent.toString());
+        assertEquals(version, outContent.toString().trim());
     }
 
 
