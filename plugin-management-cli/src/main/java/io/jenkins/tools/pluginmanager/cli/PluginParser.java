@@ -36,6 +36,7 @@ public class PluginParser {
             try (BufferedReader bufferedReader = Files.newBufferedReader(pluginTxtFile.toPath(),
                     StandardCharsets.UTF_8)) {
                 List<Plugin> pluginsFromFile = bufferedReader.lines()
+                        .map(line -> line.replaceAll("\\s#+.*", ""))
                         .map(line -> line.replaceAll("\\s", ""))
                         .filter(line -> !line.startsWith("#"))
                         .filter(line -> line.length() > 0)

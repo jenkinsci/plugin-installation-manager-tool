@@ -39,8 +39,11 @@ The following custom version specifiers can also be used:
 * `experimental` - downloads the latest version from the [experimental update center](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/), which offers Alpha and Beta versions of plugins. Default value: [https://updates.jenkins.io/experimental](https://updates.jenkins.io/experimental)
 * `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).  
 
-Plugins can also be entered in a yaml file with the following format:
+Plugins can also be entered in a Jenkins yaml file with the following format:
+
 ```
+jenkins:
+  ...
 plugins:
   - artifactId: plugin1_artifactId
     source: 
@@ -49,9 +52,13 @@ plugins:
   - artifactId: plugin2_artifactId
     source:
       version: plugin2_version
+  - artifactId: plugin3_artifactId
+  ...
+tool:
   ...
 ```
-As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default.
+
+Any root object other than `plugins` will be ignored. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default.
 
 
 #### Examples
@@ -74,4 +81,3 @@ java -jar plugin-management-cli/target/plugin-management-tool.jar -p "workflow-s
 #### Other Information
 The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file.
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
-

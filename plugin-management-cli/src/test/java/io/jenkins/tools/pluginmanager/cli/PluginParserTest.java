@@ -42,6 +42,9 @@ public class PluginParserTest {
         expectedPluginInfo.add(new Plugin("junit", "experimental", null).toString());
         expectedPluginInfo.add(new Plugin("credentials", "2.2.0",
                 "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi").toString());
+        expectedPluginInfo.add(new Plugin("blueocean", "latest", null).toString());
+        expectedPluginInfo.add(new Plugin("google-api-client-plugin", "latest",
+                "https://updates.jenkins.io/latest/google-api-client-plugin.hpi").toString());
 
         Collections.sort(expectedPluginInfo);
 
@@ -57,7 +60,9 @@ public class PluginParserTest {
                 "workflow-step-api:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74",
                 "matrix-project:latest",
                 "junit:experimental",
-                "credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"};
+                "credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi",
+                "google-api-client-plugin::https://updates.jenkins.io/latest/google-api-client-plugin.hpi",
+                "blueocean:"};
 
         List<Plugin> plugins = pluginParser.parsePluginsFromCliOption(pluginInput);
 

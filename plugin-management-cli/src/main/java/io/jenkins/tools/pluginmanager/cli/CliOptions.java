@@ -4,6 +4,7 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -92,6 +93,10 @@ class CliOptions {
                 .build();
     }
 
+    /**
+     * Outputs information about plugin txt file selected from CLI Option
+     * @return plugin txt file passed in through CLI, or null if user did not pass in txt file
+     */
     private File getPluginTxt() {
         if (pluginTxt == null) {
             System.out.println("No .txt file containing list of plugins to be downloaded entered.");
@@ -101,6 +106,10 @@ class CliOptions {
         return pluginTxt;
     }
 
+    /**
+     * Outputs information about plugin yaml file option selected from CLI Option
+     * @return plugin yaml file passed in through CLI, or null if user did not pass in a yaml file
+     */
     private File getPluginYaml() {
         if (pluginYaml == null) {
             System.out.println("No .yaml file containing list of plugins to be downloaded entered.");
@@ -143,13 +152,13 @@ class CliOptions {
     }
 
     /**
-     * Parses user specified plugins from CLI and .txt file; creates and returns a list of corresponding plugin objects
+     * Parses user specified plugins from CLI, .txt file, and/or .yaml file; creates and returns a list of corresponding
+     * plugin objects
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
         List<Plugin> requestedPlugins = new ArrayList<>();
         PluginParser pluginParser = new PluginParser();
-      
         requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
         requestedPlugins.addAll(pluginParser.parsePluginTxtFile(getPluginTxt()));
         requestedPlugins.addAll(pluginParser.parsePluginYamlFile(getPluginYaml()));
@@ -157,11 +166,18 @@ class CliOptions {
         return requestedPlugins;
     }
 
-
+    /**
+     * Gets the value corresponding to if user selected to show warnings for specified plugins
+     * @return true if user selected CLI Option to see warnings for specified plugins
+     */
     private boolean isShowWarnings() {
         return showWarnings;
     }
 
+    /**
+     * Gets the value corresponding to if the user selected to show security warnings for all plugins
+     * @return true if user selected CLI Option to see warnings for all plugins
+     */
     private boolean isShowAllWarnings() {
         return showAllWarnings;
     }
