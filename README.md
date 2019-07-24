@@ -41,7 +41,7 @@ The following custom version specifiers can also be used:
 
 Plugins can also be entered in a Jenkins yaml file with the following format:
 
-```
+```yaml
 jenkins:
   ...
 plugins:
