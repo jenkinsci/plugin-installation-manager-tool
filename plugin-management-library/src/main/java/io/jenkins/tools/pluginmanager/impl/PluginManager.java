@@ -438,14 +438,11 @@ public class PluginManager {
             urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
         } else if (pluginVersion.equals("experimental")) {
             urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
-        } else if (pluginVersion.contains("incrementals")) {
-            System.out.println("plugin version " + pluginVersion);
-            String[] incrementalsVersionInfo = pluginVersion.split(";");
-            String groupId = incrementalsVersionInfo[1];
-            String incrementalsVersion = incrementalsVersionInfo[2];
+        } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
+            String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath =
-                    String.format("%s/%s/%s-%s.hpi", pluginName, incrementalsVersion, pluginName, incrementalsVersion);
+                    String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
             urlString =
                     String.format("%s/%s/%s", cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {

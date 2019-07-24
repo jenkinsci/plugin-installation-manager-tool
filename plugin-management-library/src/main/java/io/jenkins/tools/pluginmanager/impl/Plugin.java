@@ -10,13 +10,16 @@ public class Plugin {
     private String name;
     private String originalName;
     private VersionNumber version;
+    private String groupId;
     private String url;
     private File file;
     private boolean isPluginOptional;
     private List<Plugin> dependencies;
     private List<Plugin> dependents;
 
-    public Plugin(String name, String version, String url) {
+
+
+    public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
         this.name = name;
         if (StringUtils.isEmpty(version)) {
@@ -24,9 +27,10 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.url = url;
-        this.dependencies = new ArrayList<>();
-        this.dependents = new ArrayList<>();
+        this.groupId = groupId;
 
+        dependencies = new ArrayList<>();
+        dependents = new ArrayList<>();
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
@@ -59,6 +63,11 @@ public class Plugin {
         this.isPluginOptional = isPluginOptional;
     }
 
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+
     public String getName() {
         return name;
     }
@@ -85,6 +94,10 @@ public class Plugin {
 
     public String getOriginalName() {
         return originalName;
+    }
+
+    public String getGroupId() {
+        return groupId;
     }
 
     public void setDependencies(List<Plugin> dependencies) {

@@ -54,20 +54,20 @@ public class CliOptionsTest {
         //corresponds to plugins in plugin.txt
         txtRequestedPlugins = new ArrayList<>();
         txtRequestedPlugins.add(new Plugin("google-api-client-plugin",
-                "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi"));
-        txtRequestedPlugins.add(new Plugin("git", "latest", null));
-        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null));
-        txtRequestedPlugins.add(new Plugin("docker", "latest", null));
-        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null));
+                "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null));
+        txtRequestedPlugins.add(new Plugin("git", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null, null));
+        txtRequestedPlugins.add(new Plugin("docker", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null, null));
         txtRequestedPlugins.add(new Plugin("script-security", "latest",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi"));
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null));
         txtRequestedPlugins.add(new Plugin("workflow-step-api",
-                "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74", null));
-        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null));
-        txtRequestedPlugins.add(new Plugin("junit", "experimental", null));
+                "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow"));
+        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("junit", "experimental", null, null));
         txtRequestedPlugins.add(new Plugin("credentials", "2.2.0",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"));
-        txtRequestedPlugins.add(new Plugin("blueocean", "latest", null));
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null));
+        txtRequestedPlugins.add(new Plugin("blueocean", "latest", null, null));
 
         System.setOut(new PrintStream(outContent));
     }
@@ -111,7 +111,7 @@ public class CliOptionsTest {
                 "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Plugin displayUrlPlugin = new Plugin("display-url-api", "latest",
-                "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
+                "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi", null);
 
         Config cfg = options.setup();
 
@@ -132,9 +132,9 @@ public class CliOptionsTest {
                 "--plugins", "ssh-slaves:1.10 mailer cobertura:experimental");
 
         List<Plugin> requestedPlugins = new ArrayList<>(txtRequestedPlugins);
-        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null));
-        requestedPlugins.add(new Plugin("mailer", "latest", null));
-        requestedPlugins.add(new Plugin("cobertura", "experimental", null));
+        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null, null));
+        requestedPlugins.add(new Plugin("mailer", "latest", null, null));
+        requestedPlugins.add(new Plugin("cobertura", "experimental", null, null));
 
         Config cfg = options.setup();
 

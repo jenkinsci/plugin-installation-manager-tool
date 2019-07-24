@@ -79,12 +79,19 @@ public class PluginParser {
                         System.out.println("artifactId is required, skipping...");
                         continue;
                     }
+                    Object groupIdObject = pluginInfo.get("groupId");
+                    String groupId = groupIdObject == null ? null : groupIdObject.toString();
                     Map pluginSource = (Map) pluginInfo.get("source");
+                    String incrementalsVersion = null;
                     Plugin plugin;
                     if (pluginSource == null) {
-                        plugin = new Plugin(name, "latest", null);
+                        plugin = new Plugin(name, "latest", null, null);
                     } else {
                         Object versionObject = pluginSource.get("version");
+                        if (!StringUtils.isEmpty(groupId) && versionObject == null) {
+                            System.out.println("Version must be input for " + name + ". Skipping...");
+                            continue;
+                        }
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");
                         String url;
@@ -93,7 +100,7 @@ public class PluginParser {
                         } else {
                             url = null;
                         }
-                        plugin = new Plugin(name, version, url);
+                        plugin = new Plugin(name, version, url, groupId);
                     }
                     pluginsFromYaml.add(plugin);
                 }
@@ -134,22 +141,27 @@ public class PluginParser {
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
+        String groupId = null;
 
         // "http, https, ftp" are valid
         UrlValidator urlValidator = new UrlValidator();
 
-        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
+        if (pluginInfo.length >= 2) {
             pluginVersion = pluginInfo[1];
+            if (pluginVersion.contains("incrementals")) {
+                String[] incrementalsVersionInfo = pluginVersion.split(";");
+                groupId = incrementalsVersionInfo[1];
+                pluginVersion = incrementalsVersionInfo[2];
+            }
         }
 
         if (pluginInfo.length >= 3) {
-            pluginVersion = pluginInfo[1];
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
                 System.out.println("Invalid URL entered, will ignore");
             }
         }
-        return new Plugin(pluginName, pluginVersion, pluginUrl);
+        return new Plugin(pluginName, pluginVersion, pluginUrl, groupId);
     }
 }

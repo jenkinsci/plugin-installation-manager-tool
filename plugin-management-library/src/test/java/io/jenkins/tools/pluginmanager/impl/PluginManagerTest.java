@@ -190,7 +190,7 @@ public class PluginManagerTest {
         //File pluginDir = cfg.getPluginDir();
         //File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
 
-        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL");
+        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
 
         JarFile pluginJpi = Mockito.mock(JarFile.class);
 
@@ -200,7 +200,7 @@ public class PluginManagerTest {
 
     @Test
     public void getPluginDownloadUrlTest() {
-        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL");
+        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
 
         Assert.assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
@@ -228,10 +228,11 @@ public class PluginManagerTest {
         String experimentalUrl = cfg.getJenkinsUcExperimental() + "/latest/pluginName.hpi";
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(plugin));
 
-        VersionNumber incrementalVersion =
-                new VersionNumber("incrementals;org.jenkins-ci.plugins.pluginName;2.19-rc289.d09828a05a74");
+        VersionNumber version =
+                new VersionNumber("2.19-rc289.d09828a05a74");
 
-        plugin.setVersion(incrementalVersion);
+        plugin.setVersion(version);
+        plugin.setGroupId("org.jenkins-ci.plugins.pluginName");
 
         String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
                 "/org/jenkins-ci/plugins/pluginName/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
@@ -241,6 +242,7 @@ public class PluginManagerTest {
         VersionNumber otherVersion = new VersionNumber("otherversion");
 
         plugin.setVersion(otherVersion);
+        plugin.setGroupId("");
 
         String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
 
