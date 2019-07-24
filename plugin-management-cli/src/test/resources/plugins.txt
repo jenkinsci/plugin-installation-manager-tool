@@ -1,5 +1,5 @@
 git:   latest
-
+google-api-client-plugin:: https://updates.jenkins.io/latest/google-api-client-plugin.hpi ##should not cause problems
 job-import-plugin:2.1
      #   should not be read
 #structs:1.6
@@ -12,4 +12,4 @@ matrix-project::httttp://ftp-chi.osuosl.org/pub/jenkins/plugins/matrix-project/1
 
  junit:experimental
 credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
-
+blueocean #comment

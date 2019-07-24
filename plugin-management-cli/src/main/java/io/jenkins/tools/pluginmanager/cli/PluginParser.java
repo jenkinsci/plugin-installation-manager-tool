@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.yaml.snakeyaml.Yaml;
 
-
 import static java.util.stream.Collectors.toList;
 
 public class PluginParser {
@@ -29,13 +28,20 @@ public class PluginParser {
                 .collect(toList());
     }
 
-
+    /**
+     * Given a txt file that lists the plugins (in the format artifactId:version:url) to be downloaded on each line,
+     * returns a list of Plugin objects representing the requested plugins
+     *
+     * @param pluginTxtFile text file containing plugins to be parsed
+     * @return list of plugins contained in the text file
+     */
     public List<Plugin> parsePluginTxtFile(File pluginTxtFile) {
         List<Plugin> pluginsFromTxt = new ArrayList<>();
         if (fileExists(pluginTxtFile)) {
             try (BufferedReader bufferedReader = Files.newBufferedReader(pluginTxtFile.toPath(),
                     StandardCharsets.UTF_8)) {
                 List<Plugin> pluginsFromFile = bufferedReader.lines()
+                        .map(line -> line.replaceAll("\\s#+.*", ""))
                         .map(line -> line.replaceAll("\\s", ""))
                         .filter(line -> !line.startsWith("#"))
                         .filter(line -> line.length() > 0)
@@ -50,6 +56,13 @@ public class PluginParser {
         return pluginsFromTxt;
     }
 
+    /**
+     * Given a Jenkins yaml file with a plugins root element, will parse the yaml file and create a list of requested
+     * plugins
+     *
+     * @param pluginYamlFile yaml file to parse
+     * @return list of plugins contained in yaml file
+     */
     public List<Plugin> parsePluginYamlFile(File pluginYamlFile) {
         List<Plugin> pluginsFromYaml = new ArrayList<>();
         if (fileExists(pluginYamlFile)) {
@@ -91,21 +104,23 @@ public class PluginParser {
         return pluginsFromYaml;
     }
 
-
+    /**
+     * Checks if a file exists
+     *
+     * @param pluginFile file of which to check the existence
+     * @return true if file exists, false otherwise
+     */
     public boolean fileExists(File pluginFile) {
         if (pluginFile == null) {
             return false;
         }
-
         if (Files.exists(pluginFile.toPath())) {
             System.out.println("Reading in plugins from " + pluginFile + "\n");
             return true;
         }
-
         System.out.println(pluginFile + " file does not exist");
         return false;
     }
-
 
     /**
      * For each plugin specified in the CLI using the --plugins option or line in the plugins.txt file, creates a Plugin
@@ -132,7 +147,7 @@ public class PluginParser {
             if (urlValidator.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
-              System.out.println("Invalid URL entered, will ignore");
+                System.out.println("Invalid URL entered, will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl);

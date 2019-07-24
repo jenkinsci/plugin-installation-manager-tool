@@ -76,17 +76,34 @@ public class PluginManagerTest {
 
         String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
+    }
 
-        //Test where version specific update center doesn't exist
-        statusCode = HttpStatus.SC_BAD_REQUEST;
+
+    @Test
+    public void checkVersionSpecificUpdateCenterBadRequestTest() throws Exception {
+        pm.setJenkinsVersion(new VersionNumber("2.176"));
+
+        PowerMockito.mockStatic(HttpClients.class);
+        CloseableHttpClient httpclient = Mockito.mock(CloseableHttpClient.class);
+
+        Mockito.when(HttpClients.createDefault()).thenReturn(httpclient);
+        HttpGet httpget = Mockito.mock(HttpGet.class);
+
+        PowerMockito.whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        CloseableHttpResponse response = Mockito.mock(CloseableHttpResponse.class);
+        Mockito.when(httpclient.execute(httpget)).thenReturn(response);
+
+        StatusLine statusLine = Mockito.mock(StatusLine.class);
+        PowerMockito.when(response.getStatusLine()).thenReturn(statusLine);
+
+        int statusCode = HttpStatus.SC_BAD_REQUEST;
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
         pm.checkAndSetLatestUpdateCenter();
 
-        expected = cfg.getJenkinsUc().toString();
+        String expected = cfg.getJenkinsUc().toString();
         Assert.assertEquals(expected, pm.getJenkinsUCLatest());
     }
-
 
     @Test
     public void getPluginVersionTest() {
@@ -217,7 +234,7 @@ public class PluginManagerTest {
         plugin.setVersion(incrementalVersion);
 
         String incrementalUrl = cfg.getJenkinsIncrementalsRepoMirror() +
-                "/org/jenkins-ci/plugins/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
+                "/org/jenkins-ci/plugins/pluginName/pluginName/2.19-rc289.d09828a05a74/pluginName-2.19-rc289.d09828a05a74.hpi";
 
         Assert.assertEquals(incrementalUrl, pm.getPluginDownloadUrl(plugin));
 

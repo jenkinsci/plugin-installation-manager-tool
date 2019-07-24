@@ -23,10 +23,16 @@ plugins:
   - artifactId: junit
     source:
       version: experimental
+  #comment should be ignored
   - artifactId: credentials
     source:
       version: 2.2.0
       url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
+  - artifactId: blueocean #comment
+  - artifactId: google-api-client-plugin
+    source:
+       version:
+       url: https://updates.jenkins.io/latest/google-api-client-plugin.hpi
 tool:
   git:
     installations:
