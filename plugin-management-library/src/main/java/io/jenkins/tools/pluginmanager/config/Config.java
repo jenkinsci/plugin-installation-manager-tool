@@ -99,6 +99,14 @@ public class Config {
         return jenkinsIncrementalsRepoMirror;
     }
 
+    public boolean doDownload() {
+        if (!isShowPluginsToBeDownloaded() && !isShowAllWarnings() && !isShowWarnings() &&
+                !isShowAvailableUpdates()) {
+            return true;
+        }
+        return false;
+
+    }
     public static Builder builder() {
         return new Builder();
     }

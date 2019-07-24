@@ -110,8 +110,7 @@ public class PluginManager {
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         showAvailableUpdates(pluginsToBeDownloaded);
 
-        if (!cfg.isShowPluginsToBeDownloaded() && !cfg.isShowAllWarnings() && !cfg.isShowWarnings() &&
-                !cfg.isShowAvailableUpdates()) {
+        if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
             outputFailedPlugins();
         }
@@ -495,9 +494,6 @@ public class PluginManager {
             String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
             String[] dependencies = dependencyString.split(",");
 
-            if (verbose) {
-                System.out.println("\n" + plugin.getName() + " depends on: ");
-            }
 
             boolean isPluginOptional = false;
 
@@ -511,10 +507,14 @@ public class PluginManager {
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
                 dependentPlugins.add(dependentPlugin);
+            }
 
-                if (verbose) {
-                    System.out.println(pluginName + ": " + pluginVersion);
-                }
+            if (verbose) {
+                System.out.println("\n" + plugin.getName() + " depends on: ");
+                dependentPlugins
+                        .stream()
+                        .map(p -> p.getName() + ": " + p.getVersion())
+                        .forEach(System.out::println);
             }
             Files.delete(tempFile.toPath());
             return dependentPlugins;
