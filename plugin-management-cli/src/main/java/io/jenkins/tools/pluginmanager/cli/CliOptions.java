@@ -25,11 +25,12 @@ class CliOptions {
             handler = FileOptionHandler.class)
     private File pluginTxt;
 
-    @Option (name= "--plugin-yaml", aliases = {"-y"}, usage = "Path to plugins.yaml file", handler = FileOptionHandler.class)
+    @Option(name = "--plugin-yaml", aliases = {"-y"}, usage = "Path to plugins.yaml file",
+            handler = FileOptionHandler.class)
     private File pluginYaml;
 
     @Option(name = "--plugin-download-directory", aliases = {"-d"},
-            usage = "Path to directory in which to install plugins",
+            usage = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.",
             handler = FileOptionHandler.class)
     private File pluginDir;
 
@@ -95,6 +96,7 @@ class CliOptions {
 
     /**
      * Outputs information about plugin txt file selected from CLI Option
+     *
      * @return plugin txt file passed in through CLI, or null if user did not pass in txt file
      */
     private File getPluginTxt() {
@@ -108,6 +110,7 @@ class CliOptions {
 
     /**
      * Outputs information about plugin yaml file option selected from CLI Option
+     *
      * @return plugin yaml file passed in through CLI, or null if user did not pass in a yaml file
      */
     private File getPluginYaml() {
@@ -116,30 +119,28 @@ class CliOptions {
         } else {
             System.out.println("Yaml file containing list of plugins to be downloaded: " + pluginYaml);
         }
-        return  pluginYaml;
+        return pluginYaml;
     }
 
     /**
      * Gets the user specified plugin download directory from the CLI option and sets this in the configuration class
-     *
      */
     private File getPluginDir() {
         if (pluginDir != null) {
             System.out.println("Plugin download location: " + pluginDir);
             return pluginDir;
-        } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR")))  {
+        } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR"))) {
             System.out.println("No directory to download plugins entered. " +
                     "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
             return new File(System.getenv("PLUGIN_DIR"));
         }
-            System.out.println("No directory to download plugins entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
-            return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        System.out.println("No directory to download plugins entered. " +
+                "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
     }
 
     /**
      * Gets the user specified Jenkins war from the CLI option and sets this in the configuration class
-     *
      */
     private String getJenkinsWar() {
         if (jenkinsWarFile == null) {
@@ -154,6 +155,7 @@ class CliOptions {
     /**
      * Parses user specified plugins from CLI, .txt file, and/or .yaml file; creates and returns a list of corresponding
      * plugin objects
+     *
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
@@ -168,6 +170,7 @@ class CliOptions {
 
     /**
      * Gets the value corresponding to if user selected to show warnings for specified plugins
+     *
      * @return true if user selected CLI Option to see warnings for specified plugins
      */
     private boolean isShowWarnings() {
@@ -176,6 +179,7 @@ class CliOptions {
 
     /**
      * Gets the value corresponding to if the user selected to show security warnings for all plugins
+     *
      * @return true if user selected CLI Option to see warnings for all plugins
      */
     private boolean isShowAllWarnings() {
@@ -290,6 +294,7 @@ class CliOptions {
 
     /**
      * Returns if user requested to see the tool version from the CLI options
+     *
      * @return true if user passed in option to see version, false otherwise
      */
     public boolean isShowVersion() {
