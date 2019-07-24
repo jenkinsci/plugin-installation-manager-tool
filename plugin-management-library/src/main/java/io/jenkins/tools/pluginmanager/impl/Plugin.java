@@ -18,7 +18,6 @@ public class Plugin {
     private List<Plugin> dependents;
 
 
-
     public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
         this.name = name;
@@ -28,7 +27,6 @@ public class Plugin {
         this.version = new VersionNumber(version);
         this.url = url;
         this.groupId = groupId;
-
         dependencies = new ArrayList<>();
         dependents = new ArrayList<>();
     }
@@ -66,7 +64,6 @@ public class Plugin {
     public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
-
 
     public String getName() {
         return name;

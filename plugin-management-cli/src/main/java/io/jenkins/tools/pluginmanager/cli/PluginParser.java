@@ -15,6 +15,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.UrlValidator;
 import org.yaml.snakeyaml.Yaml;
+import src.main.java.io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static java.util.stream.Collectors.toList;
 
@@ -76,21 +77,21 @@ public class PluginParser {
                     Object nameObject = pluginInfo.get("artifactId");
                     String name = nameObject == null ? null : nameObject.toString();
                     if (StringUtils.isEmpty(name)) {
-                        System.out.println("artifactId is required, skipping...");
-                        continue;
+                        throw new PluginInputFormatException("ArtifactId is required");
                     }
                     Object groupIdObject = pluginInfo.get("groupId");
                     String groupId = groupIdObject == null ? null : groupIdObject.toString();
                     Map pluginSource = (Map) pluginInfo.get("source");
                     String incrementalsVersion = null;
                     Plugin plugin;
-                    if (pluginSource == null) {
+                    if (pluginSource == null && !StringUtils.isEmpty(groupId)) {
+                        throw new PluginInputFormatException("Version must be input for " + name);
+                    } else if (pluginSource == null) {
                         plugin = new Plugin(name, "latest", null, null);
                     } else {
                         Object versionObject = pluginSource.get("version");
                         if (!StringUtils.isEmpty(groupId) && versionObject == null) {
-                            System.out.println("Version must be input for " + name + ". Skipping...");
-                            continue;
+                            throw new PluginInputFormatException("Version must be input for " + name);
                         }
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");

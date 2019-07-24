@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import src.main.java.io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +36,8 @@ public class PluginParserTest {
         expectedPluginInfo.add(new Plugin("docker", "latest", null, null).toString());
         expectedPluginInfo.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null, null).toString());
         expectedPluginInfo.add(new Plugin("script-security", "latest",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null).toString());
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null)
+                .toString());
         expectedPluginInfo.add(new Plugin("workflow-step-api",
                 "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow").toString());
         expectedPluginInfo.add(new Plugin("matrix-project", "latest", null, null).toString());
@@ -119,6 +121,25 @@ public class PluginParserTest {
         assertEquals(expectedPluginInfo, pluginInfo);
     }
 
+    @Test(expected = PluginInputFormatException.class)
+    public void badFormatYamlNoArtifactIdTest() throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("/badformat1.yaml").toURI());
+        List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
+    }
+
+    @Test(expected = PluginInputFormatException.class)
+    public void badFormatYamlGroupIdNoVersion() throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("/badformat2.yaml").toURI());
+        List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
+    }
+
+    @Test(expected = PluginInputFormatException.class)
+    public void badFormatYamlGroupIdNoVersion2() throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("/badformat3.yaml").toURI());
+        List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
+    }
+
+    @Test
     public void fileExistsTest() throws URISyntaxException {
         assertEquals(false, pluginParser.fileExists(null));
 
