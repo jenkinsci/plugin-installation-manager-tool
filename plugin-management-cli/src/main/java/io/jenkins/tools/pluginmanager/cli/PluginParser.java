@@ -19,6 +19,9 @@ import org.yaml.snakeyaml.Yaml;
 import static java.util.stream.Collectors.toList;
 
 public class PluginParser {
+
+    public static final UrlValidator URL_VALIDATOR = new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS);
+
     public List<Plugin> parsePluginsFromCliOption(String[] plugins) {
         if (plugins == null) {
             return new ArrayList<>();
@@ -70,7 +73,6 @@ public class PluginParser {
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
                 Map map = (Map) yaml.load(inputStream);
                 List plugins = (List) map.get("plugins");
-                UrlValidator urlValidator = new UrlValidator();
                 for (Object p : plugins) {
                     Map pluginInfo = (Map) p;
                     Object nameObject = pluginInfo.get("artifactId");
@@ -88,7 +90,7 @@ public class PluginParser {
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");
                         String url;
-                        if (urlObject != null && urlValidator.isValid(urlObject.toString())) {
+                        if (urlObject != null && URL_VALIDATOR.isValid(urlObject.toString())) {
                             url = urlObject.toString();
                         } else {
                             url = null;
@@ -136,7 +138,6 @@ public class PluginParser {
         String pluginUrl = null;
 
         // "http, https, ftp" are valid
-        UrlValidator urlValidator = new UrlValidator();
 
         if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
             pluginVersion = pluginInfo[1];
@@ -144,10 +145,10 @@ public class PluginParser {
 
         if (pluginInfo.length >= 3) {
             pluginVersion = pluginInfo[1];
-            if (urlValidator.isValid(pluginInfo[2])) {
+            if (URL_VALIDATOR.isValid(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
-                System.out.println("Invalid URL entered, will ignore");
+                System.out.println("Invalid URL "+ pluginInfo[2] +" , will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl);
