@@ -13,7 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import src.main.java.io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
+import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
