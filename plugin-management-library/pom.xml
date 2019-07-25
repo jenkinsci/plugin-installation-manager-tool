@@ -5,11 +5,11 @@
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
         <artifactId>jenkins-plugin-management-parent-pom</artifactId>
-        <version>0.1-alpha-7-SNAPSHOT</version>
+        <version>0.1-alpha-7</version>
     </parent>
 
     <artifactId>plugin-management-library</artifactId>
-    <version>0.1-alpha-7-SNAPSHOT</version>
+    <version>0.1-alpha-7</version>
     <packaging>jar</packaging>
 
     <dependencies>
