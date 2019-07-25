@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URISyntaxException;
@@ -13,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;

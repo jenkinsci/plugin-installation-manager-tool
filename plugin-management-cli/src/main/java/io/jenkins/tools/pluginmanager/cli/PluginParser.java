@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
-import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
+
 
 import static java.util.stream.Collectors.toList;
 
@@ -156,7 +157,6 @@ public class PluginParser {
         }
 
         if (pluginInfo.length >= 3) {
-            pluginVersion = pluginInfo[1];
             if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
