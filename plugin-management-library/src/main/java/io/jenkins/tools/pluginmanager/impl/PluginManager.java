@@ -244,6 +244,9 @@ public class PluginManager {
      */
     public JSONArray getPluginDependencyJsonArray(Plugin plugin, JSONObject ucJson) {
         JSONObject plugins = ucJson.getJSONObject("plugins");
+        if (!plugins.has(plugin.getName())) {
+            return null;
+        }
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
