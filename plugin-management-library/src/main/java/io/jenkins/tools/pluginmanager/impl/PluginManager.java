@@ -194,13 +194,13 @@ public class PluginManager {
      * @param plugins list of plugins to download
      */
     public void downloadPlugins(List<Plugin> plugins) {
-        for (Plugin plugin : plugins) {
+        plugins.parallelStream().forEach(plugin -> {
             boolean successfulDownload = downloadPlugin(plugin);
             if (!successfulDownload) {
                 System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
                 failedPlugins.add(plugin);
             }
-        }
+        });
     }
 
     /**
@@ -350,13 +350,9 @@ public class PluginManager {
      * @param dependentPlugins
      */
     public void downloadDependencies(List<Plugin> dependentPlugins) {
-        for (Plugin dependency : dependentPlugins) {
+        dependentPlugins.parallelStream().filter(this::filterOptionalPlugins).forEach(dependency -> {
             String dependencyName = dependency.getName();
             VersionNumber dependencyVersion = dependency.getVersion();
-            if (dependency.getPluginOptional()) {
-                System.out.println("Skipping optional dependency " + dependencyName);
-                continue;
-            }
 
             VersionNumber installedVersion = null;
             if (installedPluginVersions.containsKey(dependencyName)) {
@@ -383,7 +379,7 @@ public class PluginManager {
                     System.out.println("Unable to download " + dependency.getName() + ". Skipping...");
                 }
             }
-        }
+        });
     }
 
     /**
@@ -661,5 +657,14 @@ public class PluginManager {
      */
     public void setJenkinsUCLatest(String updateCenterLatest) {
         jenkinsUcLatest = updateCenterLatest;
+    }
+
+    private boolean filterOptionalPlugins(Plugin d) {
+        if (d.getPluginOptional()) {
+            System.out.println("Skipping optional dependency " + d.getName());
+            return true;
+        } else {
+            return false;
+        }
     }
 }
