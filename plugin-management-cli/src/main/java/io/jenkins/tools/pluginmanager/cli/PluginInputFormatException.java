@@ -1,4 +1,4 @@
-package src.main.java.io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.cli;
 
 public class PluginInputFormatException extends RuntimeException {
 

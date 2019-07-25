@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
-import src.main.java.io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
+import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static java.util.stream.Collectors.toList;
 
