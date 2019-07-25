@@ -41,24 +41,33 @@ The following custom version specifiers can also be used:
 
 Plugins can also be entered in a Jenkins yaml file with the following format:
 
-```
+```yaml
 jenkins:
   ...
 plugins:
-  - artifactId: plugin1_artifactId
-    source: 
-      version: plugin1_version
-      url: plugin1_url
-  - artifactId: plugin2_artifactId
+- artifactId: git
     source:
-      version: plugin2_version
-  - artifactId: plugin3_artifactId
+      version: latest
+  - artifactId: job-import-plugin
+    source:
+      version: 2.1
+  - artifactId: docker
+  - artifactId: cloudbees-bitbucket-branch-source
+    source:
+      version: 2.4.4
+  - artifactId: script-security
+    source:
+      url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi
+  - artifactId: workflow-step-api
+    groupId: org.jenkins-ci.plugins.workflow
+    source:
+      version: 2.19-rc289.d09828a05a74
   ...
 tool:
   ...
 ```
 
-Any root object other than `plugins` will be ignored. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default.
+Any root object other than `plugins` will be ignored by the plugin installation manager tool. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default. If a groupId is entered, the tool will try to download the plugin from the incrementals repository.
 
 
 #### Examples
@@ -80,4 +89,7 @@ java -jar plugin-management-cli/target/plugin-management-tool.jar -p "workflow-s
 
 #### Other Information
 The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file.
+
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
+
+Support for downloading plugins from maven is not currently supported. [JENKINS-58217](https://issues.jenkins-ci.org/browse/JENKINS-58217)

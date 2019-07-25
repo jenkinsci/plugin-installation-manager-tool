@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
+
 
 import static java.util.stream.Collectors.toList;
 
@@ -76,15 +78,22 @@ public class PluginParser {
                     Object nameObject = pluginInfo.get("artifactId");
                     String name = nameObject == null ? null : nameObject.toString();
                     if (StringUtils.isEmpty(name)) {
-                        System.out.println("artifactId is required, skipping...");
-                        continue;
+                        throw new PluginInputFormatException("ArtifactId is required");
                     }
+                    Object groupIdObject = pluginInfo.get("groupId");
+                    String groupId = groupIdObject == null ? null : groupIdObject.toString();
                     Map pluginSource = (Map) pluginInfo.get("source");
+                    String incrementalsVersion = null;
                     Plugin plugin;
-                    if (pluginSource == null) {
-                        plugin = new Plugin(name, "latest", null);
+                    if (pluginSource == null && !StringUtils.isEmpty(groupId)) {
+                        throw new PluginInputFormatException("Version must be input for " + name);
+                    } else if (pluginSource == null) {
+                        plugin = new Plugin(name, "latest", null, null);
                     } else {
                         Object versionObject = pluginSource.get("version");
+                        if (!StringUtils.isEmpty(groupId) && versionObject == null) {
+                            throw new PluginInputFormatException("Version must be input for " + name);
+                        }
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");
                         String url;
@@ -93,7 +102,7 @@ public class PluginParser {
                         } else {
                             url = null;
                         }
-                        plugin = new Plugin(name, version, url);
+                        plugin = new Plugin(name, version, url, groupId);
                     }
                     pluginsFromYaml.add(plugin);
                 }
@@ -134,22 +143,27 @@ public class PluginParser {
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
+        String groupId = null;
 
         // "http, https, ftp" are valid
 
-        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
+        if (pluginInfo.length >= 2) {
             pluginVersion = pluginInfo[1];
+            if (pluginVersion.contains("incrementals")) {
+                String[] incrementalsVersionInfo = pluginVersion.split(";");
+                groupId = incrementalsVersionInfo[1];
+                pluginVersion = incrementalsVersionInfo[2];
+            }
         }
 
         if (pluginInfo.length >= 3) {
-            pluginVersion = pluginInfo[1];
             if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
                 System.out.println("Invalid URL "+ pluginInfo[2] +" , will ignore");
             }
         }
-        return new Plugin(pluginName, pluginVersion, pluginUrl);
+        return new Plugin(pluginName, pluginVersion, pluginUrl, groupId);
     }
 
     public static boolean isURL(String url) {
