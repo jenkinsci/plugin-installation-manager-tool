@@ -387,6 +387,7 @@ public class PluginManager {
         Map<String, Plugin> allPluginDependencies = new HashMap<>();
 
         for (Plugin requestedPlugin : requestedPlugins) {
+            System.out.println("requested plugin: " + requestedPlugin.getName());
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
             Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin);
 
@@ -461,6 +462,7 @@ public class PluginManager {
      */
     public JSONArray getPluginDependencyJsonArray(Plugin plugin, JSONObject ucJson) {
         JSONObject plugins = ucJson.getJSONObject("plugins");
+        System.out.println("plugin json array " + plugin.getName() + " " + plugin.getParent().getName());
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
@@ -492,21 +494,23 @@ public class PluginManager {
                 return dependentPlugins;
             }
             String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
+
+            //not all plugin Manifests contain the Plugin-Dependencies field
+            if (StringUtils.isEmpty(dependencyString)) {
+                System.out.println(plugin.getName() + " has no dependencies");
+                return dependentPlugins;
+            }
             String[] dependencies = dependencyString.split(",");
 
-
-            boolean isPluginOptional = false;
-
+            //ignore optional dependencies
             for (String dependency : dependencies) {
-                if (dependency.contains("resolution:=optional")) {
-                    dependency = dependency.split(";")[0];
-                    isPluginOptional = true;
+                if (!dependency.contains("resolution:=optional")) {
+                    String[] pluginInfo = dependency.split(":");
+                    String pluginName = pluginInfo[0];
+                    String pluginVersion = pluginInfo[1];
+                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, false);
+                    dependentPlugins.add(dependentPlugin);
                 }
-                String[] pluginInfo = dependency.split(":");
-                String pluginName = pluginInfo[0];
-                String pluginVersion = pluginInfo[1];
-                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
-                dependentPlugins.add(dependentPlugin);
             }
 
             if (verbose) {
@@ -526,7 +530,8 @@ public class PluginManager {
 
 
     /**
-     * Finds the dependencies for a plugins by using the update center plugin-versions json.
+     * Finds the dependencies for a plugins by using the update center plugin-versions json. Excludes optional
+     * dependencies
      *
      * @param plugin for which to find and download dependencies
      */
@@ -562,14 +567,16 @@ public class PluginManager {
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
-            String pluginName = dependency.getString("name");
-            String pluginVersion = dependency.getString("version");
             boolean isPluginOptional = dependency.getBoolean("optional");
-            Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
-            dependentPlugins.add(dependentPlugin);
+            if (!isPluginOptional) {
+                String pluginName = dependency.getString("name");
+                String pluginVersion = dependency.getString("version");
+                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
+                dependentPlugins.add(dependentPlugin);
 
-            if (verbose) {
-                System.out.println(pluginName + ": " + pluginVersion);
+                if (verbose) {
+                    System.out.println(pluginName + ": " + pluginVersion);
+                }
             }
         }
         return dependentPlugins;
