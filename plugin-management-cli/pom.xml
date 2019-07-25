@@ -3,13 +3,13 @@
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
         <artifactId>jenkins-plugin-management-parent-pom</artifactId>
-        <version>${revision}${changelist}</version>
+        <version>0.1-alpha-8</version>
         <relativePath>..</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>plugin-management-cli</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>0.1-alpha-8</version>
     <packaging>jar</packaging>
 
     <dependencies>

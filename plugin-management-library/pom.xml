@@ -5,12 +5,12 @@
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
         <artifactId>jenkins-plugin-management-parent-pom</artifactId>
-        <version>${revision}${changelist}</version>
+        <version>0.1-alpha-8</version>
         <relativePath>..</relativePath>
     </parent>
 
     <artifactId>plugin-management-library</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>0.1-alpha-8</version>
     <packaging>jar</packaging>
 
     <dependencies>
