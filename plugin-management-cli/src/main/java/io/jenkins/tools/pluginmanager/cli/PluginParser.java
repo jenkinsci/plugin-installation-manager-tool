@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -13,13 +14,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.yaml.snakeyaml.Yaml;
 import src.main.java.io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 
 import static java.util.stream.Collectors.toList;
 
 public class PluginParser {
+
     public List<Plugin> parsePluginsFromCliOption(String[] plugins) {
         if (plugins == null) {
             return new ArrayList<>();
@@ -71,7 +72,6 @@ public class PluginParser {
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
                 Map map = (Map) yaml.load(inputStream);
                 List plugins = (List) map.get("plugins");
-                UrlValidator urlValidator = new UrlValidator();
                 for (Object p : plugins) {
                     Map pluginInfo = (Map) p;
                     Object nameObject = pluginInfo.get("artifactId");
@@ -96,7 +96,7 @@ public class PluginParser {
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");
                         String url;
-                        if (urlObject != null && urlValidator.isValid(urlObject.toString())) {
+                        if (urlObject != null && isURL(urlObject.toString())) {
                             url = urlObject.toString();
                         } else {
                             url = null;
@@ -145,7 +145,6 @@ public class PluginParser {
         String groupId = null;
 
         // "http, https, ftp" are valid
-        UrlValidator urlValidator = new UrlValidator();
 
         if (pluginInfo.length >= 2) {
             pluginVersion = pluginInfo[1];
@@ -157,12 +156,22 @@ public class PluginParser {
         }
 
         if (pluginInfo.length >= 3) {
-            if (urlValidator.isValid(pluginInfo[2])) {
+            pluginVersion = pluginInfo[1];
+            if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
-                System.out.println("Invalid URL entered, will ignore");
+                System.out.println("Invalid URL "+ pluginInfo[2] +" , will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl, groupId);
+    }
+
+    public static boolean isURL(String url) {
+        try {
+            new URL(url);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }
