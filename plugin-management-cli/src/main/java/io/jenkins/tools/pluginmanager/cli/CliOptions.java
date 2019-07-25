@@ -232,7 +232,7 @@ class CliOptions {
                 throw new RuntimeException(e);
             }
             System.out.println("Using experimental update center " + experimentalUpdateCenter +
-                    " from JENKINS_UC_EXPERIMENTAL environemnt variable");
+                    " from JENKINS_UC_EXPERIMENTAL environment variable");
         } else {
             experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
             System.out.println(

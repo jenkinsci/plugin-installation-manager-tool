@@ -266,6 +266,13 @@ public class PluginManager {
      */
     public void resolveDependenciesFromManifest(Plugin plugin) {
         String dependencyString = getAttributefromManifest(plugin.getFile(), "Plugin-Dependencies");
+
+        //not all plugin Manifests contain the Plugin-Dependencies field
+        if (StringUtils.isEmpty(dependencyString)) {
+            System.out.println(plugin.getName() + " has no dependencies");
+            return;
+        }
+
         String[] dependencies = dependencyString.split(",");
         List<Plugin> dependentPlugins = new ArrayList<>();
 
