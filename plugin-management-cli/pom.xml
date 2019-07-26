@@ -16,7 +16,7 @@
         <dependency>
             <groupId>io.jenkins.plugin-management</groupId>
             <artifactId>plugin-management-library</artifactId>
-            <version>${revision}${changelist}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>args4j</groupId>
