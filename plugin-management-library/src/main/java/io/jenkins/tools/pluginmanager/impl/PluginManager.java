@@ -509,8 +509,8 @@ public class PluginManager {
                     dependentPlugins.add(dependentPlugin);
                 }
             }
-            logVerbose(dependentPlugins.isEmpty() ?  String.format("%nn%s has no dependencies", plugin.getName()) :
-                    String.format("%nn%s depends on: %n", plugin.getName()) +
+            logVerbose(dependentPlugins.isEmpty() ?  String.format("%n%s has no dependencies", plugin.getName()) :
+                    String.format("%n%s depends on: %n", plugin.getName()) +
                         dependentPlugins.stream()
                                 .map(p -> p.getName() + " " + p.getVersion())
                                 .collect(Collectors.joining("/n")));
