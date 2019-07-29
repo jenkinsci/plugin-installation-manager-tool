@@ -104,7 +104,6 @@ public class PluginManagerTest {
         Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
 
         pm.checkAndSetLatestUpdateCenter();
-      
         String expected = cfg.getJenkinsUc().toString();
         assertEquals(expected, pm.getJenkinsUCLatest());
     }
@@ -118,7 +117,7 @@ public class PluginManagerTest {
 
         List<Plugin> actualPlugins;
 
-        requestedPlugins.put("git", new Plugin("git", "1.0.0", null));
+        requestedPlugins.put("git", new Plugin("git", "1.0.0", null, null));
 
         pm.setInstalledPluginVersions(installedPlugins);
         pm.setBundledPluginVersions(bundledPlugins);
@@ -128,9 +127,9 @@ public class PluginManagerTest {
         assertEquals(actualPlugins.size(), 1);
         assertEquals(actualPlugins.get(0).toString(), "git 1.0.0");
 
-        requestedPlugins.put("credentials", new Plugin("credentials", "2.1.14", null));
-        requestedPlugins.put("structs", new Plugin("structs", "1.18", null));
-        requestedPlugins.put("ssh-credentials", new Plugin("ssh-credentials", "1.13", null));
+        requestedPlugins.put("credentials", new Plugin("credentials", "2.1.14", null, null));
+        requestedPlugins.put("structs", new Plugin("structs", "1.18", null, null));
+        requestedPlugins.put("ssh-credentials", new Plugin("ssh-credentials", "1.13", null, null));
 
         installedPlugins.put("git", new VersionNumber("1.1.1"));
         installedPlugins.put("git-client", new VersionNumber("2.7.5"));
@@ -279,9 +278,7 @@ public class PluginManagerTest {
 
         Plugin pluginOtherVersion = new Plugin("pluginName", "otherversion", null, null);
         String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
-      
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
-
     }
 
 

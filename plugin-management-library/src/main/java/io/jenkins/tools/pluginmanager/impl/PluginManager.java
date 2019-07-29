@@ -116,6 +116,7 @@ public class PluginManager {
             downloadPlugins(pluginsToBeDownloaded);
             outputFailedPlugins();
         }
+        System.out.println("Done");
     }
 
     /**
@@ -168,14 +169,14 @@ public class PluginManager {
         for (Map.Entry<String, VersionNumber> installedEntry : installedPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(),
-                        new Plugin(installedEntry.getKey(), installedEntry.getValue().toString(), null));
+                        new Plugin(installedEntry.getKey(), installedEntry.getValue().toString(), null, null));
             }
         }
 
         for (Map.Entry<String, VersionNumber> bundledEntry : bundledPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(bundledEntry.getKey())) {
                 effectivePlugins.put(bundledEntry.getKey(),
-                        new Plugin(bundledEntry.getKey(), bundledEntry.getValue().toString(), null));
+                        new Plugin(bundledEntry.getKey(), bundledEntry.getValue().toString(), null, null));
             }
         }
         return effectivePlugins;
@@ -369,7 +370,7 @@ public class PluginManager {
      */
     public void downloadPlugins(List<Plugin> plugins) {
         plugins.parallelStream().forEach(plugin -> {
-            boolean successfulDownload = downloadPlugin(plugin);
+            boolean successfulDownload = downloadPlugin(plugin, null);
             if (!successfulDownload) {
                 System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
                 failedPlugins.add(plugin);
@@ -445,7 +446,7 @@ public class PluginManager {
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
      */
     public void getUCJson() {
-        System.out.println("\nRetrieving update center information");
+        logVerbose("\nRetrieving update center information");
         latestUcJson = getJson(jenkinsUcLatest + "/update-center.actual.json");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental() + "/update-center.actual.json");
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
@@ -485,9 +486,10 @@ public class PluginManager {
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
         List<Plugin> dependentPlugins = new ArrayList<>();
-
         try {
             File tempFile = Files.createTempFile(plugin.getName(), ".jpi").toFile();
+            logVerbose(String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
+                    "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
                 System.out.println("Unable to resolve dependencies for " + plugin.getName());
                 Files.delete(tempFile.toPath());
@@ -516,11 +518,11 @@ public class PluginManager {
                     String.format("%n%s depends on: %n", plugin.getName()) +
                         dependentPlugins.stream()
                                 .map(p -> p.getName() + " " + p.getVersion())
-                                .collect(Collectors.joining("/n")));
+                                .collect(Collectors.joining("\n")));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
-            System.out.println("Unable to resolve dependencies");
+            System.out.println(String.format("Unable to resolve dependencies for %s", plugin.getName()));
             return dependentPlugins;
         }
     }
@@ -564,7 +566,7 @@ public class PluginManager {
                 String.format("%n%s depends on: %n", plugin.getName()) +
                 dependentPlugins.stream()
                         .map(p -> p.getName() + " " + p.getVersion())
-                        .collect(Collectors.joining("/n")));
+                        .collect(Collectors.joining("\n")));
         return dependentPlugins;
     }
 
@@ -617,14 +619,19 @@ public class PluginManager {
     public boolean downloadPlugin(Plugin plugin, File location) {
         String pluginName = plugin.getName();
         VersionNumber pluginVersion = plugin.getVersion();
-        if (installedPluginVersions.containsKey(pluginName) &&
+        // location will be populated if downloading a plugin to a temp file to determine dependencies
+        // even if plugin is already downloaded, still want to download the temp file to parse dependencies to ensure
+        // that all dependencies are also installed
+        if (location == null && installedPluginVersions.containsKey(pluginName) &&
                 installedPluginVersions.get(pluginName).compareTo(pluginVersion) == 0) {
-            System.out.println(pluginName + " already installed, skipping");
+            logVerbose(pluginName + " already installed, skipping");
             return true;
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         if (!successfulDownload) {
+            logVerbose(String.format("First download attempt of %s unsuccessful, reattempting",
+                        plugin.getName()));
             //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
             String newPluginName = plugin.getName() + "-plugin";
             plugin.setName(newPluginName);
@@ -632,9 +639,10 @@ public class PluginManager {
             successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         }
         if (successfulDownload && location == null) {
-            System.out.println("Downloaded successfully");
+            System.out.println(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), pluginVersion);
         }
+
         return successfulDownload;
     }
 
@@ -658,7 +666,7 @@ public class PluginManager {
         }
 
         if (!StringUtils.isEmpty(pluginUrl)) {
-            System.out.println("Will use url: " + pluginUrl);
+            logVerbose(String.format("Will use url: %s to download %s plugin", pluginUrl, plugin.getName()));
             urlString = pluginUrl;
         } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
@@ -704,7 +712,8 @@ public class PluginManager {
                 URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
                 FileUtils.copyURLToFile(location.toURL(), pluginFile);
             } catch (URISyntaxException | IOException e) {
-                System.out.println("Unable to resolve plugin URL or download plugin to file");
+                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
+                        urlString, plugin.getName()));
                 return false;
             }
         } catch (IOException e) {
