@@ -53,7 +53,7 @@ import org.json.JSONObject;
 public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
-    private String jenkinsUcLatest = "";
+    private String jenkinsUcLatest;
     private VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
     private Map<String, VersionNumber> installedPluginVersions;
@@ -80,6 +80,7 @@ public class PluginManager {
         allSecurityWarnings = new HashMap<>();
         allPluginsAndDependencies = new HashMap<>();
         verbose = cfg.isVerbose();
+        jenkinsUcLatest = cfg.getJenkinsUc().toString();
     }
 
     /**
@@ -89,9 +90,9 @@ public class PluginManager {
     public void start() {
         if (!refDir.exists()) {
             try {
-                Files.createDirectory(refDir.toPath());
+                Files.createDirectories(refDir.toPath());
             } catch (IOException e) {
-                System.out.println("Unable to create plugin directory");
+                throw new DirectoryCreationException("Unable to create plugin directory", e);
             }
         }
 
@@ -329,20 +330,20 @@ public class PluginManager {
      */
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
-        if (jenkinsVersion == null || !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            jenkinsUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
+        if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
+            String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-                HttpGet httpget = new HttpGet(jenkinsUcLatest);
+                HttpGet httpget = new HttpGet(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httpget)) {
-                    if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                        jenkinsUcLatest = cfg.getJenkinsUc().toString();
+                    if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                        System.out.println(
+                                "Using version specific update center for latest plugins: " + jenkinsVersionUcLatest);
+                        jenkinsUcLatest = jenkinsVersionUcLatest;
                     }
                 } catch (IOException e) {
-                    jenkinsUcLatest = cfg.getJenkinsUc().toString();
                     System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
                 }
             } catch (IOException e) {
-                jenkinsUcLatest = cfg.getJenkinsUc().toString();
                 System.out.println(
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
@@ -357,7 +358,7 @@ public class PluginManager {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
             failedPlugins.stream().map(p -> p.getOriginalName() + " or " + p.getName()).forEach(System.out::println);
-            System.exit(1);
+            throw new DownloadPluginException("Failed plugins");
         }
     }
 
@@ -367,13 +368,13 @@ public class PluginManager {
      * @param plugins list of plugins to download
      */
     public void downloadPlugins(List<Plugin> plugins) {
-        for (Plugin plugin : plugins) {
-            boolean successfulDownload = downloadPlugin(plugin, null);
+        plugins.parallelStream().forEach(plugin -> {
+            boolean successfulDownload = downloadPlugin(plugin);
             if (!successfulDownload) {
                 System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
                 failedPlugins.add(plugin);
             }
-        }
+        });
     }
 
     /**
@@ -429,16 +430,14 @@ public class PluginManager {
         try {
             url = new URL(urlString);
         } catch (MalformedURLException e) {
-            e.printStackTrace();
-            return null;
+            throw new UpdateCenterInfoRetrievalException("Malformed url for update center", e);
         }
         try {
             String urlText = IOUtils.toString(url, Charset.forName("UTF-8"));
             JSONObject updateCenterJson = new JSONObject(urlText);
             return updateCenterJson;
         } catch (IOException e) {
-            e.printStackTrace();
-            return null;
+            throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
     }
 
@@ -446,6 +445,7 @@ public class PluginManager {
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
      */
     public void getUCJson() {
+        System.out.println("\nRetrieving update center information");
         latestUcJson = getJson(jenkinsUcLatest + "/update-center.actual.json");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental() + "/update-center.actual.json");
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
@@ -460,6 +460,9 @@ public class PluginManager {
      */
     public JSONArray getPluginDependencyJsonArray(Plugin plugin, JSONObject ucJson) {
         JSONObject plugins = ucJson.getJSONObject("plugins");
+        if (!plugins.has(plugin.getName())) {
+            return null;
+        }
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
@@ -570,7 +573,6 @@ public class PluginManager {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
-
         recursiveDependencies.put(plugin.getName(), plugin);
 
         while (queue.size() != 0) {
@@ -601,7 +603,6 @@ public class PluginManager {
                     }
                 }
             }
-
         }
         return recursiveDependencies;
     }
@@ -663,13 +664,11 @@ public class PluginManager {
             urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
         } else if (pluginVersion.equals("experimental")) {
             urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
-        } else if (pluginVersion.contains("incrementals")) {
-            String[] incrementalsVersionInfo = pluginVersion.split(";");
-            String groupId = incrementalsVersionInfo[1];
-            String incrementalsVersion = incrementalsVersionInfo[2];
+        } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
+            String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath =
-                    String.format("%s/%s-%s.hpi", incrementalsVersion, pluginName, incrementalsVersion);
+                    String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
             urlString =
                     String.format("%s/%s/%s", cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
@@ -732,6 +731,10 @@ public class PluginManager {
             return attributes.getValue(key);
         } catch (IOException e) {
             System.out.println("Unable to open " + file);
+            if (key.equals("Plugin-Dependencies")) {
+                throw new DownloadPluginException("Unable to determine plugin dependencies", e);
+            }
+
         }
         return null;
     }
@@ -803,8 +806,7 @@ public class PluginManager {
             try {
                 jenkinsWarUri = new URI("jar:" + path.toUri());
             } catch (URISyntaxException e) {
-                e.printStackTrace();
-                return bundledPlugins;
+                throw new WarBundledPluginException("Unable to open war file to extract bundled plugin information", e);
             }
 
             // Walk through war contents and find bundled plugins
@@ -833,7 +835,7 @@ public class PluginManager {
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new WarBundledPluginException("Unable to open war file to extract bundled plugin information", e);
             }
         } else {
             System.out.println("War not found, installing all plugins: " + jenkinsWarFile.toString());

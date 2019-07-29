@@ -3,25 +3,21 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;;
 import java.util.List;
+import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.UrlValidator;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
 
-import static java.util.stream.Collectors.toList;
 
 class CliOptions {
     //path must include plugins.txt
@@ -29,8 +25,12 @@ class CliOptions {
             handler = FileOptionHandler.class)
     private File pluginTxt;
 
+    @Option(name = "--plugin-yaml", aliases = {"-y"}, usage = "Path to plugins.yaml file",
+            handler = FileOptionHandler.class)
+    private File pluginYaml;
+
     @Option(name = "--plugin-download-directory", aliases = {"-d"},
-            usage = "Path to directory in which to install plugins",
+            usage = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.",
             handler = FileOptionHandler.class)
     private File pluginDir;
 
@@ -84,6 +84,9 @@ class CliOptions {
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
 
+    @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
+    private boolean showVersion;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -105,13 +108,32 @@ class CliOptions {
                 .build();
     }
 
+    /**
+     * Outputs information about plugin txt file selected from CLI Option
+     *
+     * @return plugin txt file passed in through CLI, or null if user did not pass in txt file
+     */
     private File getPluginTxt() {
         if (pluginTxt == null) {
-            System.out.println("No file containing list of plugins to be downloaded entered.");
+            System.out.println("No .txt file containing list of plugins to be downloaded entered.");
         } else {
             System.out.println("File containing list of plugins to be downloaded: " + pluginTxt);
         }
         return pluginTxt;
+    }
+
+    /**
+     * Outputs information about plugin yaml file option selected from CLI Option
+     *
+     * @return plugin yaml file passed in through CLI, or null if user did not pass in a yaml file
+     */
+    private File getPluginYaml() {
+        if (pluginYaml == null) {
+            System.out.println("No .yaml file containing list of plugins to be downloaded entered.");
+        } else {
+            System.out.println("Yaml file containing list of plugins to be downloaded: " + pluginYaml);
+        }
+        return pluginYaml;
     }
 
     /**
@@ -145,77 +167,34 @@ class CliOptions {
     }
 
     /**
-     * Parses user specified plugins from CLI and .txt file; creates and returns a list of corresponding plugin objects
+     * Parses user specified plugins from CLI, .txt file, and/or .yaml file; creates and returns a list of corresponding
+     * plugin objects
      *
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
-        if (plugins == null) {
-            return new ArrayList<>();
-        }
-
-        List<Plugin> mappedPlugins = Arrays.stream(plugins)
-                .map(this::parsePluginLine)
-                .collect(toList());
-
-        File pluginFileLocation = getPluginTxt();
-        if (pluginFileLocation == null) {
-            return mappedPlugins;
-        }
-        if (Files.exists(pluginFileLocation.toPath())) {
-            try (BufferedReader bufferedReader = Files.newBufferedReader(pluginFileLocation.toPath(),
-                    StandardCharsets.UTF_8)) {
-                System.out.println("Reading in plugins from " + pluginFileLocation + "\n");
-                List<Plugin> pluginsFromFile = bufferedReader.lines()
-                        .map(line -> line.replaceAll("\\s", ""))
-                        .filter(line -> !line.startsWith("#"))
-                        .filter(line -> line.length() > 0)
-                        .map(line -> parsePluginLine(line))
-                        .collect(toList());
-                mappedPlugins.addAll(pluginsFromFile);
-            } catch (IOException e) {
-                System.out.println("Unable to open " + pluginFileLocation);
-            }
-        } else {
-            System.out.println(pluginFileLocation + " File does not exist");
-        }
-        return mappedPlugins;
+        List<Plugin> requestedPlugins = new ArrayList<>();
+        PluginParser pluginParser = new PluginParser();
+        requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
+        requestedPlugins.addAll(pluginParser.parsePluginTxtFile(getPluginTxt()));
+        requestedPlugins.addAll(pluginParser.parsePluginYamlFile(getPluginYaml()));
+        return requestedPlugins;
     }
 
     /**
-     * For each plugin specified in the CLI using the --plugins option or line in the plugins.txt file, creates a Plugin
-     * object containing the  plugin name (required), version (optional), and url (optional)
+     * Gets the value corresponding to if user selected to show warnings for specified plugins
      *
-     * @param pluginLine plugin information to parse
-     * @return plugin object containing name, version, and/or url
+     * @return true if user selected CLI Option to see warnings for specified plugins
      */
-    private Plugin parsePluginLine(String pluginLine) {
-        String[] pluginInfo = pluginLine.split(":", 3);
-        String pluginName = pluginInfo[0];
-        String pluginVersion = "latest";
-        String pluginUrl = null;
-
-        // "http, https, ftp" are valid
-        UrlValidator urlValidator = new UrlValidator();
-
-        if (pluginInfo.length >= 2 && !StringUtils.isEmpty(pluginInfo[1])) {
-            pluginVersion = pluginInfo[1];
-        }
-
-        if (pluginInfo.length >= 3) {
-            if (urlValidator.isValid(pluginInfo[2])) {
-                pluginUrl = pluginInfo[2];
-            } else {
-                System.out.println("Invalid URL entered, will ignore");
-            }
-        }
-        return new Plugin(pluginName, pluginVersion, pluginUrl);
-    }
-
     private boolean isShowWarnings() {
         return showWarnings;
     }
 
+    /**
+     * Gets the value corresponding to if the user selected to show security warnings for all plugins
+     *
+     * @return true if user selected CLI Option to see warnings for all plugins
+     */
     private boolean isShowAllWarnings() {
         return showAllWarnings;
     }
@@ -278,7 +257,7 @@ class CliOptions {
                 throw new RuntimeException(e);
             }
             System.out.println("Using experimental update center " + experimentalUpdateCenter +
-                    " from JENKINS_UC_EXPERIMENTAL environemnt variable");
+                    " from JENKINS_UC_EXPERIMENTAL environment variable");
         } else {
             experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
             System.out.println(
@@ -313,5 +292,37 @@ class CliOptions {
                     jenkinsIncrementalsRepo);
         }
         return jenkinsIncrementalsRepo;
+    }
+
+
+    /**
+     * Prints out the Plugin Management Tool version
+     */
+    public void showVersion() {
+        try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
+            if (propertyInputStream == null) {
+                throw new VersionNotFoundException("No version information available");
+            }
+            Properties properties = new Properties();
+            properties.load(propertyInputStream);
+
+            System.out.println(properties.getProperty("project.version"));
+        } catch (IOException e) {
+            throw new VersionNotFoundException("No version information available", e);
+        }
+    }
+
+    // visible for testing
+    public InputStream getPropertiesInputStream(String path) {
+        return this.getClass().getResourceAsStream(path);
+    }
+
+    /**
+     * Returns if user requested to see the tool version from the CLI options
+     *
+     * @return true if user passed in option to see version, false otherwise
+     */
+    public boolean isShowVersion() {
+        return showVersion;
     }
 }

@@ -4,11 +4,13 @@ import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 
 public class Plugin {
     private String name;
     private String originalName;
     private VersionNumber version;
+    private String groupId;
     private String url;
     private File file;
     private boolean isPluginOptional;
@@ -16,18 +18,25 @@ public class Plugin {
     private Plugin parent;
 
 
-    public Plugin(String name, String version, String url) {
-        this.name = name;
+    public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
+        this.name = name;
+        if (StringUtils.isEmpty(version)) {
+            version = "latest";
+        }
         this.version = new VersionNumber(version);
         this.url = url;
         this.dependencies = new ArrayList<>();
         this.parent = this;
+        this.groupId = groupId;
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
         this.name = name;
         this.originalName = name;
+        if (StringUtils.isEmpty(version)) {
+            version = "latest";
+        }
         this.version = new VersionNumber(version);
         this.isPluginOptional = isPluginOptional;
         this.dependencies = new ArrayList<>();
@@ -52,6 +61,10 @@ public class Plugin {
 
     public void setPluginOptional(boolean isPluginOptional) {
         this.isPluginOptional = isPluginOptional;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     public String getName() {
@@ -80,6 +93,10 @@ public class Plugin {
 
     public String getOriginalName() {
         return originalName;
+    }
+
+    public String getGroupId() {
+        return groupId;
     }
 
     public void setDependencies(List<Plugin> dependencies) {

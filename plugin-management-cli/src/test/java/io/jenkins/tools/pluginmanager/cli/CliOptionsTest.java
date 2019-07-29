@@ -3,13 +3,17 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -21,7 +25,12 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 import static org.mockito.Mockito.when;
 
 
@@ -31,6 +40,8 @@ public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
     List<Plugin> txtRequestedPlugins;
+    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+    private final PrintStream originalOut = System.out;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -42,19 +53,25 @@ public class CliOptionsTest {
 
         //corresponds to plugins in plugin.txt
         txtRequestedPlugins = new ArrayList<>();
-        txtRequestedPlugins.add(new Plugin("git", "latest", null));
-        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null));
-        txtRequestedPlugins.add(new Plugin("docker", "latest", null));
-        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null));
+        txtRequestedPlugins.add(new Plugin("google-api-client-plugin",
+                "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null));
+        txtRequestedPlugins.add(new Plugin("git", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null, null));
+        txtRequestedPlugins.add(new Plugin("docker", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null, null));
         txtRequestedPlugins.add(new Plugin("script-security", "latest",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi"));
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null));
         txtRequestedPlugins.add(new Plugin("workflow-step-api",
-                "incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74", null));
-        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null));
-        txtRequestedPlugins.add(new Plugin("junit", "experimental", null));
+                "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow"));
+        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null, null));
+        txtRequestedPlugins.add(new Plugin("junit", "experimental", null, null));
         txtRequestedPlugins.add(new Plugin("credentials", "2.2.0",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi"));
+                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null));
+        txtRequestedPlugins.add(new Plugin("blueocean", "latest", null, null));
+
+        System.setOut(new PrintStream(outContent));
     }
+
 
 
     @Test
@@ -94,14 +111,14 @@ public class CliOptionsTest {
                 "display-url-api::https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
 
         Plugin displayUrlPlugin = new Plugin("display-url-api", "latest",
-                "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi");
+                "https://updates.jenkins.io/download/plugins/display-url-api/1.0/display-url-api.hpi", null);
 
         Config cfg = options.setup();
 
-        assertEquals(cfg.getPluginDir(), pluginDir);
-        assertEquals(cfg.getJenkinsWar(), jenkinsWar.toString());
-        assertEquals(cfg.getPlugins().size(), 1);
-        assertEquals(cfg.getPlugins().get(0).toString(), displayUrlPlugin.toString());
+        assertEquals(pluginDir, cfg.getPluginDir());
+        assertEquals(jenkinsWar.toString(), cfg.getJenkinsWar());
+        assertEquals(1, cfg.getPlugins().size());
+        assertEquals(displayUrlPlugin.toString(), cfg.getPlugins().get(0).toString());
     }
 
     @Test
@@ -115,9 +132,9 @@ public class CliOptionsTest {
                 "--plugins", "ssh-slaves:1.10 mailer cobertura:experimental");
 
         List<Plugin> requestedPlugins = new ArrayList<>(txtRequestedPlugins);
-        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null));
-        requestedPlugins.add(new Plugin("mailer", "latest", null));
-        requestedPlugins.add(new Plugin("cobertura", "experimental", null));
+        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null, null));
+        requestedPlugins.add(new Plugin("mailer", "latest", null, null));
+        requestedPlugins.add(new Plugin("cobertura", "experimental", null, null));
 
         Config cfg = options.setup();
 
@@ -211,5 +228,43 @@ public class CliOptionsTest {
         Config cfg = options.setup();
         assertEquals(true, cfg.isShowAllWarnings());
         assertEquals(true, cfg.isShowWarnings());
+    }
+
+
+    @Test
+    public void showVersionTest() throws Exception {
+        parser.parseArgument("--version");
+
+        String version = "testVersion";
+
+        Properties properties = mock(Properties.class);
+        whenNew(Properties.class).withNoArguments().thenReturn(properties);
+        when(properties.getProperty(any(String.class))).thenReturn(version);
+
+        options.showVersion();
+        assertEquals(version, outContent.toString().trim());
+
+        ByteArrayOutputStream aliasVersionOut = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(aliasVersionOut));
+
+        parser.parseArgument("-v");
+        options.showVersion();
+        assertEquals(version, outContent.toString().trim());
+    }
+
+
+    @Test(expected = VersionNotFoundException.class)
+    public void showVersionErrorTest() throws CmdLineException {
+        ByteArrayOutputStream nullPropertiesOut = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(nullPropertiesOut));
+        CliOptions cliOptionsSpy = spy(options);
+        parser.parseArgument("--version");
+        doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
+        cliOptionsSpy.showVersion();
+    }
+
+    @After
+    public void restoreStream() {
+        System.setOut(originalOut);
     }
 }
