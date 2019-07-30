@@ -16,6 +16,7 @@ public class Plugin {
     private boolean isPluginOptional;
     private List<Plugin> dependencies;
     private Plugin parent;
+    private List<SecurityWarning> securityWarnings;
 
 
     public Plugin(String name, String version, String url, String groupId) {
@@ -29,6 +30,7 @@ public class Plugin {
         this.dependencies = new ArrayList<>();
         this.parent = this;
         this.groupId = groupId;
+        this.securityWarnings = new ArrayList<>();
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
@@ -41,6 +43,7 @@ public class Plugin {
         this.isPluginOptional = isPluginOptional;
         this.dependencies = new ArrayList<>();
         this.parent = this;
+        this.securityWarnings = new ArrayList<>();
     }
 
     public void setName(String name) {
@@ -113,6 +116,14 @@ public class Plugin {
 
     public Plugin getParent() {
         return parent;
+    }
+
+    public void setSecurityWarnings(List<SecurityWarning> securityWarnings) {
+        this.securityWarnings = securityWarnings;
+    }
+
+    public List<SecurityWarning> getSecurityWarnings() {
+        return securityWarnings;
     }
 
     @Override

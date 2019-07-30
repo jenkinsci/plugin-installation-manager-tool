@@ -89,7 +89,7 @@ public class PluginManagerTest {
 
 
     @Test
-    public void getPluginDepdencyJsonArrayTest1() {
+    public void getPluginDependencyJsonArrayTest1() {
         //test for update center or experimental json
         JSONObject updateCenterJson = new JSONObject();
         JSONObject plugins = new JSONObject();
@@ -166,7 +166,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void getPluginDepdencyJsonArrayTest2() {
+    public void getPluginDependencyJsonArrayTest2() {
         //test plugin-version json, which has a different format
         JSONObject pluginVersionJson = new JSONObject();
         JSONObject plugins = new JSONObject();
@@ -256,11 +256,144 @@ public class PluginManagerTest {
 
         Plugin browserStackPlugin111 = new Plugin("browserstack-integration", "1.1.1", null, null);
         JSONArray browserStackPluginJson111 = pm.getPluginDependencyJsonArray(browserStackPlugin111, pluginVersionJson);
-        //assertEquals(dependencies111.toString(), browserStackPluginJson111.toString());
+        assertEquals(dependencies111.toString(), browserStackPluginJson111.toString());
 
         Plugin browserStackPlugin112 = new Plugin("browserstack-integration", "1.1.2", null, null);
         JSONArray browserStackPluginJson112 = pm.getPluginDependencyJsonArray(browserStackPlugin112, pluginVersionJson);
-       // assertEquals(dependencies112.toString(), browserStackPluginJson112.toString());
+        assertEquals(dependencies112.toString(), browserStackPluginJson112.toString());
+    }
+
+    @Test
+    public void getSecurityWarningsTest() {
+        JSONObject latestUcJson = new JSONObject();
+
+        JSONObject pluginJson = new JSONObject();
+        latestUcJson.put("plugins", pluginJson);
+
+        JSONObject signatureJSON = new JSONObject();
+        latestUcJson.put("signature", signatureJSON);
+
+        latestUcJson.put("updateCenterVersion", "1");
+
+        JSONArray warningArray = new JSONArray();
+
+        JSONObject security208 = new JSONObject();
+        security208.put("id", "SECURITY-208");
+        security208.put("message", "Authentication bypass vulnerability");
+        security208.put("name", "google-login");
+        security208.put("type", "plugin");
+        security208.put("url", "https://jenkins.io/security/advisory/2015-10-12/");
+        JSONArray versionArray208 = new JSONArray();
+        JSONObject version208 = new JSONObject();
+        version208.put("lastVersion", "1.1");
+        version208.put("pattern", "1[.][01](|[.-].*)");
+        versionArray208.put(version208);
+        security208.put("versions", versionArray208);
+        versionArray208.put(version208);
+
+        warningArray.put(security208);
+
+        JSONObject security309 = new JSONObject();
+        security309.put("id", "SECURITY-309");
+        security309.put("message", "Plugin disables Content-Security-Policy for files served by Jenkins");
+        security309.put("name", "cucumber-reports");
+        security309.put("type", "plugin");
+        security309.put("url", "https://jenkins.io/security/advisory/2016-07-27/");
+
+        JSONArray versionArray309 = new JSONArray();
+        JSONObject version309 = new JSONObject();
+        version309.put("firstVersion", "1.3.0");
+        version309.put("lastVersion", "2.5.1");
+        version309.put("pattern", "(1[.][34]|2[.][012345])(|[.-].*)");
+        versionArray309.put(version309);
+        security309.put("versions", versionArray309);
+
+        warningArray.put(security309);
+
+        JSONObject core = new JSONObject();
+        core.put("id", "core-2_44");
+        core.put("message", "Multiple security vulnerabilities in Jenkins 2.43 and earlier, and LTS 2.32.1 and earlier");
+        core.put("name", "core");
+        core.put("type", "core");
+        core.put("url", "https://jenkins.io/security/advisory/2017-02-01/");
+
+        JSONArray coreVersionArray = new JSONArray();
+        JSONObject coreVersion = new JSONObject();
+        coreVersion.put("lastVersion", "2.43");
+        coreVersion.put("pattern", "(1[.].*|2[.]\\d|2[.][123]\\d|2[.]4[0123])(|[-].*)");
+        coreVersionArray.put(coreVersion);
+        core.put("versions", coreVersionArray);
+
+        warningArray.put(core);
+
+        JSONObject security441 = new JSONObject();
+        security441.put("id", "SECURITY-441");
+        security441.put("message", "Arbitrary files from Jenkins master available in Pipeline by using the withMaven step");
+        security441.put("name", "pipeline-maven");
+        security441.put("type", "plugin");
+        security441.put("url", "https://jenkins.io/security/advisory/2017-03-09/");
+        JSONArray versionArray441 = new JSONArray();
+        JSONObject firstVersions441 = new JSONObject();
+        firstVersions441.put("lastVersion", "0.6");
+        firstVersions441.put("pattern", "0[.][123456](|[.-].*)");
+        JSONObject laterVersions441 = new JSONObject();
+        laterVersions441.put("lastVersion", "2.0-beta-5");
+        laterVersions441.put("pattern", "2[.]0[-]beta[-][345](|[.-].*)");
+        versionArray441.put(firstVersions441);
+        versionArray441.put(laterVersions441);
+        security441.put("versions", versionArray441);
+
+        warningArray.put(security441);
+
+        JSONObject security1409 = new JSONObject();
+        security1409.put("id", "SECURITY-1409");
+        security1409.put("message", "XML External Entity processing vulnerability");
+        security1409.put("name", "pipeline-maven");
+        security1409.put("type", "plugin");
+        security1409.put("url", "https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1409");
+
+        JSONArray versionArray1409 = new JSONArray();
+        JSONObject version1409 = new JSONObject();
+        version1409.put("lastVersion", "3.7.0");
+        version1409.put("pattern", "([0-2]|3[.][0-6]|3[.]7[.]0)(|[.-].*)");
+        versionArray1409.put(version1409);
+        security1409.put("versions", versionArray1409);
+        warningArray.put(security1409);
+
+        latestUcJson.put("warnings", warningArray);
+
+
+        pm.setLatestUcJson(latestUcJson);
+
+        Map<String, List<SecurityWarning>> allSecurityWarnings = pm.getSecurityWarnings();
+
+        assertEquals(null, allSecurityWarnings.get("core"));
+
+        assertEquals(3, allSecurityWarnings.size());
+
+        SecurityWarning googleLoginSecurityWarning = allSecurityWarnings.get("google-login").get(0);
+        assertEquals("SECURITY-208", googleLoginSecurityWarning.getId());
+        assertEquals("1[.][01](|[.-].*)", googleLoginSecurityWarning.getSecurityVersions().get(0).getPattern().toString());
+
+        List<SecurityWarning> pipelineMavenSecurityWarning = allSecurityWarnings.get("pipeline-maven");
+
+        assertEquals(2, pipelineMavenSecurityWarning.size());
+
+        List<String> securityWarningInfo = new ArrayList<>();
+        for (SecurityWarning securityWarning : pipelineMavenSecurityWarning) {
+            securityWarningInfo.add(securityWarning.getId() + " " + securityWarning.getMessage() + " " + securityWarning.getUrl());
+        }
+        Collections.sort(securityWarningInfo);
+        List<String> expectedSecurityInfo = new ArrayList<>();
+        expectedSecurityInfo.add("SECURITY-441 Arbitrary files from Jenkins master available in Pipeline by using the " +
+                        "withMaven step https://jenkins.io/security/advisory/2017-03-09/");
+        expectedSecurityInfo.add("SECURITY-1409 XML External Entity processing vulnerability " +
+                "https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1409");
+        Collections.sort(expectedSecurityInfo);
+
+        assertEquals(expectedSecurityInfo, securityWarningInfo);
+
+        assertEquals(2, pipelineMavenSecurityWarning.get(0).getSecurityVersions().size());
     }
 
     @Test

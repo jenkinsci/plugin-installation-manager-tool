@@ -58,7 +58,7 @@ public class PluginManager {
     private File jenkinsWarFile;
     private Map<String, VersionNumber> installedPluginVersions;
     private Map<String, VersionNumber> bundledPluginVersions;
-    private Map<String, SecurityWarning> allSecurityWarnings;
+    private Map<String, List<SecurityWarning>> allSecurityWarnings;
     private Map<String, Plugin> allPluginsAndDependencies;
     private Map<String, Plugin> effectivePlugins;
     private List<Plugin> pluginsToBeDownloaded;
@@ -233,10 +233,10 @@ public class PluginManager {
      * Gets the security warnings for plugins from the update center json and creates a list of all the security
      * warnings
      */
-    public void getSecurityWarnings() {
+    public Map<String, List<SecurityWarning>> getSecurityWarnings() {
         if (latestUcJson == null) {
             System.out.println("Unable to get update center json");
-            return;
+            return allSecurityWarnings;
         }
         JSONArray warnings = latestUcJson.getJSONArray("warnings");
 
@@ -262,8 +262,10 @@ public class PluginManager {
                 String pattern = warningVersion.getString("pattern");
                 securityWarning.addSecurityVersion(lastVersion, pattern);
             }
-            allSecurityWarnings.put(warningName, securityWarning);
+
+            allSecurityWarnings.computeIfAbsent(warningName, k -> new ArrayList<>()).add(securityWarning);
         }
+        return allSecurityWarnings;
     }
 
     /**
@@ -271,11 +273,14 @@ public class PluginManager {
      */
     public void showAllSecurityWarnings() {
         if (cfg.isShowAllWarnings()) {
-            for (SecurityWarning securityWarning : allSecurityWarnings.values()) {
-                System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
+            for (List<SecurityWarning> securityWarningList : allSecurityWarnings.values()) {
+                for (SecurityWarning securityWarning : securityWarningList) {
+                    System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
+                }
             }
         }
     }
+
 
     /**
      * Prints out security warning information for a list of plugins if isShowWarnings is set to true in the config
@@ -283,19 +288,22 @@ public class PluginManager {
      *
      * @param plugins
      */
+
     public void showSpecificSecurityWarnings(List<Plugin> plugins) {
         if (cfg.isShowWarnings()) {
             System.out.println("\nSecurity warnings:");
             for (Plugin plugin : plugins) {
                 if (warningExists(plugin)) {
                     String pluginName = plugin.getName();
-                    System.out.println(String.format("%s (%s): %s %s", pluginName, plugin.getVersion(),
-                            allSecurityWarnings.get(pluginName).getName(),
-                            allSecurityWarnings.get(pluginName).getMessage()));
+                    System.out.println(plugin.getSecurityWarnings().stream()
+                            .map(warning -> String.format("%s (%s): %s %s %s", pluginName,
+                                    plugin.getVersion(), warning.getId(), warning.getMessage(), warning.getUrl())).
+                                    collect(Collectors.joining("\n")));
                 }
             }
         }
     }
+
 
     /**
      * Prints out if any plugins of a given list have available updates in the latest update center
@@ -318,23 +326,27 @@ public class PluginManager {
     }
 
     /**
-     * Checks if a security warning exists for a plugin and its version
+     * Checks if a security warning exists for a plugin and its version. If that plugin version is affected by a
+     * security warning, adds the security warning to the list of security warnings for plugin
      *
      * @param plugin to check for security warning
      * @return true if security warning for plugin exists, false otherwise
      */
     public boolean warningExists(Plugin plugin) {
         String pluginName = plugin.getName();
+        List<SecurityWarning> securityWarnings = new ArrayList<>();
         if (allSecurityWarnings.containsKey(pluginName)) {
-            for (SecurityWarning.SecurityVersion effectedVersion : allSecurityWarnings.get(pluginName)
-                    .getSecurityVersions()) {
-                Matcher m = effectedVersion.getPattern().matcher(plugin.getVersion().toString());
-                if (m.matches()) {
-                    return true;
+            for (SecurityWarning securityWarning : allSecurityWarnings.get(pluginName)) {
+                for (SecurityWarning.SecurityVersion effectedVersion : securityWarning.getSecurityVersions()) {
+                    Matcher m = effectedVersion.getPattern().matcher(plugin.getVersion().toString());
+                    if (m.matches()) {
+                        securityWarnings.add(securityWarning);
+                    }
                 }
             }
         }
-        return false;
+        plugin.setSecurityWarnings(securityWarnings);
+        return !securityWarnings.isEmpty();
     }
 
     /**
