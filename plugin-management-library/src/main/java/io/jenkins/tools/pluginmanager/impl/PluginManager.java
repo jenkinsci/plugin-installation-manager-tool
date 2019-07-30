@@ -125,7 +125,8 @@ public class PluginManager {
      *
      * @param requestedPlugins list of all requested plugins, determined from the highest required versions of the
      *                         initial user requested plugins and their recursive dependencies
-     * @return
+     * @return list of plugins that will be downloaded when taking into account the already installed plugins and the
+     * highest required versions of the same plugin
      */
     public List<Plugin> findPluginsToDownload(Map<String, Plugin> requestedPlugins) {
         List<Plugin> pluginsToDownload = new ArrayList<>();
@@ -146,8 +147,9 @@ public class PluginManager {
             if (installedVersion == null) {
                 pluginsToDownload.add(plugin);
             } else if (installedVersion.compareTo(plugin.getVersion()) < 0) {
-                logVerbose(String.format("Installed version (%s) of %s is less than minimum required version of %s, bundled " +
-                        "plugin will be upgraded",  installedVersion, pluginName, plugin.getVersion()));
+                logVerbose(String.format(
+                        "Installed version (%s) of %s is less than minimum required version of %s, bundled " +
+                                "plugin will be upgraded", installedVersion, pluginName, plugin.getVersion()));
                 pluginsToDownload.add(plugin);
             }
         }
@@ -155,10 +157,12 @@ public class PluginManager {
     }
 
     /**
-     * Finds the final set of plugins that have been
+     * Finds the final set of plugins that have been either been installed or will be downloaded. If a plugin is in
+     * more than one set of the already installed plugins, bundled plugins, or plugins that will be installed, the
+     * highest version of the plugin is taken.
      *
-     * @param pluginsToBeDownloaded
-     * @return
+     * @param pluginsToBeDownloaded list of plugins and recursive dependencies requested by user
+     * @return set of plugins that is downloaded or will be downloaded
      */
     public Map<String, Plugin> findEffectivePlugins(List<Plugin> pluginsToBeDownloaded) {
         Map<String, Plugin> effectivePlugins = new HashMap<>();
@@ -170,12 +174,21 @@ public class PluginManager {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(),
                         new Plugin(installedEntry.getKey(), installedEntry.getValue().toString(), null, null));
+            } else if (
+                    (effectivePlugins.get(installedEntry.getKey()).getVersion()).compareTo(installedEntry.getValue()) <
+                            0) {
+                effectivePlugins.replace(installedEntry.getKey(),
+                        new Plugin(installedEntry.getKey(), installedEntry.getValue().toString(), null, null));
             }
         }
 
         for (Map.Entry<String, VersionNumber> bundledEntry : bundledPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(bundledEntry.getKey())) {
                 effectivePlugins.put(bundledEntry.getKey(),
+                        new Plugin(bundledEntry.getKey(), bundledEntry.getValue().toString(), null, null));
+            } else if (effectivePlugins.get(bundledEntry.getKey()).getVersion().compareTo(bundledEntry.getValue()) <
+                    0) {
+                effectivePlugins.replace(bundledEntry.getKey(),
                         new Plugin(bundledEntry.getKey(), bundledEntry.getValue().toString(), null, null));
             }
         }
@@ -464,6 +477,10 @@ public class PluginManager {
         if (!plugins.has(plugin.getName())) {
             return null;
         }
+
+        if (!plugins.has(plugin.getName())) {
+            return null;
+        }
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
@@ -479,17 +496,19 @@ public class PluginManager {
     }
 
     /**
-     * Resolves dependencies from downloaded plugin manifest. Done for plugins in which dependencies can't be determined
-     * via easily via json, such as when a user downloads a plugin directly from url or incremental plugins
+     * Resolves direct dependencies from downloaded plugin manifest. Done for plugins in which dependencies can't be
+     * determined via easily via json, such as when a user downloads a plugin directly from url or incremental plugins,
+     * or in other cases when getting information from json fails
      *
-     * @param plugin
+     * @param plugin plugin to resolve direct dependencies for
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
         List<Plugin> dependentPlugins = new ArrayList<>();
         try {
             File tempFile = Files.createTempFile(plugin.getName(), ".jpi").toFile();
-            logVerbose(String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
-                    "MANIFEST.MF", plugin.getName(), tempFile.toString()));
+            logVerbose(
+                    String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
+                            "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
                 System.out.println("Unable to resolve dependencies for " + plugin.getName());
                 Files.delete(tempFile.toPath());
@@ -514,11 +533,11 @@ public class PluginManager {
                     dependentPlugins.add(dependentPlugin);
                 }
             }
-            logVerbose(dependentPlugins.isEmpty() ?  String.format("%n%s has no dependencies", plugin.getName()) :
+            logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                     String.format("%n%s depends on: %n", plugin.getName()) +
-                        dependentPlugins.stream()
-                                .map(p -> p.getName() + " " + p.getVersion())
-                                .collect(Collectors.joining("\n")));
+                            dependentPlugins.stream()
+                                    .map(p -> p.getName() + " " + p.getVersion())
+                                    .collect(Collectors.joining("\n")));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
@@ -526,7 +545,6 @@ public class PluginManager {
             return dependentPlugins;
         }
     }
-
 
     /**
      * Finds the dependencies for a plugins by using the update center plugin-versions json. Excludes optional
@@ -564,13 +582,20 @@ public class PluginManager {
         }
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                 String.format("%n%s depends on: %n", plugin.getName()) +
-                dependentPlugins.stream()
-                        .map(p -> p.getName() + " " + p.getVersion())
-                        .collect(Collectors.joining("\n")));
+                        dependentPlugins.stream()
+                                .map(p -> p.getName() + " " + p.getVersion())
+                                .collect(Collectors.joining("\n")));
         return dependentPlugins;
     }
 
-
+    /**
+     * Finds all recursive dependencies for a given plugin. If the same plugin is required by different plugins, the
+     * highest required version will be taken
+     *
+     * @param plugin to resolve dependencies for
+     * @return map of plugin names and plugins representing all of the dependencies of the requested plugin, including
+     * the requested plugin itself
+     */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
@@ -631,7 +656,7 @@ public class PluginManager {
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         if (!successfulDownload) {
             logVerbose(String.format("First download attempt of %s unsuccessful, reattempting",
-                        plugin.getName()));
+                    plugin.getName()));
             //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
             String newPluginName = plugin.getName() + "-plugin";
             plugin.setName(newPluginName);
@@ -642,7 +667,6 @@ public class PluginManager {
             System.out.println(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), pluginVersion);
         }
-
         return successfulDownload;
     }
 
@@ -683,15 +707,17 @@ public class PluginManager {
             urlString = String.format("%s/download/plugins/%s/%s/%s.hpi", cfg.getJenkinsUc(), pluginName, pluginVersion,
                     pluginName);
         }
-
         return urlString;
     }
 
     /**
-     * Downloads a plugin from a url
+     * Downloads a plugin from a url to a file.
      *
-     * @param urlString url to download the plugin from
-     * @param plugin    Plugin object representing plugin to be downloaded
+     * @param urlString    String url to download the plugin from
+     * @param plugin       Plugin object representing plugin to be downloaded
+     * @param fileLocation contains the temp file if the plugin is downloaded so that dependencies can be parsed from
+     *                     the manifest, if the plugin will be downloaded to the plugin download location, this will
+     *                     be null
      * @return true if download is successful, false otherwise
      */
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
@@ -729,10 +755,17 @@ public class PluginManager {
             System.out.println("Downloaded file is not a valid ZIP");
             return false;
         }
-
         return true;
     }
 
+    /**
+     * Given a jar file and a key to retrieve from the jar's MANIFEST.MF file, confirms that the file is a jar returns
+     * the value matching the key
+     *
+     * @param file jar file to get manifest from
+     * @param key  key matching value to retrieve
+     * @return value matching the key in the jar file
+     */
     public String getAttributefromManifest(File file, String key) {
         try (JarFile jarFile = new JarFile(file)) {
             Manifest manifest = jarFile.getManifest();
@@ -743,7 +776,6 @@ public class PluginManager {
             if (key.equals("Plugin-Dependencies")) {
                 throw new DownloadPluginException("Unable to determine plugin dependencies", e);
             }
-
         }
         return null;
     }
@@ -888,17 +920,51 @@ public class PluginManager {
         jenkinsUcLatest = updateCenterLatest;
     }
 
+    /**
+     * Sets the installed plugins
+     *
+     * @param installedPlugins hashmap of plugin names and versions of plugins that already exist in the plugin
+     *                         download directory
+     */
     public void setInstalledPluginVersions(Map<String, VersionNumber> installedPlugins) {
         installedPluginVersions = installedPlugins;
     }
 
+    /**
+     * Sets the bundled plugins
+     *
+     * @param bundledPlugins hashmap of plugin names and version numbers representing the bundled plugins
+     */
     public void setBundledPluginVersions(Map<String, VersionNumber> bundledPlugins) {
         bundledPluginVersions = bundledPlugins;
     }
 
+    /**
+     * Outputs inforation to the console if verbose option was set to true
+     *
+     * @param message informational string to output
+     */
     public void logVerbose(String message) {
         if (verbose) {
             System.out.println(message);
         }
+    }
+
+    /**
+     * Sets the latest update center json
+     *
+     * @param latestUcJson json to set latest update center to
+     */
+    public void setLatestUcJson(JSONObject latestUcJson) {
+        this.latestUcJson = latestUcJson;
+    }
+
+    /**
+     * Sets the plugin version json
+     *
+     * @param pluginInfoJson json to set plugin version info to
+     */
+    public void setPluginInfoJson(JSONObject pluginInfoJson) {
+        this.pluginInfoJson = pluginInfoJson;
     }
 }
