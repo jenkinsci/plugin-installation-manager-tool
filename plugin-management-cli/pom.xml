@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
-        <artifactId>jenkins-plugin-management-parent-pom</artifactId>
+        <artifactId>plugin-management-parent-pom</artifactId>
         <version>${revision}${changelist}</version>
         <relativePath>..</relativePath>
     </parent>
@@ -47,11 +47,9 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <finalName>plugin-management-tool</finalName>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
-                            <appendAssemblyId>false</appendAssemblyId>
                             <archive>
                                 <manifest>
                                     <mainClass>io.jenkins.tools.pluginmanager.cli.Main</mainClass>
