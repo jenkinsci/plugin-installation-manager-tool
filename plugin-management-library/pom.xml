@@ -4,7 +4,7 @@
 
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
-        <artifactId>jenkins-plugin-management-parent-pom</artifactId>
+        <artifactId>plugin-management-parent-pom</artifactId>
         <version>${revision}${changelist}</version>
         <relativePath>..</relativePath>
     </parent>
