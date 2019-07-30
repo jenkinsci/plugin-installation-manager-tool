@@ -47,11 +47,9 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <finalName>plugin-management-tool</finalName>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
-                            <appendAssemblyId>false</appendAssemblyId>
                             <archive>
                                 <manifest>
                                     <mainClass>io.jenkins.tools.pluginmanager.cli.Main</mainClass>
