@@ -53,8 +53,8 @@ public class SecurityWarning {
         this.url = url;
     }
 
-    public void addSecurityVersion(String lastVersion, String pattern) {
-        securityVersionList.add(new SecurityVersion(lastVersion, pattern));
+    public void addSecurityVersion(String firstVersion, String lastVersion, String pattern) {
+        securityVersionList.add(new SecurityVersion(firstVersion, lastVersion, pattern));
     }
 
     public List<SecurityVersion> getSecurityVersions() {
@@ -70,16 +70,22 @@ public class SecurityWarning {
     }
 
     static class SecurityVersion {
+        String firstVersion;
         String lastVersion;
         Pattern pattern;
 
-        public SecurityVersion(String lastVersion, String patternString) {
+        public SecurityVersion(String firstVersion, String lastVersion, String patternString) {
+            this.firstVersion = firstVersion;
             this.lastVersion = lastVersion;
             pattern = Pattern.compile(patternString);
         }
 
         public String getLastVersion() {
             return lastVersion;
+        }
+
+        public String getFirstVersion() {
+            return firstVersion;
         }
 
         public Pattern getPattern() {
@@ -92,6 +98,10 @@ public class SecurityWarning {
 
         public void setPattern(Pattern pattern) {
             this.pattern = pattern;
+        }
+
+        public void setFirstVersion(String firstVersion) {
+            this.firstVersion = firstVersion;
         }
     }
 }

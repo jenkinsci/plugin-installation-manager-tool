@@ -255,12 +255,16 @@ public class PluginManager {
             JSONArray warningVersions = warning.getJSONArray("versions");
             for (int j = 0; j < warningVersions.length(); j++) {
                 JSONObject warningVersion = warningVersions.getJSONObject(j);
+                String firstVersion = "";
+                if (warningVersion.has("firstVersion")) {
+                    firstVersion = warningVersion.getString("firstVersion");
+                }
                 String lastVersion = "";
                 if (warningVersion.has("lastVersion")) {
                     lastVersion = warningVersion.getString("lastVersion");
                 }
                 String pattern = warningVersion.getString("pattern");
-                securityWarning.addSecurityVersion(lastVersion, pattern);
+                securityWarning.addSecurityVersion(firstVersion, lastVersion, pattern);
             }
 
             allSecurityWarnings.computeIfAbsent(warningName, k -> new ArrayList<>()).add(securityWarning);
@@ -978,6 +982,10 @@ public class PluginManager {
      */
     public void setLatestUcJson(JSONObject latestUcJson) {
         this.latestUcJson = latestUcJson;
+    }
+
+    public void setAllSecurityWarnings(Map<String, List<SecurityWarning>> securityWarnings) {
+        allSecurityWarnings = securityWarnings;
     }
 
     /**
