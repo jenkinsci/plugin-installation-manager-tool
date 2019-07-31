@@ -10,7 +10,7 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 #### Getting Started
 ```
 mvn clean install 
-java -jar plugin-management-cli/target/plugin-management-tool.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 #### CLI Options
@@ -84,7 +84,7 @@ If an url is included, then a placeholder should be included for the version. Ex
 If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpretted as the end of the command.
 
 ```
-java -jar plugin-management-cli/target/plugin-management-tool.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
+java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
 #### Other Information
