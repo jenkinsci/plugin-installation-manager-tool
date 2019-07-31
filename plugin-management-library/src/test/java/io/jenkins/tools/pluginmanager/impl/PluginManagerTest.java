@@ -7,7 +7,9 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.Map;
 import java.util.jar.JarFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -31,16 +34,22 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, URL.class})
+        URI.class, FileUtils.class, URL.class, IOUtils.class})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -362,21 +371,21 @@ public class PluginManagerTest {
         //Test where version specific update center exists
         pm.setJenkinsVersion(new VersionNumber("2.176"));
 
-        PowerMockito.mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = Mockito.mock(CloseableHttpClient.class);
+        mockStatic(HttpClients.class);
+        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
-        Mockito.when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = Mockito.mock(HttpGet.class);
+        when(HttpClients.createDefault()).thenReturn(httpclient);
+        HttpGet httpget = mock(HttpGet.class);
 
-        PowerMockito.whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
-        CloseableHttpResponse response = Mockito.mock(CloseableHttpResponse.class);
-        Mockito.when(httpclient.execute(httpget)).thenReturn(response);
+        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
+        when(httpclient.execute(httpget)).thenReturn(response);
 
-        StatusLine statusLine = Mockito.mock(StatusLine.class);
-        PowerMockito.when(response.getStatusLine()).thenReturn(statusLine);
+        StatusLine statusLine = mock(StatusLine.class);
+        when(response.getStatusLine()).thenReturn(statusLine);
 
         int statusCode = HttpStatus.SC_OK;
-        Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
+        when(statusLine.getStatusCode()).thenReturn(statusCode);
 
         pm.checkAndSetLatestUpdateCenter();
 
@@ -384,26 +393,41 @@ public class PluginManagerTest {
         assertEquals(expected, pm.getJenkinsUCLatest());
     }
 
+    @Test(expected = UpdateCenterInfoRetrievalException.class)
+    public void getJsonURLExceptionTest() {
+        pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json");
+    }
+
+    @Test(expected = UpdateCenterInfoRetrievalException.class)
+    public void getJsonURLIOTest() throws IOException{
+        mockStatic(IOUtils.class);
+
+        when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
+
+        pm.getJson("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json");
+    }
+
+
 
     @Test
     public void checkVersionSpecificUpdateCenterBadRequestTest() throws Exception {
         pm.setJenkinsVersion(new VersionNumber("2.176"));
 
-        PowerMockito.mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = Mockito.mock(CloseableHttpClient.class);
+        mockStatic(HttpClients.class);
+        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
-        Mockito.when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = Mockito.mock(HttpGet.class);
+        when(HttpClients.createDefault()).thenReturn(httpclient);
+        HttpGet httpget = mock(HttpGet.class);
 
-        PowerMockito.whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
-        CloseableHttpResponse response = Mockito.mock(CloseableHttpResponse.class);
-        Mockito.when(httpclient.execute(httpget)).thenReturn(response);
+        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
+        when(httpclient.execute(httpget)).thenReturn(response);
 
-        StatusLine statusLine = Mockito.mock(StatusLine.class);
-        PowerMockito.when(response.getStatusLine()).thenReturn(statusLine);
+        StatusLine statusLine = mock(StatusLine.class);
+        when(response.getStatusLine()).thenReturn(statusLine);
 
         int statusCode = HttpStatus.SC_BAD_REQUEST;
-        Mockito.when(statusLine.getStatusCode()).thenReturn(statusCode);
+        when(statusLine.getStatusCode()).thenReturn(statusCode);
 
         pm.checkAndSetLatestUpdateCenter();
         String expected = cfg.getJenkinsUc().toString();
@@ -474,6 +498,38 @@ public class PluginManagerTest {
         assertEquals("1.10", pm.getPluginVersion(testHpi));
     }
 
+    @Test
+    public void resolveDependenciesFromManifestExceptionTest() throws IOException {
+        mockStatic(Files.class);
+        when(Files.createTempFile(any(String.class), any(String.class))).thenThrow(IOException.class);
+        Plugin testPlugin = new Plugin("test", "latest", null, null);
+        assertEquals(true, pm.resolveDependenciesFromManifest(testPlugin).isEmpty());
+    }
+
+    /*
+    @Test
+    public void resolveDependenciesFromManifest() throws IOException{
+        mockStatic(Files.class);
+        File tempFile = mock(File.class);
+
+        URL deliveryPipelineJpi = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
+        File deliveryPipelineFile = new File(deliveryPipelineJpi.getFile());
+        Path deliveryPipelinePath = deliveryPipelineFile.toPath();
+        PowerMockito.when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(deliveryPipelinePath);
+
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        spy(pluginManager);
+        doReturn(false).when(pluginManager).downloadPlugin(any(Plugin.class), any(File.class));
+        Plugin testPlugin = new Plugin("test", "latest", null, null);
+        assertEquals(true, pluginManager.resolveDependenciesFromManifest(testPlugin).isEmpty());
+    }
+    */
+
 
     @Test
     public void installedPluginsTest() throws IOException {
@@ -505,40 +561,40 @@ public class PluginManagerTest {
 
     @Test
     public void downloadToFileTest() throws Exception {
-        PowerMockito.mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = Mockito.mock(CloseableHttpClient.class);
+        mockStatic(HttpClients.class);
+        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
-        Mockito.when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = Mockito.mock(HttpGet.class);
+        when(HttpClients.createDefault()).thenReturn(httpclient);
+        HttpGet httpget = mock(HttpGet.class);
 
-        PowerMockito.mockStatic(HttpClientContext.class);
+        mockStatic(HttpClientContext.class);
 
-        HttpClientContext context = Mockito.mock(HttpClientContext.class);
-        Mockito.when(HttpClientContext.create()).thenReturn(context);
+        HttpClientContext context = mock(HttpClientContext.class);
+        when(HttpClientContext.create()).thenReturn(context);
 
 
-        PowerMockito.whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
-        CloseableHttpResponse response = Mockito.mock(CloseableHttpResponse.class);
-        Mockito.when(httpclient.execute(httpget, context)).thenReturn(response);
+        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
+        when(httpclient.execute(httpget, context)).thenReturn(response);
 
         HttpHost target = PowerMockito.mock(HttpHost.class);
-        Mockito.when(context.getTargetHost()).thenReturn(target);
+        when(context.getTargetHost()).thenReturn(target);
 
         List<URI> redirectLocations = new ArrayList<>(); //Mockito.mock()
         redirectLocations.add(new URI("downloadURI"));
 
-        Mockito.when(context.getRedirectLocations()).thenReturn(redirectLocations);
+        when(context.getRedirectLocations()).thenReturn(redirectLocations);
 
-        PowerMockito.mockStatic(URIUtils.class);
+        mockStatic(URIUtils.class);
 
         URI downloadLocation = PowerMockito.mock(URI.class);
 
         URI requestedLocation = PowerMockito.mock(URI.class);
-        Mockito.when(httpget.getURI()).thenReturn(requestedLocation);
+        when(httpget.getURI()).thenReturn(requestedLocation);
 
-        Mockito.when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
+        when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
 
-        PowerMockito.mockStatic(FileUtils.class);
+        mockStatic(FileUtils.class);
         URL url = PowerMockito.mock(URL.class);
 
         //File pluginDir = cfg.getPluginDir();
@@ -546,9 +602,9 @@ public class PluginManagerTest {
 
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
 
-        JarFile pluginJpi = Mockito.mock(JarFile.class);
+        JarFile pluginJpi = mock(JarFile.class);
 
-        PowerMockito.whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
+        whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
         Assert.assertTrue(pm.downloadToFile("downloadURL", plugin, null));
     }
 
@@ -596,7 +652,6 @@ public class PluginManagerTest {
         PluginManager pluginManager = new PluginManager(config);
         assertEquals(new VersionNumber("2.164.1").compareTo(pluginManager.getJenkinsVersionFromWar()), 0);
     }
-
 
     @Test
     public void bundledPluginsTest() {
