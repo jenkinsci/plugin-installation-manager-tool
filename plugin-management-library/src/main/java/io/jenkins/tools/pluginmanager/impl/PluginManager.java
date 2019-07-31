@@ -536,7 +536,9 @@ public class PluginManager {
 
             if (plugin.getVersion().toString().equals("latest") || plugin.getVersion().toString().equals("experimental")) {
                 String version = getAttributefromManifest(tempFile, "Plugin-Version");
-                plugin.setVersion(new VersionNumber(version));
+                if (!StringUtils.isEmpty(version)) {
+                    plugin.setVersion(new VersionNumber(version));
+                }
             }
 
             String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");

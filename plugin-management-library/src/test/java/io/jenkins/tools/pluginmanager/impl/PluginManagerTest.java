@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -49,7 +50,8 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, URL.class, IOUtils.class})
+        URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class})
+@PowerMockIgnore({"javax.net.ssl.*","javax.security.*"})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -506,29 +508,87 @@ public class PluginManagerTest {
         assertEquals(true, pm.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
 
-    /*
     @Test
-    public void resolveDependenciesFromManifest() throws IOException{
-        mockStatic(Files.class);
-        File tempFile = mock(File.class);
-
-        URL deliveryPipelineJpi = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
-        File deliveryPipelineFile = new File(deliveryPipelineJpi.getFile());
-        Path deliveryPipelinePath = deliveryPipelineFile.toPath();
-        PowerMockito.when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(deliveryPipelinePath);
-
+    public void resolveDependenciesFromManifestNoDownload() throws IOException{
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
-        spy(pluginManager);
-        doReturn(false).when(pluginManager).downloadPlugin(any(Plugin.class), any(File.class));
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
         Plugin testPlugin = new Plugin("test", "latest", null, null);
+        doReturn(false).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        mockStatic(Files.class);
+        Path tempPath = mock(Path.class);
+        File tempFile = mock(File.class);
+
+        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
+        when(tempPath.toFile()).thenReturn(tempFile);
+
         assertEquals(true, pluginManager.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
-    */
+
+
+    @Test
+    public void resolveDependenciesFromManifestDownload() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        Plugin testPlugin = new Plugin("test", "latest", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        mockStatic(Files.class);
+        Path tempPath = mock(Path.class);
+        File tempFile = mock(File.class);
+
+        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
+        when(tempPath.toFile()).thenReturn(tempFile);
+
+        doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13," +
+                "credentials:2.1.14,git-client:2.7.7,mailer:1.18," +
+                "parameterized-trigger:2.33;resolution:=optional," +
+                "promoted-builds:2.27;resolution:=optional," +
+                "scm-api:2.6.3,ssh-credentials:1.13," +
+                "token-macro:1.12.1;resolution:=optional")
+                .when(pluginManagerSpy).getAttributefromManifest(any(File.class), any(String.class));
+
+
+        List<Plugin> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add(new Plugin("workflow-scm-step", "2.4", null, null));
+        expectedPlugins.add(new Plugin("workflow-step-api", "2.13", null, null));
+        expectedPlugins.add(new Plugin("credentials", "2.1.14", null, null));
+        expectedPlugins.add(new Plugin("git-client", "2.7.7", null, null));
+        expectedPlugins.add(new Plugin("mailer", "1.18", null, null));
+        expectedPlugins.add(new Plugin("scm-api", "2.6.3", null, null));
+        expectedPlugins.add(new Plugin("ssh-credentials", "1.13", null, null));
+
+
+        List<String> expectedPluginInfo = new ArrayList<>();
+        for (Plugin p : expectedPlugins) {
+            expectedPluginInfo.add(p.toString());
+        }
+
+        Collections.sort(expectedPluginInfo);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
+        List<String> actualPluginInfo = new ArrayList<>();
+        for (Plugin p : actualPlugins) {
+            actualPluginInfo.add(p.toString());
+        }
+
+        Collections.sort(actualPluginInfo);;
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+
+        assertEquals(testPlugin.getVersion().toString(), "1.0.0");
+    }
 
 
     @Test
