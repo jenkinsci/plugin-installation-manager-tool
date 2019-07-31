@@ -93,3 +93,4 @@ The plugin manager tries to use update center data to get the latest information
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
 
 Support for downloading plugins from maven is not currently supported. [JENKINS-58217](https://issues.jenkins-ci.org/browse/JENKINS-58217)
+  
