@@ -502,6 +502,9 @@ public class PluginManager {
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
         } else {
+            //plugin version is latest or experimental
+            String version = pluginInfo.getString("version");
+            plugin.setVersion(new VersionNumber(version));
             return (JSONArray) pluginInfo.get("dependencies");
         }
         return null;
@@ -526,6 +529,12 @@ public class PluginManager {
                 Files.delete(tempFile.toPath());
                 return dependentPlugins;
             }
+
+            if (plugin.getVersion().toString().equals("latest") || plugin.getVersion().toString().equals("experimental")) {
+                String version = getAttributefromManifest(tempFile, "Plugin-Version");
+                plugin.setVersion(new VersionNumber(version));
+            }
+
             String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
 
             //not all plugin Manifests contain the Plugin-Dependencies field
@@ -704,9 +713,9 @@ public class PluginManager {
         if (!StringUtils.isEmpty(pluginUrl)) {
             logVerbose(String.format("Will use url: %s to download %s plugin", pluginUrl, plugin.getName()));
             urlString = pluginUrl;
-        } else if (pluginVersion.equals("latest") && !StringUtils.isEmpty(jenkinsUcLatest)) {
+        } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
-        } else if (pluginVersion.equals("experimental")) {
+        } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
             urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();

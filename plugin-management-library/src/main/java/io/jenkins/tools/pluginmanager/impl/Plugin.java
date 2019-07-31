@@ -17,7 +17,8 @@ public class Plugin {
     private List<Plugin> dependencies;
     private Plugin parent;
     private List<SecurityWarning> securityWarnings;
-
+    private boolean latest;
+    private boolean experimental;
 
     public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
@@ -31,6 +32,12 @@ public class Plugin {
         this.parent = this;
         this.groupId = groupId;
         this.securityWarnings = new ArrayList<>();
+        if (version.equals("latest")) {
+            latest = true;
+        }
+        if (version.equals("experimental")) {
+            experimental = true;
+        }
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
@@ -44,6 +51,12 @@ public class Plugin {
         this.dependencies = new ArrayList<>();
         this.parent = this;
         this.securityWarnings = new ArrayList<>();
+        if (version.equals("latest")) {
+            latest = true;
+        }
+        if (version.equals("experimental")) {
+            experimental = true;
+        }
     }
 
     public void setName(String name) {
@@ -126,6 +139,14 @@ public class Plugin {
         return securityWarnings;
     }
 
+    public boolean isLatest() {
+        return latest;
+    }
+
+    public boolean isExperimental() {
+        return experimental;
+    }
+
     @Override
     public String toString() {
         if (url == null) {
@@ -133,5 +154,4 @@ public class Plugin {
         }
         return name + " " + version + " " + url;
     }
-
 }
