@@ -46,7 +46,7 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showPluginsToBeDownloaded;
 
-    @Option(name = "--verbose", usage = "Output more plugin dependency information",
+    @Option(name = "--verbose", usage = "Verbose logging",
             handler = BooleanOptionHandler.class)
     private boolean verbose;
 
