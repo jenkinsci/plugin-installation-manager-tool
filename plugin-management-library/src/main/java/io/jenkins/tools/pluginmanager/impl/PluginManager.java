@@ -991,6 +991,36 @@ public class PluginManager {
     }
 
     /**
+     * Sets all plugins and their recursive dependencies
+     *
+     * @param allPluginsAndDependencies map of plugin name - plugin pairs corresponding the requested plugins and their
+     *                                  recursive dependencies
+     */
+    public void setAllPluginsAndDependencies(Map<String, Plugin> allPluginsAndDependencies) {
+        this.allPluginsAndDependencies = allPluginsAndDependencies;
+    }
+
+    /**
+     * Sets the list of effective plugins
+     *
+     * @param effectivePlugins map of plugin name - plugin pairs corresponding to the highest required versions of
+     *                         the requested plugins, their dependencies, and the already installed plugins
+     */
+    public void setEffectivePlugins(Map<String, Plugin> effectivePlugins) {
+        this.effectivePlugins = effectivePlugins;
+    }
+
+    /**
+     * Sets the list of plugins to be downloaded
+     *
+     * @param pluginsToBeDownloaded list of all plugins that will actually be downloaded after plugin dependencies have
+     *                              been resolved and already installed plugins are taken into consideration
+     */
+    public void setPluginsToBeDownloaded(List<Plugin> pluginsToBeDownloaded) {
+        this.pluginsToBeDownloaded = pluginsToBeDownloaded;
+    }
+
+    /**
      * Outputs inforation to the console if verbose option was set to true
      *
      * @param message informational string to output
@@ -1010,6 +1040,10 @@ public class PluginManager {
         this.latestUcJson = latestUcJson;
     }
 
+    /**
+     * Sets the security warnings
+     * @param securityWarnings map of the plugin name to the list of security warnings for that plugin
+     */
     public void setAllSecurityWarnings(Map<String, List<SecurityWarning>> securityWarnings) {
         allSecurityWarnings = securityWarnings;
     }

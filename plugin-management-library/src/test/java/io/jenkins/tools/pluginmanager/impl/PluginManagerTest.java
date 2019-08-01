@@ -3,8 +3,10 @@ package io.jenkins.tools.pluginmanager.impl;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -13,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.jar.JarFile;
@@ -30,6 +33,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,8 +60,8 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
-
-    List<Plugin> directDependencyExpectedPlugins;
+    private final PrintStream originalOut = System.out;
+    private List<Plugin> directDependencyExpectedPlugins;
 
     @Before
     public void setUp() throws IOException {
@@ -73,6 +77,7 @@ public class PluginManagerTest {
         directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", false));
         directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", false));
         directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", false));
+
     }
 
     @Test
@@ -105,6 +110,39 @@ public class PluginManagerTest {
         assertEquals("1.26", effectivePlugins.get("script-security").getVersion().toString());
         assertEquals("2.1.11", effectivePlugins.get("credentials").getVersion().toString());
         assertEquals("1.0.1", effectivePlugins.get("ace-editor").getVersion().toString());
+    }
+
+    @Test
+    public void listPluginsNoOutputTest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withShowPluginsToBeDownloaded(false)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(expectedNoOutput));
+
+        assertEquals("", expectedNoOutput.toString().trim());
+    }
+
+    @Test
+    public void listPluginsOutputTest() {
+        Map<String, VersionNumber> installedPluginVersions = new HashMap<>();
+        Map<String, VersionNumber> bundledPluginVersions = new HashMap<>();
+        Map<String, Plugin> allPluginsAndDependencies = new HashMap<>();
+        List<Plugin> pluginsToBeDownloaded = new ArrayList<>();
+        HashMap<String, Plugin> effectivePlugins = new HashMap<>();
+
+        pm.setInstalledPluginVersions(installedPluginVersions);
+        pm.setBundledPluginVersions(bundledPluginVersions);
+        pm.setAllPluginsAndDependencies(allPluginsAndDependencies);
+        pm.setPluginsToBeDownloaded(pluginsToBeDownloaded);
+        pm.setEffectivePlugins(effectivePlugins);
+
+        //TODO write test
     }
 
 
@@ -1039,5 +1077,10 @@ public class PluginManagerTest {
         }
         Collections.sort(stringList);
         return stringList;
+    }
+
+    @After
+    public void restoreStream() {
+        System.setOut(originalOut);
     }
 }
