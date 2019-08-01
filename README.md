@@ -14,12 +14,13 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 ```
 
 #### CLI Options
-* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If no .txt file is entered ./plugins.txt will be used by default. If this file does not exist, option will be ignored.
+* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If this file does not exist, option will be ignored.
 * `--plugin-yaml` or `-y`: (optional) Path to yaml file containing plugins to install.
 * `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins, which can also be set via the PLUGIN_DIR environment variable. Directory will be created if it does not exist. If no directory is entered, directory will default to C:\ProgramData\Jenkins\Reference\Plugins if detected OS is Windows, or /usr/share/jenkins/ref/plugins otherwise.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space.
 * `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--list` or `-l`: (optional) Lists plugin names and versions of: installed plugins (plugins that already exist in the plugin directory), bundled plugins (non-detached plugins that exist in the war file), plugins that will be downloaded (highest required versions of the requested plugins and dependencies that are not already installed), and the effective plugin set (the highest versions of all plugins that are already installed or will be installed)
+* `--verbose`: (optional) Set to true to show additional information about plugin dependencies and download process
 * `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--available-updates`: (optional) Set to true to show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
