@@ -41,8 +41,21 @@ class CliOptions {
     @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
     private String jenkinsWarFile;
 
+    @Option(name = "--list", aliases = {"-l"}, usage = "Lists all plugins currently installed and if given a list of " +
+            "plugins to install either via file or CLI option, all plugins that will be installed by the tool",
+            handler = BooleanOptionHandler.class)
+    private boolean showPluginsToBeDownloaded;
+
+    @Option(name = "--verbose", usage = "Verbose logging",
+            handler = BooleanOptionHandler.class)
+    private boolean verbose;
+
+    @Option(name = "--available-updates", usage = "Show available plugin updates for the requested plugins",
+            handler = BooleanOptionHandler.class)
+    private boolean showAvailableUpdates;
+
     @Option(name = "--view-security-warnings",
-            usage = "Set to true to show specified plugins that have security warnings",
+            usage = "Show if any security warnings exist for the requested plugins",
             handler = BooleanOptionHandler.class)
     private boolean showWarnings;
 
@@ -61,15 +74,13 @@ class CliOptions {
             usage = "Sets experimental update center; will override JENKINS_UC_EXPERIMENTAL environment variable. If " +
                     "not set via CLI option or environment variable, will default to " +
                     Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
-            handler = URLOptionHandler.class
-    )
+            handler = URLOptionHandler.class)
     private URL jenkinsUcExperimental;
 
     @Option(name = "--jenkins-incrementals-repo-mirror",
             usage = "Set Maven mirror to be used to download plugins from the Incrementals repository, will override " +
                     "the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If not set via CLI option or " +
-                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION
-            ,
+                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
 
@@ -91,6 +102,9 @@ class CliOptions {
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
+                .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
+                .withShowAvailableUpdates(isShowAvailableUpdates())
+                .withIsVerbose(isVerbose())
                 .build();
     }
 
@@ -164,7 +178,6 @@ class CliOptions {
         requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
         requestedPlugins.addAll(pluginParser.parsePluginTxtFile(getPluginTxt()));
         requestedPlugins.addAll(pluginParser.parsePluginYamlFile(getPluginYaml()));
-
         return requestedPlugins;
     }
 
@@ -184,6 +197,18 @@ class CliOptions {
      */
     private boolean isShowAllWarnings() {
         return showAllWarnings;
+    }
+
+    private boolean isShowPluginsToBeDownloaded() {
+        return showPluginsToBeDownloaded;
+    }
+
+    private boolean isShowAvailableUpdates() {
+        return showAvailableUpdates;
+    }
+
+    private boolean isVerbose() {
+        return verbose;
     }
 
     /**

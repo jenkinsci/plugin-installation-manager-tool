@@ -15,8 +15,10 @@ public class Plugin {
     private File file;
     private boolean isPluginOptional;
     private List<Plugin> dependencies;
-    private List<Plugin> dependents;
-
+    private Plugin parent;
+    private List<SecurityWarning> securityWarnings;
+    private boolean latest;
+    private boolean experimental;
 
     public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
@@ -26,9 +28,16 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.url = url;
+        this.dependencies = new ArrayList<>();
+        this.parent = this;
         this.groupId = groupId;
-        dependencies = new ArrayList<>();
-        dependents = new ArrayList<>();
+        this.securityWarnings = new ArrayList<>();
+        if (version.equals("latest")) {
+            latest = true;
+        }
+        if (version.equals("experimental")) {
+            experimental = true;
+        }
     }
 
     public Plugin(String name, String version, boolean isPluginOptional) {
@@ -39,6 +48,15 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.isPluginOptional = isPluginOptional;
+        this.dependencies = new ArrayList<>();
+        this.parent = this;
+        this.securityWarnings = new ArrayList<>();
+        if (version.equals("latest")) {
+            latest = true;
+        }
+        if (version.equals("experimental")) {
+            experimental = true;
+        }
     }
 
     public void setName(String name) {
@@ -105,17 +123,35 @@ public class Plugin {
         return dependencies;
     }
 
-    public void setDependent(Plugin dependent) {
-        dependents.add(dependent);
+    public void setParent(Plugin parent) {
+        this.parent = parent;
     }
 
-    public List<Plugin> getDependents() {
-        return dependents;
+    public Plugin getParent() {
+        return parent;
+    }
+
+    public void setSecurityWarnings(List<SecurityWarning> securityWarnings) {
+        this.securityWarnings = securityWarnings;
+    }
+
+    public List<SecurityWarning> getSecurityWarnings() {
+        return securityWarnings;
+    }
+
+    public boolean isLatest() {
+        return latest;
+    }
+
+    public boolean isExperimental() {
+        return experimental;
     }
 
     @Override
     public String toString() {
+        if (url == null) {
+            return name + " " + version;
+        }
         return name + " " + version + " " + url;
     }
-
 }

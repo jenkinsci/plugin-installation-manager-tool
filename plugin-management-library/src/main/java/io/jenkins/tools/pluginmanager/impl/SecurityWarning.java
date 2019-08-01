@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class SecurityWarning {
 
@@ -52,8 +53,12 @@ public class SecurityWarning {
         this.url = url;
     }
 
-    public void addSecurityVersion(String lastVersion, String pattern) {
-        securityVersionList.add(new SecurityVersion(message, url));
+    public void addSecurityVersion(String firstVersion, String lastVersion, String pattern) {
+        securityVersionList.add(new SecurityVersion(firstVersion, lastVersion, pattern));
+    }
+
+    public List<SecurityVersion> getSecurityVersions() {
+        return securityVersionList;
     }
 
     public SecurityWarning(String id, String message, String name, String url) {
@@ -65,19 +70,25 @@ public class SecurityWarning {
     }
 
     static class SecurityVersion {
+        String firstVersion;
         String lastVersion;
-        String pattern;
+        Pattern pattern;
 
-        public SecurityVersion(String lastVersion, String pattern) {
+        public SecurityVersion(String firstVersion, String lastVersion, String patternString) {
+            this.firstVersion = firstVersion;
             this.lastVersion = lastVersion;
-            this.pattern = pattern;
+            pattern = Pattern.compile(patternString);
         }
 
         public String getLastVersion() {
             return lastVersion;
         }
 
-        public String getPattern() {
+        public String getFirstVersion() {
+            return firstVersion;
+        }
+
+        public Pattern getPattern() {
             return pattern;
         }
 
@@ -85,8 +96,12 @@ public class SecurityWarning {
             this.lastVersion = lastVersion;
         }
 
-        public void setPattern(String pattern) {
+        public void setPattern(Pattern pattern) {
             this.pattern = pattern;
+        }
+
+        public void setFirstVersion(String firstVersion) {
+            this.firstVersion = firstVersion;
         }
     }
 }
