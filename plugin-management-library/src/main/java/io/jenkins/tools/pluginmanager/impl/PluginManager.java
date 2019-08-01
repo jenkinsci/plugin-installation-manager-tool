@@ -676,7 +676,7 @@ public class PluginManager {
                                 p.getVersion().toString(),
                                 p.getParent().getName(),
                                 p.getParent().getVersion().toString()));
-
+                        queue.add(p); //in case the higher version contains dependencies the lower version didn't have
                         recursiveDependencies.replace(dependencyName, existingDependency, p);
                     }
                 }

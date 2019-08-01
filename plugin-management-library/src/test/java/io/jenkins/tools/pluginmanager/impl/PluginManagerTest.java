@@ -666,8 +666,6 @@ public class PluginManagerTest {
         assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
     }
 
-
-
     @Test
     public void installedPluginsTest() throws IOException {
         File pluginDir = cfg.getPluginDir();
