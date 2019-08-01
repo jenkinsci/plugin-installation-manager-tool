@@ -574,27 +574,18 @@ public class PluginManager {
     }
 
     /**
-     * Finds the dependencies for a plugins by using the update center plugin-versions json. Excludes optional
-     * dependencies
-     *
-     * @param plugin for which to find and download dependencies
+     * Given a plugin and json that contains plugin information, determines the dependencies and returns the list of
+     * dependencies. Optional dependencies will be excluded.
+     * @param plugin for which to find dependencies
+     * @param pluginJson json that will be parsed to find requested plugin's dependencies
+     * @return list of plugin's dependencies, or null if dependencies are unable to be determined
      */
-    public List<Plugin> resolveDirectDependencies(Plugin plugin) {
+    public List<Plugin> resolveDependenciesFromJson(Plugin plugin, JSONObject pluginJson) {
+        JSONArray dependencies = getPluginDependencyJsonArray(plugin, pluginJson);
         List<Plugin> dependentPlugins = new ArrayList<>();
-        JSONArray dependencies = null;
-        String version = plugin.getVersion().toString();
-        if (!StringUtils.isEmpty(plugin.getUrl()) || version.contains("incrementals")) {
-            dependentPlugins = resolveDependenciesFromManifest(plugin);
-        } else if (version.equals("latest")) {
-            dependencies = getPluginDependencyJsonArray(plugin, latestUcJson);
-        } else if (version.equals("experimental")) {
-            dependencies = getPluginDependencyJsonArray(plugin, experimentalUcJson);
-        } else {
-            dependencies = getPluginDependencyJsonArray(plugin, pluginInfoJson);
-        }
+
         if (dependencies == null) {
-            resolveDependenciesFromManifest(plugin);
-            return dependentPlugins;
+            return null;
         }
 
         for (int i = 0; i < dependencies.length(); i++) {
@@ -607,11 +598,44 @@ public class PluginManager {
                 dependentPlugins.add(dependentPlugin);
             }
         }
+
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                 String.format("%n%s depends on: %n", plugin.getName()) +
                         dependentPlugins.stream()
                                 .map(p -> p.getName() + " " + p.getVersion())
                                 .collect(Collectors.joining("\n")));
+
+        return dependentPlugins;
+    }
+
+    /**
+     * Finds the dependencies for plugins by either resolving the information from the manifest or update center json.
+     * If the requested plugin has a url from which it will be downloaded (by default if a plugin has a url, that will
+     * override using the version to download the plugin), nothing is done to try to determine the plugin
+     * version which might be used to find dependency information in the update center json; instead, the plugin
+     * manifest is used to find the dependencies. Similarly, incremental plugins don't have their dependencies listed
+     * anywhere, so the plugin manifest will also be used for these. If a plugin's dependencies can be determined by
+     * looking at update center json, it will. If that fails, the manifest will be used.
+     *
+     * @param plugin for which to find and download dependencies
+     */
+    public List<Plugin> resolveDirectDependencies(Plugin plugin) {
+        List<Plugin> dependentPlugins;
+        String version = plugin.getVersion().toString();
+        if (!StringUtils.isEmpty(plugin.getUrl()) || !StringUtils.isEmpty(plugin.getGroupId())) {
+            dependentPlugins = resolveDependenciesFromManifest(plugin);
+            return dependentPlugins;
+        } else if (version.equals("latest")) {
+            dependentPlugins = resolveDependenciesFromJson(plugin, latestUcJson);
+        } else if (version.equals("experimental")) {
+            dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
+        } else {
+            dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
+        }
+        if (dependentPlugins == null) {
+            return resolveDependenciesFromManifest(plugin);
+        }
+
         return dependentPlugins;
     }
 

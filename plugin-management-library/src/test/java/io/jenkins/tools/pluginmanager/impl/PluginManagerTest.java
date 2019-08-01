@@ -41,6 +41,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -56,14 +57,22 @@ public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
 
+    List<Plugin> directDependencyExpectedPlugins;
+
     @Before
-    public void setUpPM() throws IOException {
+    public void setUp() throws IOException {
         cfg = Config.builder()
             .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
                 .build();
 
         pm = new PluginManager(cfg);
+
+        directDependencyExpectedPlugins = new ArrayList<>();
+        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", false));
+        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", false));
+        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", false));
+        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", false));
     }
 
     @Test
@@ -249,7 +258,6 @@ public class PluginManagerTest {
         browserStack112.put("dependencies", dependencies112);
         browserStackIntegration.put("1.1.2", browserStack112);
 
-
         plugins.put("browserstack-integration", browserStackIntegration);
 
         pluginVersionJson.put("plugins", plugins);
@@ -409,8 +417,6 @@ public class PluginManagerTest {
         pm.getJson("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json");
     }
 
-
-
     @Test
     public void checkVersionSpecificUpdateCenterBadRequestTest() throws Exception {
         pm.setJenkinsVersion(new VersionNumber("2.176"));
@@ -469,14 +475,7 @@ public class PluginManagerTest {
 
         actualPlugins = pm.findPluginsToDownload(requestedPlugins);
 
-        List<String> actual = new ArrayList<>();
-
-        for (Plugin p: actualPlugins) {
-            System.out.println(p.toString());
-            actual.add(p.toString());
-        }
-
-        Collections.sort(actual);
+        List<String> actual = convertPluginsToStrings(actualPlugins);
 
         List<String> expected = new ArrayList<>();
         expected.add("credentials 2.1.14");
@@ -531,16 +530,9 @@ public class PluginManagerTest {
         assertEquals(true, pluginManager.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
 
-
     @Test
     public void resolveDependenciesFromManifestDownload() throws IOException {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
+        PluginManager pluginManagerSpy = spy(pm);
 
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
@@ -560,7 +552,6 @@ public class PluginManagerTest {
                 "token-macro:1.12.1;resolution:=optional")
                 .when(pluginManagerSpy).getAttributefromManifest(any(File.class), any(String.class));
 
-
         List<Plugin> expectedPlugins = new ArrayList<>();
         expectedPlugins.add(new Plugin("workflow-scm-step", "2.4", null, null));
         expectedPlugins.add(new Plugin("workflow-step-api", "2.13", null, null));
@@ -570,25 +561,111 @@ public class PluginManagerTest {
         expectedPlugins.add(new Plugin("scm-api", "2.6.3", null, null));
         expectedPlugins.add(new Plugin("ssh-credentials", "1.13", null, null));
 
-
-        List<String> expectedPluginInfo = new ArrayList<>();
-        for (Plugin p : expectedPlugins) {
-            expectedPluginInfo.add(p.toString());
-        }
-
-        Collections.sort(expectedPluginInfo);
+        List<String> expectedPluginInfo = convertPluginsToStrings(expectedPlugins);
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-        List<String> actualPluginInfo = new ArrayList<>();
-        for (Plugin p : actualPlugins) {
-            actualPluginInfo.add(p.toString());
-        }
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        Collections.sort(actualPluginInfo);;
         assertEquals(expectedPluginInfo, actualPluginInfo);
-
         assertEquals(testPlugin.getVersion().toString(), "1.0.0");
     }
+
+    @Test
+    public void resolveDirectDependenciesManifestTest1() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin plugin = new Plugin("maven-invoker-plugin", "2.4", "url", null);
+
+        doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
+
+
+    @Test
+    public void resolveDirectDependenciesManifestTest2() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin plugin = new Plugin("maven-invoker-plugin", "2.19-rc289.d09828a05a74", null,
+                "org.jenkins-ci.plugins.workflow");
+
+        doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
+
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
+
+    @Test
+    public void resolveDirectDependenciesManifestTest3() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin plugin = new Plugin("maven-invoker-plugin", "2.4", null,
+                "org.jenkins-ci.plugins.workflow");
+
+        doReturn(null).when(pluginManagerSpy).resolveDependenciesFromJson(any(Plugin.class),
+                any(JSONObject.class));
+
+        doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
+
+
+    @Test
+    public void resolveDirectDependenciesLatest() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin plugin = new Plugin("maven-invoker-plugin", "latest", null, null);
+
+        doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromJson(nullable(Plugin.class),
+                nullable(JSONObject.class));
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
+
+    @Test
+    public void resolveDirectDependenciesExperimental() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin plugin = new Plugin("maven-invoker-plugin", "experimental", null, null);
+
+        doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromJson(nullable(Plugin.class),
+                nullable(JSONObject.class));
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
+
+    @Test
+    public void resolveDependenciesFromJsonTest() {
+        JSONObject json = (JSONObject) setTestUcJson();
+
+        Plugin mavenInvoker = new Plugin("maven-invoker-plugin", "2.4", null, null);
+        List<Plugin> actualPlugins = pm.resolveDependenciesFromJson(mavenInvoker, json);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
+    }
+
 
 
     @Test
@@ -631,7 +708,6 @@ public class PluginManagerTest {
 
         HttpClientContext context = mock(HttpClientContext.class);
         when(HttpClientContext.create()).thenReturn(context);
-
 
         whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
@@ -733,15 +809,53 @@ public class PluginManagerTest {
         assertEquals(expectedPlugins.get("credentials"), actualPlugins.get("credentials"));
         assertEquals(expectedPlugins.get("github-branch-source"), actualPlugins.get("github-branch-source"));
         assertEquals(expectedPlugins.get("display-url-api"), actualPlugins.get("display-url-api"));
-
-
     }
 
-    private void setTestUcJson() {
+    private JSONObject setTestUcJson() {
         JSONObject latestUcJson = new JSONObject();
 
         JSONObject pluginJson = new JSONObject();
         latestUcJson.put("plugins", pluginJson);
+
+        JSONObject mavinInvokerPlugin = new JSONObject();
+
+        JSONArray mavenInvokerDependencies = new JSONArray();
+
+        JSONObject workflowApi = new JSONObject();
+        workflowApi.put("name", "workflow-api");
+        workflowApi.put("optional", "false");
+        workflowApi.put("version", "2.22");
+
+        JSONObject workflowStepApi = new JSONObject();
+        workflowStepApi.put("name", "workflow-step-api");
+        workflowStepApi.put("optional", "false");
+        workflowStepApi.put("version", "2.12");
+
+        JSONObject mailer = new JSONObject();
+        mailer.put("name", "mailer");
+        mailer.put("optional", "false");
+        mailer.put("version", "1.18");
+
+        JSONObject scriptSecurity = new JSONObject();
+        scriptSecurity.put("name", "script-security");
+        scriptSecurity.put("optional", "false");
+        scriptSecurity.put("version", "1.30");
+
+        JSONObject structs = new JSONObject();
+        structs.put("name", "structs");
+        structs.put("optional", "true");
+        structs.put("version", "1.7");
+
+        mavenInvokerDependencies.put(workflowApi);
+        mavenInvokerDependencies.put(workflowStepApi);
+        mavenInvokerDependencies.put(mailer);
+        mavenInvokerDependencies.put(scriptSecurity);
+        mavenInvokerDependencies.put(structs);
+        mavinInvokerPlugin.put("dependencies", mavenInvokerDependencies);
+
+        mavinInvokerPlugin.put("version", "2.4");
+
+        pluginJson.put("maven-invoker-plugin", mavinInvokerPlugin);
 
         JSONObject signatureJSON = new JSONObject();
         latestUcJson.put("signature", signatureJSON);
@@ -835,7 +949,16 @@ public class PluginManagerTest {
 
         latestUcJson.put("warnings", warningArray);
 
-
         pm.setLatestUcJson(latestUcJson);
+        return latestUcJson;
+    }
+
+    private List<String> convertPluginsToStrings(List<Plugin> pluginList) {
+        List<String> stringList = new ArrayList<>();
+        for (Plugin p : pluginList) {
+            stringList.add(p.toString());
+        }
+        Collections.sort(stringList);
+        return stringList;
     }
 }
