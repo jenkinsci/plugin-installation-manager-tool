@@ -81,15 +81,15 @@ public class PluginManagerTest {
 
     @Test
     public void findEffectivePluginsTest() {
-        Map<String, VersionNumber> bundledPlugins = new HashMap<>();
-        Map<String, VersionNumber> installedPlugins = new HashMap<>();
-        bundledPlugins.put("git", new VersionNumber("1.2"));
-        bundledPlugins.put("aws-credentials", new VersionNumber("1.24"));
-        bundledPlugins.put("p4", new VersionNumber("1.3.3"));
-        installedPlugins.put("script-security", new VersionNumber("1.26"));
-        installedPlugins.put("credentials", new VersionNumber("2.1.11"));
-        installedPlugins.put("ace-editor", new VersionNumber("1.0.1"));
-        installedPlugins.put("p4", new VersionNumber("1.3.0"));
+        Map<String, Plugin> bundledPlugins = new HashMap<>();
+        Map<String, Plugin> installedPlugins = new HashMap<>();
+        bundledPlugins.put("git", new Plugin("git", "1.2", null, null));
+        bundledPlugins.put("aws-credentials", new Plugin("aws-credentials", "1.24", null, null));
+        bundledPlugins.put("p4", new Plugin("p4", "1.3.3", null, null));
+        installedPlugins.put("script-security", new Plugin("script-security", "1.26", null, null));
+        installedPlugins.put("credentials", new Plugin("credentials", "2.1.11", null, null));
+        installedPlugins.put("ace-editor", new Plugin("ace-editor", "1.0.1", null, null));
+        installedPlugins.put("p4", new Plugin("p4", "1.3.0", null, null));
 
         pm.setBundledPluginVersions(bundledPlugins);
         pm.setInstalledPluginVersions(installedPlugins);
@@ -127,20 +127,21 @@ public class PluginManagerTest {
         assertEquals("", expectedNoOutput.toString().trim());
     }
 
+
     /*
     @Test
     public void listPluginsOutputTest() {
-        Map<String, VersionNumber> installedPluginVersions = new HashMap<>();
-        Map<String, VersionNumber> bundledPluginVersions = new HashMap<>();
+        Map<String, Plugin> installedPluginVersions = new HashMap<>();
+        Map<String, Plugin> bundledPluginVersions = new HashMap<>();
         Map<String, Plugin> allPluginsAndDependencies = new HashMap<>();
         List<Plugin> pluginsToBeDownloaded = new ArrayList<>();
         HashMap<String, Plugin> effectivePlugins = new HashMap<>();
 
-        installedPluginVersions.put("installed1", new VersionNumber("1.0"));
-        installedPluginVersions.put("installed2", new VersionNumber("2.0"));
+        installedPluginVersions.put("installed1", new Plugin("installed1", "1.0", null, null));
+        installedPluginVersions.put("installed2", new Plugin("installed2", "2.0", null, null));
 
-        bundledPluginVersions.put("bundled1", new VersionNumber("1.0"));
-        bundledPluginVersions.put("bundled2", new VersionNumber("2.0"));
+        bundledPluginVersions.put("bundled1", new Plugin("bundled1", "1.0", null, null));
+        bundledPluginVersions.put("bundled2", new Plugin("bundled2", "2.0", null, null));
 
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
@@ -210,7 +211,6 @@ public class PluginManagerTest {
         assertEquals(expectedOutput, outContent.toString().trim());
     }
     */
-
 
 
     @Test
@@ -551,8 +551,8 @@ public class PluginManagerTest {
     public void findPluginsToDownloadTest() {
         Map<String, Plugin> requestedPlugins = new HashMap<>();
 
-        Map<String, VersionNumber> installedPlugins = new HashMap<>();
-        Map<String, VersionNumber> bundledPlugins = new HashMap<>();
+        Map<String, Plugin> installedPlugins = new HashMap<>();
+        Map<String, Plugin> bundledPlugins = new HashMap<>();
 
         List<Plugin> actualPlugins;
 
@@ -570,10 +570,10 @@ public class PluginManagerTest {
         requestedPlugins.put("structs", new Plugin("structs", "1.18", null, null));
         requestedPlugins.put("ssh-credentials", new Plugin("ssh-credentials", "1.13", null, null));
 
-        installedPlugins.put("git", new VersionNumber("1.1.1"));
-        installedPlugins.put("git-client", new VersionNumber("2.7.5"));
+        installedPlugins.put("git", new Plugin("git", "1.1.1", null, null));
+        installedPlugins.put("git-client", new Plugin("git-client","2.7.5", null, null));
 
-        bundledPlugins.put("structs", new VersionNumber("1.16"));
+        bundledPlugins.put("structs", new Plugin("structs", "1.16", null, null));
 
         pm.setInstalledPluginVersions(installedPlugins);
         pm.setBundledPluginVersions(bundledPlugins);
@@ -856,7 +856,7 @@ public class PluginManagerTest {
     public void installedPluginsTest() throws IOException {
         File pluginDir = cfg.getPluginDir();
 
-        Map<String, VersionNumber> expectedPlugins = new HashMap<>();
+        Map<String, Plugin> expectedPlugins = new HashMap<>();
 
         File tmp1 = File.createTempFile("test", ".jpi", pluginDir);
         File tmp2 = File.createTempFile("test2", ".jpi", pluginDir);
@@ -870,13 +870,18 @@ public class PluginManagerTest {
         FileUtils.copyFile(deliveryPipelineFile, tmp1);
         FileUtils.copyFile(githubFile, tmp2);
 
-        expectedPlugins.put(FilenameUtils.getBaseName(tmp1.getName()), new VersionNumber("1.3.2"));
-        expectedPlugins.put(FilenameUtils.getBaseName(tmp2.getName()), new VersionNumber("1.8"));
+        String tmp1name = FilenameUtils.getBaseName(tmp1.getName());
+        String tmp2name = FilenameUtils.getBaseName(tmp2.getName());
 
-        Map<String, VersionNumber> actualPlugins = pm.installedPlugins();
+        expectedPlugins.put(tmp1name, new Plugin(tmp1name, "1.3.2", null, null));
+        expectedPlugins.put(tmp2name, new Plugin(tmp2name, "1.8", null, null));
 
-        assertEquals(expectedPlugins.get(FilenameUtils.getBaseName(tmp1.getName())), actualPlugins.get(FilenameUtils.getBaseName(tmp1.getName())));
-        assertEquals(expectedPlugins.get(FilenameUtils.getBaseName(tmp2.getName())), actualPlugins.get(FilenameUtils.getBaseName(tmp2.getName())));
+        Map<String, Plugin> actualPlugins = pm.installedPlugins();
+
+        List<String> actualPluginInfo = convertPluginsToStrings(new ArrayList(actualPlugins.values()));
+        List<String> expectedPluginInfo = convertPluginsToStrings(new ArrayList<>(expectedPlugins.values()));
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
 
@@ -959,7 +964,6 @@ public class PluginManagerTest {
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
 
-
     @Test
     public void getJenkinsVersionFromWarTest() throws Exception {
         URL warURL = this.getClass().getResource("/jenkinsversiontest.war");
@@ -983,16 +987,17 @@ public class PluginManagerTest {
                 .build();
         PluginManager pluginManager = new PluginManager(config);
 
-        Map <String, VersionNumber> expectedPlugins = new HashMap<>();
-        expectedPlugins.put("credentials", new VersionNumber("2.1.18"));
-        expectedPlugins.put("display-url-api", new VersionNumber("2.0"));
-        expectedPlugins.put("github-branch-source", new VersionNumber("1.8"));
+        Map <String, Plugin> expectedPlugins = new HashMap<>();
+        expectedPlugins.put("credentials", new Plugin("credentials","2.1.18", null, null));
+        expectedPlugins.put("display-url-api", new Plugin("display-url-api","2.0", null, null));
+        expectedPlugins.put("github-branch-source", new Plugin("github-branch-source", "1.8", null, null));
 
-        Map<String, VersionNumber> actualPlugins = pluginManager.bundledPlugins();
+        Map<String, Plugin> actualPlugins = pluginManager.bundledPlugins();
 
-        assertEquals(expectedPlugins.get("credentials"), actualPlugins.get("credentials"));
-        assertEquals(expectedPlugins.get("github-branch-source"), actualPlugins.get("github-branch-source"));
-        assertEquals(expectedPlugins.get("display-url-api"), actualPlugins.get("display-url-api"));
+        List<String> actualPluginInfo = convertPluginsToStrings(new ArrayList(actualPlugins.values()));
+        List<String> expectedPluginInfo = convertPluginsToStrings(new ArrayList<>(expectedPlugins.values()));
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
     private JSONObject setTestUcJson() {
