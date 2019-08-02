@@ -17,7 +17,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -655,7 +657,7 @@ public class PluginManagerTest {
                 "promoted-builds:2.27;resolution:=optional," +
                 "scm-api:2.6.3,ssh-credentials:1.13," +
                 "token-macro:1.12.1;resolution:=optional")
-                .when(pluginManagerSpy).getAttributefromManifest(any(File.class), any(String.class));
+                .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
         List<Plugin> expectedPlugins = new ArrayList<>();
         expectedPlugins.add(new Plugin("workflow-scm-step", "2.4", null, null));
@@ -963,6 +965,36 @@ public class PluginManagerTest {
         String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
+
+    @Test (expected = DownloadPluginException.class)
+    public void getAttributeFromManifestExceptionTest() throws Exception {
+        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
+        File testJpi = new File(jpiURL.getFile());
+
+        whenNew(JarFile.class).withArguments(testJpi).thenThrow(new IOException());
+
+        pm.getAttributeFromManifest(testJpi, "Plugin-Dependencies");
+    }
+
+    public void getAttributeFromManifestTest() throws Exception {
+        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
+        File testJpi = new File(jpiURL.getFile());
+
+        String key = "key";
+        String value = "value";
+
+        JarFile jarFile = mock(JarFile.class);
+        Manifest manifest = mock(Manifest.class);
+        Attributes attributes = mock(Attributes.class);
+
+        whenNew(JarFile.class).withArguments(testJpi).thenReturn(jarFile);
+        when(jarFile.getManifest()).thenReturn(manifest);
+        when(manifest.getMainAttributes()).thenReturn(attributes);
+        when(attributes.getValue(key)).thenReturn(value);
+
+        assertEquals(value, pm.getAttributeFromManifest(testJpi, "key"));
+    }
+
 
     @Test
     public void getJenkinsVersionFromWarTest() throws Exception {
