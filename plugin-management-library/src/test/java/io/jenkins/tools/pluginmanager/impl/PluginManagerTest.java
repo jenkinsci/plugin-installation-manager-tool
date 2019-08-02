@@ -221,7 +221,7 @@ public class PluginManagerTest {
         System.setOut(new PrintStream(outContent));
         pluginManager.listPlugins();
 
-        assertEquals(expectedOutput.trim(), outContent.toString().trim());
+        assertEquals(expectedOutput, outContent.toString().trim());
     }
 
 
