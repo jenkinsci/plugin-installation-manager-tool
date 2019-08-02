@@ -201,8 +201,8 @@ public class PluginManager {
      */
     public void listPlugins() {
         if (cfg.isShowPluginsToBeDownloaded()) {
-            logPlugins("Installedplugins:", new ArrayList<>(installedPluginVersions.values()));
-            logPlugins("Bundled plugins", new ArrayList<>(bundledPluginVersions.values()));
+            logPlugins("Installed plugins:", new ArrayList<>(installedPluginVersions.values()));
+            logPlugins("Bundled plugins:", new ArrayList<>(bundledPluginVersions.values()));
             logPlugins("Set of all requested plugins:", new ArrayList<>(allPluginsAndDependencies.values()));
             logPlugins("Set of all requested plugins that will be downloaded:", pluginsToBeDownloaded);
             logPlugins("Set of all existing plugins and plugins that will be downloaded:",
@@ -270,11 +270,17 @@ public class PluginManager {
      */
     public void showAllSecurityWarnings() {
         if (cfg.isShowAllWarnings()) {
+            allSecurityWarnings.values().stream().sorted().
+                    forEach(p -> p.stream().sorted().
+                            map(w -> w.getName() + " - " + w.getMessage()).forEach(System.out::println));
+
+            /*
             for (List<SecurityWarning> securityWarningList : allSecurityWarnings.values()) {
                 for (SecurityWarning securityWarning : securityWarningList) {
                     System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
                 }
             }
+            */
         }
     }
 
@@ -529,13 +535,13 @@ public class PluginManager {
 
             if (plugin.getVersion().toString().equals("latest") ||
                     plugin.getVersion().toString().equals("experimental")) {
-                String version = getAttributefromManifest(tempFile, "Plugin-Version");
+                String version = getAttributeFromManifest(tempFile, "Plugin-Version");
                 if (!StringUtils.isEmpty(version)) {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
 
-            String dependencyString = getAttributefromManifest(tempFile, "Plugin-Dependencies");
+            String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
             //not all plugin Manifests contain the Plugin-Dependencies field
             if (StringUtils.isEmpty(dependencyString)) {
@@ -812,7 +818,7 @@ public class PluginManager {
      * @param key  key matching value to retrieve
      * @return value matching the key in the jar file
      */
-    public String getAttributefromManifest(File file, String key) {
+    public String getAttributeFromManifest(File file, String key) {
         try (JarFile jarFile = new JarFile(file)) {
             Manifest manifest = jarFile.getManifest();
             Attributes attributes = manifest.getMainAttributes();
@@ -832,7 +838,7 @@ public class PluginManager {
      * @return Jenkins version
      */
     public VersionNumber getJenkinsVersionFromWar() {
-        String version = getAttributefromManifest(jenkinsWarFile, "Jenkins-Version");
+        String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get version from war file");
             return null;
@@ -847,7 +853,7 @@ public class PluginManager {
      * @return plugin version
      */
     public String getPluginVersion(File file) {
-        String version = getAttributefromManifest(file, "Plugin-Version");
+        String version = getAttributeFromManifest(file, "Plugin-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get plugin version from " + file);
             return "";
@@ -1051,5 +1057,14 @@ public class PluginManager {
      */
     public void setPluginInfoJson(JSONObject pluginInfoJson) {
         this.pluginInfoJson = pluginInfoJson;
+    }
+
+    /**
+     * Gets the list of failed plugins
+     *
+     * @return list of failed plugins
+     */
+    public List<Plugin> getFailedPlugins() {
+        return failedPlugins;
     }
 }

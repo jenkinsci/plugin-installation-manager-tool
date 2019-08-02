@@ -126,13 +126,23 @@ public class PluginManagerTest {
         ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
         System.setOut(new PrintStream(expectedNoOutput));
 
+        pluginManager.listPlugins();
+
         assertEquals("", expectedNoOutput.toString().trim());
     }
 
 
-    /*
+
     @Test
-    public void listPluginsOutputTest() {
+    public void listPluginsOutputTest() throws IOException {
+         Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withShowPluginsToBeDownloaded(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
         Map<String, Plugin> installedPluginVersions = new HashMap<>();
         Map<String, Plugin> bundledPluginVersions = new HashMap<>();
         Map<String, Plugin> allPluginsAndDependencies = new HashMap<>();
@@ -156,9 +166,9 @@ public class PluginManagerTest {
         allPluginsAndDependencies.put("dependency2", dependency2);
 
         Plugin installed1 = new Plugin("installed1", "1.0", null, null);
-        Plugin installed2 = new Plugin("installed1", "1.0", null, null);
+        Plugin installed2 = new Plugin("installed2", "2.0", null, null);
         Plugin bundled1 = new Plugin("bundled1", "1.0", null, null);
-        Plugin bundled2 = new Plugin("bundled2", "1.0", null, null);
+        Plugin bundled2 = new Plugin("bundled2", "2.0", null, null);
 
         effectivePlugins.put("installed1", installed1);
         effectivePlugins.put("installed2", installed2);
@@ -174,13 +184,14 @@ public class PluginManagerTest {
         pluginsToBeDownloaded.add(dependency1);
         pluginsToBeDownloaded.add(dependency2);
 
-        pm.setInstalledPluginVersions(installedPluginVersions);
-        pm.setBundledPluginVersions(bundledPluginVersions);
-        pm.setAllPluginsAndDependencies(allPluginsAndDependencies);
-        pm.setPluginsToBeDownloaded(pluginsToBeDownloaded);
-        pm.setEffectivePlugins(effectivePlugins);
+        pluginManager.setInstalledPluginVersions(installedPluginVersions);
+        pluginManager.setBundledPluginVersions(bundledPluginVersions);
+        pluginManager.setAllPluginsAndDependencies(allPluginsAndDependencies);
+        pluginManager.setPluginsToBeDownloaded(pluginsToBeDownloaded);
+        pluginManager.setEffectivePlugins(effectivePlugins);
 
-        String expectedOutput = "\nInstalled plugins:\n" +
+        String expectedOutput =
+                "\nInstalled plugins:\n" +
                 "installed1 1.0\n" +
                 "installed2 2.0\n" +
                 "\nBundled plugins:\n" +
@@ -208,11 +219,11 @@ public class PluginManagerTest {
 
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
-        pm.listPlugins();
+        pluginManager.listPlugins();
 
-        assertEquals(expectedOutput, outContent.toString().trim());
+        assertEquals(expectedOutput.trim(), outContent.toString().trim());
     }
-    */
+
 
 
     @Test
@@ -481,6 +492,50 @@ public class PluginManagerTest {
         // currently fails since 2.5.3 matches pattern even though 2.5.1 is last effected version
         assertEquals(true, pm.warningExists(sshAgents1));
         assertEquals(false, pm.warningExists(sshAgents2));
+    }
+
+    @Test
+    public void downloadPluginsSuccessfulTest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
+
+        Plugin plugin = new Plugin("plugin", "1.0", null, null);
+
+        List<Plugin> plugins = new ArrayList<>();
+        plugins.add(plugin);
+
+        pluginManagerSpy.downloadPlugins(plugins);
+
+        assertEquals(true, pluginManagerSpy.getFailedPlugins().isEmpty());
+    }
+
+    @Test
+    public void downloadPluginsUnsuccessfulTest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        doReturn(false).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
+
+        Plugin plugin = new Plugin("plugin", "1.0", null, null);
+
+        List<Plugin> plugins = new ArrayList<>();
+        plugins.add(plugin);
+
+        pluginManagerSpy.downloadPlugins(plugins);
+
+        assertEquals(plugin, pluginManagerSpy.getFailedPlugins().get(0));
     }
 
     @Test
@@ -993,6 +1048,50 @@ public class PluginManagerTest {
         when(attributes.getValue(key)).thenReturn(value);
 
         assertEquals(value, pm.getAttributeFromManifest(testJpi, "key"));
+    }
+
+    public void showAllSecurityWarningsNoOutput() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withShowAllWarnings(false)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(expectedNoOutput));
+
+        pluginManager.showAllSecurityWarnings();
+
+        assertEquals("", expectedNoOutput.toString().trim());
+    }
+
+
+    public void showAllSecurityWarnings() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withShowAllWarnings(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        pluginManager.setLatestUcJson(setTestUcJson());
+
+
+
+        ByteArrayOutputStream actualOutput = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(actualOutput));
+
+        pluginManager.showAllSecurityWarnings();
+
+        String expectedOutput = "google-login - Authentication bypass vulnerability\n" +
+                "cucumber-reports - Plugin disables Content-Security-Policy for files served by Jenkins\n" +
+                "pipeline-maven - Arbitrary files from Jenkins master available in Pipeline by using the withMaven step\n" +
+                "pipeline-maven - XML External Entity processing vulnerability\n";
+
+        assertEquals(expectedOutput.trim(), actualOutput.toString().trim());
     }
 
 
