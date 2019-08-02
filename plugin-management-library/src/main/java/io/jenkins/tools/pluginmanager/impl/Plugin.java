@@ -1,12 +1,13 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
-public class Plugin {
+public class Plugin implements Comparable<Plugin> {
     private String name;
     private String originalName;
     private VersionNumber version;
@@ -153,5 +154,14 @@ public class Plugin {
             return name + " " + version;
         }
         return name + " " + version + " " + url;
+    }
+
+    @SuppressFBWarnings("EQ_COMPARETO_USE_OBJECT_EQUALS")
+    @Override
+    public int compareTo(Plugin p) {
+        if (p == null) {
+            return 0;
+        }
+        return this.getName().compareTo(p.getName());
     }
 }

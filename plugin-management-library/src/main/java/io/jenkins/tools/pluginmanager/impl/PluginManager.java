@@ -203,29 +203,25 @@ public class PluginManager {
     public void listPlugins() {
         if (cfg.isShowPluginsToBeDownloaded()) {
             System.out.println("\nInstalled plugins:");
-            for (Map.Entry<String, VersionNumber> installedPlugin : installedPluginVersions.entrySet()) {
-                System.out.println(installedPlugin.getKey() + ": " + installedPlugin.getValue());
-            }
+            installedPluginVersions.entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue())
+                    .forEach(p -> System.out.println(p.getKey() + " " + p.getValue()));
 
             System.out.println("\nBundled plugins:");
-            for (Map.Entry<String, VersionNumber> bundledPlugin : bundledPluginVersions.entrySet()) {
-                System.out.println(bundledPlugin.getKey() + ": " + bundledPlugin.getValue());
-            }
+            bundledPluginVersions.entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue())
+                    .forEach(p -> System.out.println(p.getKey() + " " + p.getValue()));
 
             System.out.println("\nSet of all requested plugins:");
-            for (Plugin requestedPlugin : allPluginsAndDependencies.values()) {
-                System.out.println(requestedPlugin.getName() + ": " + requestedPlugin.getVersion());
-            }
+            allPluginsAndDependencies.values().stream().sorted()
+                    .forEach(p -> System.out.println(p.getName() + p.getVersion()));
 
             System.out.println("\nSet of all requested plugins that will be downloaded:");
-            for (Plugin plugin : pluginsToBeDownloaded) {
-                System.out.println(plugin.getName() + ": " + plugin.getVersion());
-            }
+            pluginsToBeDownloaded.stream().sorted().forEach(System.out::println);
 
             System.out.println("\nSet of all existing plugins and plugins that will be downloaded:");
-            for (Plugin plugin : effectivePlugins.values()) {
-                System.out.println(plugin.getName() + ": " + plugin.getVersion());
-            }
+            effectivePlugins.values().stream().sorted()
+                    .forEach(p -> System.out.println(p.getName() + " " + p.getVersion()));
         }
     }
 
