@@ -700,7 +700,7 @@ public class PluginManager {
         // even if plugin is already downloaded, still want to download the temp file to parse dependencies to ensure
         // that all dependencies are also installed
         if (location == null && installedPluginVersions.containsKey(pluginName) &&
-                installedPluginVersions.get(pluginName).getVersion().compareTo(pluginVersion) == 0) {
+                installedPluginVersions.get(pluginName).getVersion().compareTo(pluginVersion) >= 0) {
             logVerbose(pluginName + " already installed, skipping");
             return true;
         }
