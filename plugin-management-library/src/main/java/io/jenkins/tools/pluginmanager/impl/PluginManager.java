@@ -273,17 +273,8 @@ public class PluginManager {
             allSecurityWarnings.values().stream().sorted().
                     forEach(p -> p.stream().sorted().
                             map(w -> w.getName() + " - " + w.getMessage()).forEach(System.out::println));
-
-            /*
-            for (List<SecurityWarning> securityWarningList : allSecurityWarnings.values()) {
-                for (SecurityWarning securityWarning : securityWarningList) {
-                    System.out.println(securityWarning.getName() + " - " + securityWarning.getMessage());
-                }
-            }
-            */
         }
     }
-
 
     /**
      * Prints out security warning information for a list of plugins if isShowWarnings is set to true in the config

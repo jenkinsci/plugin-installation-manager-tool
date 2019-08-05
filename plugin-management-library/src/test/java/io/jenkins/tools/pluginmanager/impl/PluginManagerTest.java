@@ -47,7 +47,10 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -80,6 +83,68 @@ public class PluginManagerTest {
         directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", false));
         directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", false));
 
+    }
+
+    @Test
+    public void startTest() throws IOException {
+        File refDir = mock(File.class);
+
+        Config config = mock(Config.class);
+
+        when(config.getPluginDir()).thenReturn(refDir);
+        when(config.getJenkinsWar()).thenReturn(Settings.DEFAULT_WAR);
+        when(config.getJenkinsUc()).thenReturn(Settings.DEFAULT_UPDATE_CENTER);
+        when(config.getPlugins()).thenReturn(new ArrayList<Plugin>());
+        when(config.doDownload()).thenReturn(true);
+        when(config.getJenkinsUcExperimental()).thenReturn(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER);
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        when(refDir.exists()).thenReturn(true);
+
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        doReturn(new VersionNumber("2.182")).when(pluginManagerSpy).getJenkinsVersionFromWar();
+        doNothing().when(pluginManagerSpy).checkAndSetLatestUpdateCenter();
+        doNothing().when(pluginManagerSpy).getUCJson();
+        doReturn(new HashMap<>()).when(pluginManagerSpy).getSecurityWarnings();
+        doNothing().when(pluginManagerSpy).showAllSecurityWarnings();
+
+        doReturn(new HashMap<>()).when(pluginManagerSpy).bundledPlugins();
+        doReturn(new HashMap<>()).when(pluginManagerSpy).installedPlugins();
+        doReturn(new HashMap<>()).when(pluginManagerSpy).findPluginsAndDependencies(anyList());
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).findPluginsToDownload(anyMap());
+        doReturn(new HashMap<>()).when(pluginManagerSpy).findEffectivePlugins(anyList());
+        doNothing().when(pluginManagerSpy).listPlugins();
+        doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
+        doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
+        doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
+        doNothing().when(pluginManagerSpy).outputFailedPlugins();
+
+        pluginManager.start();
+    }
+
+    @Test(expected = DirectoryCreationException.class)
+    public void startNoDirectoryTest() throws IOException {
+        File refDir = mock(File.class);
+
+        Config config = mock(Config.class);
+
+        when(config.getPluginDir()).thenReturn(refDir);
+        when(config.getJenkinsWar()).thenReturn(Settings.DEFAULT_WAR);
+        when(config.getJenkinsUc()).thenReturn(Settings.DEFAULT_UPDATE_CENTER);
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        when(refDir.exists()).thenReturn(false);
+
+        Path refPath = mock(Path.class);
+        when(refDir.toPath()).thenReturn(refPath);
+
+        mockStatic(Files.class);
+        when(Files.createDirectories(refPath)).thenThrow(IOException.class);
+
+        pluginManager.start();
     }
 
     @Test
@@ -222,7 +287,7 @@ public class PluginManagerTest {
         System.setOut(new PrintStream(outContent));
         pluginManager.listPlugins();
 
-        assertEquals(expectedOutput.trim(), outContent.toString().trim());
+        assertEquals(expectedOutput.trim(), outContent.toString().replaceAll("\\r\\n?", "\n").trim());
     }
 
     @Test
@@ -1296,7 +1361,7 @@ public class PluginManagerTest {
         JSONObject pluginJson = new JSONObject();
         latestUcJson.put("plugins", pluginJson);
 
-        JSONObject mavinInvokerPlugin = new JSONObject();
+        JSONObject mavenInvokerPlugin = new JSONObject();
 
         JSONArray mavenInvokerDependencies = new JSONArray();
 
@@ -1330,11 +1395,11 @@ public class PluginManagerTest {
         mavenInvokerDependencies.put(mailer);
         mavenInvokerDependencies.put(scriptSecurity);
         mavenInvokerDependencies.put(structs);
-        mavinInvokerPlugin.put("dependencies", mavenInvokerDependencies);
+        mavenInvokerPlugin.put("dependencies", mavenInvokerDependencies);
 
-        mavinInvokerPlugin.put("version", "2.4");
+        mavenInvokerPlugin.put("version", "2.4");
 
-        pluginJson.put("maven-invoker-plugin", mavinInvokerPlugin);
+        pluginJson.put("maven-invoker-plugin", mavenInvokerPlugin);
 
         JSONObject signatureJSON = new JSONObject();
         latestUcJson.put("signature", signatureJSON);
