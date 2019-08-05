@@ -559,6 +559,57 @@ public class PluginManagerTest {
     }
 
     @Test
+    public void showAvailableUpdatesNoOutputTest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withShowAvailableUpdates(false)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        List<Plugin> plugins = new ArrayList<>();
+        plugins.add(new Plugin("ant", "1.8", null, null));
+        plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
+
+        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(expectedNoOutput));
+
+        pluginManager.showAvailableUpdates(plugins);
+
+        assertEquals("", expectedNoOutput.toString().trim());
+    }
+
+    @Test
+    public void showAvailableUpdates() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withShowAvailableUpdates(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        List<Plugin> plugins = new ArrayList<>();
+        plugins.add(new Plugin("ant", "1.8", null, null));
+        plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
+        plugins.add(new Plugin("maven-invoker-plugin", "2.4", null, null ));
+
+        pluginManager.setLatestUcJson(setTestUcJson());
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(output));
+
+        pluginManager.showAvailableUpdates(plugins);
+
+        String expectedOutput = "\nAvailable updates:\n" +
+                "ant (1.8) has an available update: 1.9\n" +
+                "amazon-ecs (1.15) has an available update: 1.20\n";
+
+        assertEquals(expectedOutput, output.toString().replaceAll("\\r\\n?", "\n"));
+    }
+
+    @Test
     public void downloadPluginsSuccessfulTest() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -1400,6 +1451,37 @@ public class PluginManagerTest {
         mavenInvokerPlugin.put("version", "2.4");
 
         pluginJson.put("maven-invoker-plugin", mavenInvokerPlugin);
+
+        JSONObject amazonEcsPlugin = new JSONObject();
+        JSONArray amazonEcsPluginDependencies = new JSONArray();
+
+        JSONObject apacheHttpComponentsClientApi = new JSONObject();
+        apacheHttpComponentsClientApi.put("name", "workflow-step-api");
+        apacheHttpComponentsClientApi.put("optional", false);
+        apacheHttpComponentsClientApi.put("version", "4.5.5-3.0");
+
+        JSONObject awsCredentials = new JSONObject();
+        awsCredentials.put("name", "aws-credentials");
+        awsCredentials.put("optional", false);
+        awsCredentials.put("version", "1.23");
+
+        amazonEcsPluginDependencies.put(workflowStepApi);
+        amazonEcsPluginDependencies.put(apacheHttpComponentsClientApi);
+        amazonEcsPluginDependencies.put(awsCredentials);
+
+        amazonEcsPlugin.put("dependencies", amazonEcsPluginDependencies);
+        amazonEcsPlugin.put("version", "1.20");
+
+        pluginJson.put("amazon-ecs", amazonEcsPlugin);
+
+        JSONObject antPlugin = new JSONObject();
+        JSONArray antPluginDependencies = new JSONArray();
+        antPluginDependencies.put(structs);
+
+        antPlugin.put("dependencies", antPluginDependencies);
+        antPlugin.put("version", "1.9");
+
+        pluginJson.put("ant", antPlugin);
 
         JSONObject signatureJSON = new JSONObject();
         latestUcJson.put("signature", signatureJSON);
