@@ -31,7 +31,9 @@ public class Main {
             PluginManager pm = new PluginManager(cfg);
             pm.start();
         } catch (Exception e) {
-            // TODO add stacktrace during verbose mode
+            if (options.isVerbose()) {
+                e.printStackTrace();
+            }
             System.err.println(e.getMessage());
             System.exit(1);
         }
