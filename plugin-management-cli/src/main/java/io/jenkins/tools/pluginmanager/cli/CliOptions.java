@@ -207,7 +207,7 @@ class CliOptions {
         return showAvailableUpdates;
     }
 
-    private boolean isVerbose() {
+    public boolean isVerbose() {
         return verbose;
     }
 

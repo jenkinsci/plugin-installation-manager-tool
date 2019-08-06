@@ -944,7 +944,7 @@ public class PluginManagerTest {
         assertEquals(true, pm.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
 
-    @Test
+    @Test(expected = DownloadPluginException.class)
     public void resolveDependenciesFromManifestNoDownload() throws IOException{
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
