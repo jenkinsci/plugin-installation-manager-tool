@@ -4,9 +4,10 @@ import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
-public class Plugin {
+public class Plugin implements Comparable<Plugin> {
     private String name;
     private String originalName;
     private VersionNumber version;
@@ -27,6 +28,7 @@ public class Plugin {
             version = "latest";
         }
         this.version = new VersionNumber(version);
+
         this.url = url;
         this.dependencies = new ArrayList<>();
         this.parent = this;
@@ -47,6 +49,7 @@ public class Plugin {
             version = "latest";
         }
         this.version = new VersionNumber(version);
+
         this.isPluginOptional = isPluginOptional;
         this.dependencies = new ArrayList<>();
         this.parent = this;
@@ -154,4 +157,36 @@ public class Plugin {
         }
         return name + " " + version + " " + url;
     }
+
+    @Override
+    public int compareTo(Plugin p) {
+        if (this.equals(p)) {
+            return 0;
+        } else if (this.getName().equals(p.getName())) {
+            return this.getVersion().compareTo(p.getVersion());
+        } else {
+            return this.getName().compareTo(p.getName());
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Plugin plugin = (Plugin) o;
+        return Objects.equals(name, plugin.name) &&
+                Objects.equals(version, plugin.version) &&
+                Objects.equals(groupId, plugin.groupId) &&
+                Objects.equals(url, plugin.url);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, version, groupId, url);
+    }
+
 }
