@@ -119,7 +119,6 @@ public class PluginManagerTest {
         doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
         doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
         doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
-        doNothing().when(pluginManagerSpy).outputFailedPlugins();
 
         pluginManager.start();
     }
@@ -631,7 +630,7 @@ public class PluginManagerTest {
         assertEquals(true, pluginManagerSpy.getFailedPlugins().isEmpty());
     }
 
-    @Test
+    @Test(expected = DownloadPluginException.class)
     public void downloadPluginsUnsuccessfulTest() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -649,8 +648,6 @@ public class PluginManagerTest {
         plugins.add(plugin);
 
         pluginManagerSpy.downloadPlugins(plugins);
-
-        assertEquals(plugin, pluginManagerSpy.getFailedPlugins().get(0));
     }
 
     @Test
@@ -944,7 +941,7 @@ public class PluginManagerTest {
         assertEquals(true, pm.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
 
-    @Test
+    @Test(expected = DownloadPluginException.class)
     public void resolveDependenciesFromManifestNoDownload() throws IOException{
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)

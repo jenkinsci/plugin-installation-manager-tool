@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -114,7 +113,6 @@ public class PluginManager {
 
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
-            outputFailedPlugins();
         }
         System.out.println("Done");
     }
@@ -371,18 +369,6 @@ public class PluginManager {
     }
 
     /**
-     * Prints out plugins that failed to download. Exits with status of 1 if any plugins failed to download.
-     */
-    @SuppressFBWarnings("DM_EXIT")
-    public void outputFailedPlugins() {
-        if (failedPlugins.size() > 0) {
-            System.out.println("Some plugins failed to download: ");
-            failedPlugins.stream().map(p -> p.getOriginalName() + " or " + p.getName()).forEach(System.out::println);
-            throw new DownloadPluginException("Failed plugins");
-        }
-    }
-
-    /**
      * Downloads a list of plugins
      *
      * @param plugins list of plugins to download
@@ -391,8 +377,7 @@ public class PluginManager {
         plugins.parallelStream().forEach(plugin -> {
             boolean successfulDownload = downloadPlugin(plugin, null);
             if (!successfulDownload) {
-                System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
-                failedPlugins.add(plugin);
+                throw new DownloadPluginException("Unable to download " + plugin.getName());
             }
         });
     }
@@ -519,9 +504,8 @@ public class PluginManager {
                     String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
-                System.out.println("Unable to resolve dependencies for " + plugin.getName());
                 Files.delete(tempFile.toPath());
-                return dependentPlugins;
+                throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
             }
 
             if (plugin.getVersion().toString().equals("latest") ||
