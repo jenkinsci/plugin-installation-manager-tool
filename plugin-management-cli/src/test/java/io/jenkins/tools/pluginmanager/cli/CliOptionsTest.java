@@ -192,6 +192,17 @@ public class CliOptionsTest {
         assertEquals(requestedPluginInfo, cfgPluginInfo);
     }
 
+    @Test(expected = PluginInputException.class)
+    public void setupPluginsBadExtension() throws CmdLineException, IOException, URISyntaxException {
+        File pluginTxtFile = new File(this.getClass().getResource("/plugins.t").toURI());
+
+        File pluginFile = temporaryFolder.newFile("plugins.t");
+        FileUtils.copyFile(pluginTxtFile, pluginFile);
+
+        parser.parseArgument("--plugin-file", pluginFile.toString());
+
+        Config cfg = options.setup();
+    }
 
     @Test
     public void setupWarTest() throws CmdLineException {
