@@ -158,6 +158,42 @@ public class CliOptionsTest {
 
 
     @Test
+    public void setupPluginsTest2() throws CmdLineException, IOException, URISyntaxException {
+        File pluginTxtFile = new File(this.getClass().getResource("/plugins.yaml").toURI());
+
+        File pluginFile = temporaryFolder.newFile("plugins.yaml");
+        FileUtils.copyFile(pluginTxtFile, pluginFile);
+
+        parser.parseArgument("--plugin-file", pluginFile.toString(),
+                "--plugins", "ssh-slaves:1.10 mailer cobertura:experimental");
+
+        List<Plugin> requestedPlugins = new ArrayList<>(txtRequestedPlugins);
+        requestedPlugins.add(new Plugin("ssh-slaves", "1.10", null, null));
+        requestedPlugins.add(new Plugin("mailer", "latest", null, null));
+        requestedPlugins.add(new Plugin("cobertura", "experimental", null, null));
+
+        Config cfg = options.setup();
+
+        assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
+
+        List<String> cfgPluginInfo = new ArrayList<>();
+        List<String> requestedPluginInfo = new ArrayList<>();
+
+        for (Plugin p : cfg.getPlugins()) {
+            cfgPluginInfo.add(p.toString());
+        }
+        for (Plugin p : requestedPlugins) {
+            requestedPluginInfo.add(p.toString());
+        }
+
+        Collections.sort(cfgPluginInfo);
+        Collections.sort(requestedPluginInfo);
+
+        assertEquals(requestedPluginInfo, cfgPluginInfo);
+    }
+
+
+    @Test
     public void setupWarTest() throws CmdLineException {
         String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
 

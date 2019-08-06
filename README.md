@@ -14,8 +14,7 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 ```
 
 #### CLI Options
-* `--plugin-file` or `-f`: (optional) Path to plugins.txt, which contains a list of plugins to install. If this file does not exist, option will be ignored.
-* `--plugin-yaml` or `-y`: (optional) Path to yaml file containing plugins to install.
+* `--plugin-file` or `-f`: (optional) Path to the plugins.txt or plugins.yaml file, which contains a list of plugins to install. If this file does not exist, an error will be thrown. If the file exists, but does not have a .txt or .yaml/.yml extension, the file will be ignored. 
 * `--plugin-download-directory` or `-d`: (optional) Path to the directory in which to install plugins, which can also be set via the PLUGIN_DIR environment variable. Directory will be created if it does not exist. If no directory is entered, directory will default to C:\ProgramData\Jenkins\Reference\Plugins if detected OS is Windows, or /usr/share/jenkins/ref/plugins otherwise.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space.
 * `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.

@@ -1,6 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
-import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
+import io.jenkins.tools.pluginmanager.cli.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
@@ -78,7 +78,7 @@ public class PluginParser {
                     Object nameObject = pluginInfo.get("artifactId");
                     String name = nameObject == null ? null : nameObject.toString();
                     if (StringUtils.isEmpty(name)) {
-                        throw new PluginInputFormatException("ArtifactId is required");
+                        throw new PluginInputException("ArtifactId is required");
                     }
                     Object groupIdObject = pluginInfo.get("groupId");
                     String groupId = groupIdObject == null ? null : groupIdObject.toString();
@@ -86,13 +86,13 @@ public class PluginParser {
                     String incrementalsVersion = null;
                     Plugin plugin;
                     if (pluginSource == null && !StringUtils.isEmpty(groupId)) {
-                        throw new PluginInputFormatException("Version must be input for " + name);
+                        throw new PluginInputException("Version must be input for " + name);
                     } else if (pluginSource == null) {
                         plugin = new Plugin(name, "latest", null, null);
                     } else {
                         Object versionObject = pluginSource.get("version");
                         if (!StringUtils.isEmpty(groupId) && versionObject == null) {
-                            throw new PluginInputFormatException("Version must be input for " + name);
+                            throw new PluginInputException("Version must be input for " + name);
                         }
                         String version = versionObject == null ? "latest" : versionObject.toString();
                         Object urlObject = pluginSource.get("url");
