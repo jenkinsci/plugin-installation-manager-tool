@@ -188,5 +188,4 @@ public class Plugin implements Comparable<Plugin> {
     public int hashCode() {
         return Objects.hash(name, version, groupId, url);
     }
-
 }
