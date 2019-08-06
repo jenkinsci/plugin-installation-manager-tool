@@ -168,15 +168,33 @@ class CliOptions {
 
         File pluginFile = getPluginFile();
         if (pluginFile != null) {
-            String fileExtension = FilenameUtils.getExtension(pluginFile.toString());
-            if (fileExtension.equals("yaml") || fileExtension.equals("yml")) {
+            if (isFileExtension(pluginFile, "yaml", "yml")) {
                 requestedPlugins.addAll(pluginParser.parsePluginYamlFile(pluginFile));
-            } else if (fileExtension.equals("txt")) {
+            } else if (isFileExtension(pluginFile, "txt")) {
                 requestedPlugins.addAll(pluginParser.parsePluginTxtFile(pluginFile));
+            } else {
+                throw new PluginInputException("Unknown file type, file must have .yaml/.yml or .txt extension");
             }
         }
-
         return requestedPlugins;
+    }
+
+    /**
+     * Given a file containing a list of plugins and one or more file extensions, returns true if the file extension
+     * of the file matches any of the file extension strings gvien
+     *
+     * @param pluginFile plugin file of which to check extension
+     * @param extensions array of strings of extensions to check
+     * @return true if file extension matches any of the list of extensions
+     */
+    private boolean isFileExtension(File pluginFile, String... extensions) {
+        String fileExtension = FilenameUtils.getExtension(pluginFile.toString());
+        for (String ext : extensions) {
+            if (fileExtension.equals(ext)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
