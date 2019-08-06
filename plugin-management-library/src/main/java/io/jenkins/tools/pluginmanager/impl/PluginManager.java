@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -383,7 +382,6 @@ public class PluginManager {
     /**
      * Prints out plugins that failed to download. Exits with status of 1 if any plugins failed to download.
      */
-    @SuppressFBWarnings("DM_EXIT")
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
             System.out.println("Some plugins failed to download: ");
@@ -494,14 +492,14 @@ public class PluginManager {
             return null;
         }
 
-        if (!plugins.has(plugin.getName())) {
-            return null;
-        }
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
+                JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+                return (JSONArray) specificVersionInfo.get("dependencies");
+            } else if (setAlternateVersion(plugin) && pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
@@ -705,20 +703,58 @@ public class PluginManager {
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
-        if (!successfulDownload) {
-            logVerbose(String.format("First download attempt of %s unsuccessful, reattempting",
-                    plugin.getName()));
-            //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
+
+        //try to set an alternate version in case requested version and version in json don't exactly match
+        if (!successfulDownload && setAlternateVersion(plugin)) {
+            logVerbose(String.format("Download attempt of %s unsuccessful, reattempting", plugin.getName()));
+            pluginDownloadUrl = getPluginDownloadUrl(plugin);
+            successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
+        }
+
+        //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
+        if (!successfulDownload && (plugin.getName().equals(plugin.getOriginalName()))) {
+            logVerbose(String.format("Download attempt of %s unsuccessful, reattempting", plugin.getName()));
             String newPluginName = plugin.getName() + "-plugin";
             plugin.setName(newPluginName);
             pluginDownloadUrl = getPluginDownloadUrl(plugin);
             successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
+                if (!successfulDownload && setAlternateVersion(plugin)) {
+                    logVerbose(String.format("Download attempt of %s unsuccessful, reattempting", plugin.getName()));
+                    pluginDownloadUrl = getPluginDownloadUrl(plugin);
+                    successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
+                }
         }
+
         if (successfulDownload && location == null) {
             System.out.println(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), pluginVersion);
         }
         return successfulDownload;
+    }
+
+    /**
+     * Sets an alternate but equivalent plugin version by either appending or deleting a patch of 0. Filters out
+     * incremental plugins and plugins of formats like the following: 4.4.4-3.0"
+     *
+     * @param plugin plugin to set
+     * @return
+     */
+    public boolean setAlternateVersion(Plugin plugin) {
+        String version = plugin.getVersion().toString();
+
+        if (!version.contains("-")) {
+            String[] versionInfo = version.split("\\.");
+            if (versionInfo.length == 2) {
+                VersionNumber alternateVersion = new VersionNumber(version + ".0");
+                plugin.setVersion(alternateVersion);
+                return true;
+            } else if (versionInfo.length == 3 && Integer.parseInt(versionInfo[2]) == 0) {
+                VersionNumber alternateVersion = new VersionNumber(versionInfo[0] + "." + versionInfo[1]);
+                plugin.setVersion(alternateVersion);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

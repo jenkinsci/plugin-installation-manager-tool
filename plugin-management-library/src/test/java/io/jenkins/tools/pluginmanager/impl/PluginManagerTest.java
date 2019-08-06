@@ -585,7 +585,6 @@ public class PluginManagerTest {
         assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
-
     @Test
     public void resolveDirectDependenciesManifestTest2() {
         PluginManager pluginManagerSpy = spy(pm);
@@ -622,6 +621,25 @@ public class PluginManagerTest {
         assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
+    @Test
+    public void setAlternateVersionTest() {
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+
+        pm.setAlternateVersion(plugin1);
+        assertEquals("1.0.0", plugin1.getVersion().toString());
+
+        pm.setAlternateVersion(plugin1);
+        assertEquals("1.0", plugin1.getVersion().toString());
+
+        Plugin plugin2 = new Plugin("plugin2", "1.1.1", null, null);
+        assertEquals(false, pm.setAlternateVersion(plugin2));
+        assertEquals("1.1.1", plugin2.getVersion().toString());
+
+        Plugin plugin3 = new Plugin("plugin3", "4.4.4-3.0", null, null);
+        assertEquals(false, pm.setAlternateVersion(plugin3));
+
+        assertEquals("4.4.4-3.0", plugin3.getVersion().toString());
+    }
 
     @Test
     public void resolveDirectDependenciesLatest() {
