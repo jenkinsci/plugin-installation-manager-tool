@@ -27,6 +27,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -368,12 +370,23 @@ public class PluginManager {
      * @param plugins list of plugins to download
      */
     public void downloadPlugins(List<Plugin> plugins) {
-        plugins.parallelStream().forEach(plugin -> {
-            boolean successfulDownload = downloadPlugin(plugin, null);
-            if (!successfulDownload) {
-                throw new DownloadPluginException("Unable to download " + plugin.getName());
+        ForkJoinPool ioThreadPool = new ForkJoinPool(64);
+        try {
+            ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
+                boolean successfulDownload = downloadPlugin(plugin, null);
+                if (!successfulDownload) {
+                    throw new DownloadPluginException("Unable to download " + plugin.getName());
+                }
+            })).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DownloadPluginException) {
+                throw (DownloadPluginException) e.getCause();
+            } else {
+                e.printStackTrace();
             }
-        });
+        }
     }
 
     /**
