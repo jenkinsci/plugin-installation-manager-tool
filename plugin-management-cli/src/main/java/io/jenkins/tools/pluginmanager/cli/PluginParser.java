@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.cli;
 
-import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
@@ -48,7 +47,7 @@ public class PluginParser {
                         .map(line -> line.replaceAll("\\s", ""))
                         .filter(line -> !line.startsWith("#"))
                         .filter(line -> line.length() > 0)
-                        .map(line -> parsePluginLine(line))
+                        .map(this::parsePluginLine)
                         .collect(toList());
                 pluginsFromTxt.addAll(pluginsFromFile);
             } catch (IOException e) {
