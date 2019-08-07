@@ -12,7 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -73,7 +73,7 @@ public class PluginManager {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
         jenkinsWarFile = new File(cfg.getJenkinsWar());
-        failedPlugins = new ArrayList();
+        failedPlugins = new ArrayList<>();
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
         allSecurityWarnings = new HashMap<>();
@@ -169,27 +169,21 @@ public class PluginManager {
             effectivePlugins.put(plugin.getName(), plugin);
         }
 
+        sortEffectivePlugins(effectivePlugins, installedPluginVersions);
+        sortEffectivePlugins(effectivePlugins, bundledPluginVersions);
+        return effectivePlugins;
+    }
+
+    private void sortEffectivePlugins(Map<String, Plugin> effectivePlugins,
+        Map<String, Plugin> installedPluginVersions) {
         for (Map.Entry<String, Plugin> installedEntry : installedPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(), installedEntry.getValue());
-            } else if (
-                    (effectivePlugins.get(installedEntry.getKey()).getVersion())
-                            .compareTo(installedEntry.getValue().getVersion()) <
-                            0) {
+            } else if ((effectivePlugins.get(installedEntry.getKey()).getVersion())
+                    .compareTo(installedEntry.getValue().getVersion()) < 0) {
                 effectivePlugins.replace(installedEntry.getKey(), installedEntry.getValue());
             }
         }
-
-        for (Map.Entry<String, Plugin> bundledEntry : bundledPluginVersions.entrySet()) {
-            if (!effectivePlugins.containsKey(bundledEntry.getKey())) {
-                effectivePlugins.put(bundledEntry.getKey(), bundledEntry.getValue());
-            } else if ((effectivePlugins.get(bundledEntry.getKey()).getVersion())
-                    .compareTo(bundledEntry.getValue().getVersion()) <
-                    0) {
-                effectivePlugins.replace(bundledEntry.getKey(), bundledEntry.getValue());
-            }
-        }
-        return effectivePlugins;
     }
 
     /**
@@ -438,9 +432,8 @@ public class PluginManager {
             throw new UpdateCenterInfoRetrievalException("Malformed url for update center", e);
         }
         try {
-            String urlText = IOUtils.toString(url, Charset.forName("UTF-8"));
-            JSONObject updateCenterJson = new JSONObject(urlText);
-            return updateCenterJson;
+            String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
+            return new JSONObject(urlText);
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
