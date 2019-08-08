@@ -111,6 +111,7 @@ public class PluginManager {
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         showAvailableUpdates(pluginsToBeDownloaded);
+        checkVersionCompatibility(pluginsToBeDownloaded);
 
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
@@ -344,6 +345,27 @@ public class PluginManager {
     }
 
     /**
+     * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
+     * user specified Jenkins war file
+     *
+     * @param pluginsToBeDownloaded
+     */
+    public void checkVersionCompatibility(List<Plugin> pluginsToBeDownloaded) {
+        if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
+            for (Plugin p : pluginsToBeDownloaded) {
+                if (p.getJenkinsVersion() != null) {
+                    if (p.getJenkinsVersion().compareTo(jenkinsVersion) > 0) {
+                        System.out.println(
+                                String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s in %s",
+                                        p.getName(), p.getVersion().toString(), p.getJenkinsVersion().toString(),
+                                        jenkinsVersion.toString(), jenkinsWarFile.toString()));
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
      * center url String to include Jenkins Version. Otherwise, sets update center url to match the update center in
      * the configuration class
@@ -493,9 +515,11 @@ public class PluginManager {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+                plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
         } else {
+            plugin.setJenkinsVersion(pluginInfo.getString("requiredCore"));
             //plugin version is latest or experimental
             String version = pluginInfo.getString("version");
             plugin.setVersion(new VersionNumber(version));
@@ -556,6 +580,8 @@ public class PluginManager {
                             dependentPlugins.stream()
                                     .map(p -> p.getName() + " " + p.getVersion())
                                     .collect(Collectors.joining("\n")));
+
+            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
