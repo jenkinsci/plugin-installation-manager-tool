@@ -355,7 +355,7 @@ public class PluginManager {
             for (Plugin p : pluginsToBeDownloaded) {
                 if (p.getJenkinsVersion() != null) {
                     if (p.getJenkinsVersion().compareTo(jenkinsVersion) > 0) {
-                        System.out.println(
+                        throw new VersionCompatibilityException(
                                 String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s in %s",
                                         p.getName(), p.getVersion().toString(), p.getJenkinsVersion().toString(),
                                         jenkinsVersion.toString(), jenkinsWarFile.toString()));

@@ -577,12 +577,9 @@ public class PluginManagerTest {
         assertEquals("", output.toString());
     }
 
-    @Test
+    @Test(expected = VersionCompatibilityException.class)
     public void checkVersionCompatibilityFailTest() throws IOException {
         pm.setJenkinsVersion(new VersionNumber("1.609.3"));
-
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
 
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
@@ -592,10 +589,6 @@ public class PluginManagerTest {
 
         List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
         pm.checkVersionCompatibility(pluginsToDownload);
-
-        assertEquals("plugin1 (1.0) requires a greater version of Jenkins (2.121.2) than 1.609.3 in "
-                        + Settings.DEFAULT_WAR,
-                output.toString().trim());
     }
 
     @Test
