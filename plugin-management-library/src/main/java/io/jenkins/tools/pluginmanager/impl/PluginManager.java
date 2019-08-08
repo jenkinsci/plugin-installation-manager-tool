@@ -409,93 +409,162 @@ public class PluginManager {
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
         requestedPlugins.parallelStream().forEach(this::resolveRecursiveDependencies);
 
-        Map<String, Plugin> optimizedPlugins = new HashMap<>();
+        Map<String, List<Plugin>> allPlugins = new HashMap<>();
         for (Plugin p : requestedPlugins) {
-            optimizedPlugins.put(p.getName(), p);
-            Map<String, Plugin> optimizedChildren = optimize(p);
-            for (Map.Entry<String, Plugin> entry : optimizedChildren.entrySet()) {
-                String dependencyName = entry.getKey();
-                Plugin child = entry.getValue();
-                if (!optimizedPlugins.containsKey(dependencyName)) {
-                    optimizedPlugins.put(dependencyName, entry.getValue());
-                } else {
-                    Plugin existingDependency = optimizedPlugins.get(dependencyName);
-                    VersionNumber newVersion = entry.getValue().getVersion();
-                    if (existingDependency.getVersion().compareTo(newVersion) < 0) {
-                        logVerbose(String.format(
-                                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
-                                        "by %s (%s), upgrading required plugin version",
-                                dependencyName,
-                                existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString(),
-                                newVersion.toString(),
-                                child.getParent().getName(),
-                                child.getParent().getVersion().toString()));
-                    } else if (existingDependency.getVersion().compareTo(newVersion) > 0) {
-                        logVerbose(String.format(
-                                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
-                                        "by %s (%s), upgrading required plugin version",
-                                dependencyName,
-                                newVersion.toString(),
-                                child.getParent().getName(),
-                                child.getParent().getVersion().toString(),
-                                existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString()));
-                    }
-                }
-            }
+            Map<String, Plugin> optimizedChildren = findOptimalDependencies(p);
+            addToAllDependentPlugins(optimizedChildren, allPlugins);
         }
+
+        Map<String, Plugin> optimizedPlugins = optimize(allPlugins);
         return optimizedPlugins;
     }
 
-    public Map<String, Plugin> optimize(Plugin plugin) {
-        if (plugin.getDependencies().isEmpty()) {
-            return new HashMap<String, Plugin>();
+    /**
+     * For a given plugin, recursively finds all "optimal" dependencies (i.e. repeated plugins are replaced with the
+     * highest required version
+     *
+     * @param plugin plugin to find dependencies
+     * @return map of <PluginName, Plugin> pairs corresponding to all optimal dependencies for the plugin passed in as
+     * a parameter
+     */
+    public Map<String, Plugin> findOptimalDependencies(Plugin plugin) {
+        if (plugin.getDirectDependencies().isEmpty()) {
+            Map<String, Plugin> optimalDependencies = new HashMap<>();
+            optimalDependencies.put(plugin.getName(), plugin);
+            return optimalDependencies;
         }
 
-        Map<String, Plugin> optimizedPlugins = new HashMap<>();
-        for (Plugin p : plugin.getDependencies()) {
-            optimizedPlugins.put(p.getName(), p);
-            Map<String, Plugin> optimizedChildren = optimize(p);
-            for (Map.Entry<String, Plugin> entry : optimizedChildren.entrySet()) {
-                String dependencyName = entry.getKey();
-                Plugin child = entry.getValue();
-                if (!optimizedPlugins.containsKey(dependencyName)) {
-                    optimizedPlugins.put(dependencyName, entry.getValue());
-                } else {
-                    Plugin existingDependency = optimizedPlugins.get(dependencyName);
-                    VersionNumber newVersion = child.getVersion();
-                    if (existingDependency.getVersion().compareTo(newVersion) < 0) {
-                        logVerbose(String.format(
-                                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
-                                        "by %s (%s), upgrading required plugin version",
-                                dependencyName,
-                                existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString(),
-                                newVersion.toString(),
-                                child.getParent().getName(),
-                                child.getParent().getVersion().toString()));
-                    } else if (existingDependency.getVersion().compareTo(newVersion) > 0) {
-                        logVerbose(String.format(
-                                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
-                                        "by %s (%s), upgrading required plugin version",
-                                dependencyName,
-                                newVersion.toString(),
-                                child.getParent().getName(),
-                                child.getParent().getVersion().toString(),
-                                existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString()));
-                    }
-                }
-            }
+        Map<String, List<Plugin>> allPlugins = new HashMap<>();
+        List<Plugin> pluginList = new ArrayList<>();
+        pluginList.add(plugin);
+
+        allPlugins.put(plugin.getName(), pluginList);
+        for (Plugin p : plugin.getDirectDependencies()) {
+            Map<String, Plugin> optimizedChildDependencies = findOptimalDependencies(p);
+            addToAllDependentPlugins(optimizedChildDependencies, allPlugins);
         }
-        return optimizedPlugins;
+
+        Map<String, Plugin> optimalDependencies = optimize(allPlugins);
+        plugin.setRecursiveDependencies(optimalDependencies);
+        return optimalDependencies;
     }
 
+    /**
+     * Given all of the optimized dependencies of a particular child plugin, adds them to the map of all the optimized
+     * children dependencies. If a plugin with the same name occurs twice, it is added to a list of all dependent
+     * plugins with the same name
+     *
+     * @param optimizedChildDependencies map of entries corresponding to plugin names and plugin pairs
+     * @param allPlugins map of entries corresponding to plugin name and list of plugins that share that name pairs
+     */
+    public void addToAllDependentPlugins(Map<String, Plugin> optimizedChildDependencies, Map<String, List<Plugin>> allPlugins) {
+        for (Map.Entry<String, Plugin> entry : optimizedChildDependencies.entrySet()) {
+            String dependencyName = entry.getKey();
+            if (!allPlugins.containsKey(dependencyName)) {
+                List<Plugin> samePlugins = new ArrayList<>();
+                samePlugins.add(entry.getValue());
+                allPlugins.put(dependencyName, samePlugins);
+            } else {
+                allPlugins.get(dependencyName).add(entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * If there are any duplicated plugins in the list of all optimized plugins, removes them and their dependencies
+     *
+     * @param childDependencies map of all optimized dependencies, including duplicates
+     * @return optimized dependencies, which is a map of plugin name, plugin pairs
+     */
+    public Map<String, Plugin> optimize(Map<String, List<Plugin>> childDependencies) {
+        List<Plugin> duplicates = findDuplicates(childDependencies);
+
+        for (Plugin duplicate: duplicates) {
+            removeFromOptimalDependencies(duplicate, childDependencies);
+            List<Plugin> removedPluginsDependencies = new ArrayList<>(duplicate.getRecursiveDependencies().values());
+            for (Plugin dependency : removedPluginsDependencies) {
+                removeFromOptimalDependencies(dependency, childDependencies);
+            }
+        }
+
+        Map<String, Plugin> optimizedDependencies = new HashMap<>();
+
+        //after duplicates have been removed, should only be one plugin in the list
+        for (Map.Entry<String, List<Plugin>> entry: childDependencies.entrySet()) {
+            if (!entry.getValue().isEmpty()) {
+                optimizedDependencies.put(entry.getKey(), entry.getValue().get(0));
+            }
+        }
+        return optimizedDependencies;
+    }
+
+    /**
+     * Removes a plugin from the map corresponding to all plugin names and duplicated plugins
+     * @param pluginToRemove plugin that will be removed
+     * @param childDependencies list of all of the optimized plugin dependencies of the children of the plugin to find
+     *                          optimal dependencies for
+     */
+    public void removeFromOptimalDependencies(Plugin pluginToRemove, Map<String, List<Plugin>> childDependencies) {
+        String pluginName = pluginToRemove.getName();
+        List<Plugin> plugins = childDependencies.get(pluginName);
+        Iterator<Plugin> pluginIterator = plugins.iterator();
+        while (pluginIterator.hasNext()) {
+            Plugin pluginInList = pluginIterator.next();
+            if (pluginInList == pluginToRemove) {
+                pluginIterator.remove();
+            }
+        }
+    }
+
+    /**
+     * Given a map of plugin names, and the list of plugins corresponding to that name, finds and returns the list of
+     * duplicate plugins
+     *
+     * @param childDependencies the set of all previously optimized dependencies and duplicates that resulted from
+     *                          combining these; this is a map of plugin name and a list of all plugins that share that
+     *                          name
+     * @return list of all duplicated plugins
+     */
+    public List<Plugin> findDuplicates(Map<String, List<Plugin>> childDependencies) {
+        List<Plugin> duplicates = new ArrayList<>();
+        for (List<Plugin> pluginList : childDependencies.values()) {
+            if (pluginList.size() > 1) {
+                VersionNumber largestVersionNumber = pluginList.get(0).getVersion();
+                int largestVersionIndex = 0;
+                for (int i = 1; i < pluginList.size(); i++) {
+                    if (pluginList.get(i).getVersion().compareTo(largestVersionNumber) > 0) {
+                        outputPluginReplacementInfo(pluginList.get(largestVersionIndex), pluginList.get(i));
+                        duplicates.add(pluginList.get(largestVersionIndex));
+                        largestVersionIndex = i;
+                        largestVersionNumber = pluginList.get(i).getVersion();
+                    } else {
+                        duplicates.add(pluginList.get(i));
+                        outputPluginReplacementInfo(pluginList.get(i), pluginList.get(largestVersionIndex));
+                    }
+                }
+
+            }
+        }
+        return duplicates;
+    }
+
+    /**
+     * Outputs information about a lower version of a plugin being replaced by a higher version
+     * @param lowerVersion lower version of plugin
+     * @param higherVersion higher version of plugin
+     */
+    public void outputPluginReplacementInfo(Plugin lowerVersion, Plugin higherVersion) {
+        logVerbose(String.format(
+                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
+                        "by %s (%s), upgrading required plugin version",
+                lowerVersion.getName(),
+                lowerVersion.getVersion().toString(),
+                lowerVersion.getParent().getName(),
+                lowerVersion.getParent().getVersion().toString(),
+                higherVersion.getVersion().toString(),
+                higherVersion.getParent().getName(),
+                higherVersion.getParent().getVersion().toString()));
+    }
 
 
     /**
@@ -606,8 +675,9 @@ public class PluginManager {
                     String[] pluginInfo = dependency.split(":");
                     String pluginName = pluginInfo[0];
                     String pluginVersion = pluginInfo[1];
-                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, false);
+                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
                     dependentPlugins.add(dependentPlugin);
+                    dependentPlugin.setParent(plugin);
                 }
             }
             logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
@@ -645,8 +715,9 @@ public class PluginManager {
             if (!isPluginOptional) {
                 String pluginName = dependency.getString("name");
                 String pluginVersion = dependency.getString("version");
-                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
+                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
                 dependentPlugins.add(dependentPlugin);
+                dependentPlugin.setParent(plugin);
             }
         }
 
@@ -692,11 +763,10 @@ public class PluginManager {
 
     /**
      * Finds all recursive dependencies for a given plugin using BFS. If the same plugin is required by different
-     * plugins, both versions will be
+     * plugins, both versions will be included. Result will be original plugin and its dependencies will have their
+     * list of direct dependencies populated.
      *
      * @param plugin to resolve dependencies for
-     * @return map of plugin names and plugins representing all of the dependencies of the requested plugin, including
-     * the requested plugin itself
      */
     public void resolveRecursiveDependencies(Plugin plugin) {
         Deque<Plugin> queue = new LinkedList<>();
@@ -707,11 +777,11 @@ public class PluginManager {
         while (queue.size() != 0) {
             Plugin dependency = queue.poll();
 
-            if (dependency.getDependencies().isEmpty()) {
-                dependency.setDependencies(resolveDirectDependencies(dependency));
+            if (dependency.getDirectDependencies().isEmpty()) {
+                dependency.setDirectDependencies(resolveDirectDependencies(dependency));
             }
 
-            for (Plugin p : dependency.getDependencies()) {
+            for (Plugin p : dependency.getDirectDependencies()) {
                 if (!recursiveDependencies.contains(p)) {
                     recursiveDependencies.add(p);
                     queue.add(p);

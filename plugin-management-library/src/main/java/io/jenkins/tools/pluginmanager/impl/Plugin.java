@@ -3,7 +3,9 @@ package io.jenkins.tools.pluginmanager.impl;
 import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
@@ -15,7 +17,9 @@ public class Plugin implements Comparable<Plugin> {
     private String url;
     private File file;
     private boolean isPluginOptional;
-    private List<Plugin> dependencies;
+    private List<Plugin> directDependencies;
+    private Map<String, Plugin> recursiveDependencies;
+
     private Plugin parent;
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
@@ -30,29 +34,10 @@ public class Plugin implements Comparable<Plugin> {
         this.version = new VersionNumber(version);
 
         this.url = url;
-        this.dependencies = new ArrayList<>();
+        this.directDependencies = new ArrayList<>();
+        this.recursiveDependencies = new HashMap<>();
         this.parent = this;
         this.groupId = groupId;
-        this.securityWarnings = new ArrayList<>();
-        if (version.equals("latest")) {
-            latest = true;
-        }
-        if (version.equals("experimental")) {
-            experimental = true;
-        }
-    }
-
-    public Plugin(String name, String version, boolean isPluginOptional) {
-        this.name = name;
-        this.originalName = name;
-        if (StringUtils.isEmpty(version)) {
-            version = "latest";
-        }
-        this.version = new VersionNumber(version);
-
-        this.isPluginOptional = isPluginOptional;
-        this.dependencies = new ArrayList<>();
-        this.parent = this;
         this.securityWarnings = new ArrayList<>();
         if (version.equals("latest")) {
             latest = true;
@@ -84,6 +69,19 @@ public class Plugin implements Comparable<Plugin> {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    public void setDirectDependencies(List<Plugin> dependencies) {
+        this.directDependencies = dependencies;
+    }
+
+    public void setRecursiveDependencies(Map<String, Plugin> dependencies) {
+        this.recursiveDependencies = dependencies;
+    }
+
+    public void setParent(Plugin parent)
+    {
+        this.parent = parent;
     }
 
     public String getName() {
@@ -118,16 +116,12 @@ public class Plugin implements Comparable<Plugin> {
         return groupId;
     }
 
-    public void setDependencies(List<Plugin> dependencies) {
-        this.dependencies = dependencies;
+    public List<Plugin> getDirectDependencies() {
+        return directDependencies;
     }
 
-    public List<Plugin> getDependencies() {
-        return dependencies;
-    }
-
-    public void setParent(Plugin parent) {
-        this.parent = parent;
+    public Map<String, Plugin> getRecursiveDependencies() {
+        return recursiveDependencies;
     }
 
     public Plugin getParent() {

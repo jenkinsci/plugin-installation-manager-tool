@@ -78,12 +78,13 @@ public class PluginManagerTest {
         pm = new PluginManager(cfg);
 
         directDependencyExpectedPlugins = new ArrayList<>();
-        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", false));
-        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", false));
-        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", false));
-        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", false));
+        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", null, null));
 
     }
+
 
     @Test
     public void startTest() throws IOException {
@@ -653,6 +654,7 @@ public class PluginManagerTest {
         assertEquals(plugin, pluginManagerSpy.getFailedPlugins().get(0));
     }
 
+
     @Test
     public void findPluginsAndDependenciesTest() throws IOException {
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
@@ -676,6 +678,7 @@ public class PluginManagerTest {
         //Ideally if this plugin had dependencies that are different from the plugin that replaces it, they would get
         //cleaned up - see Jira JENKINS-58775
         Map<String, Plugin> replacedDependencies = new HashMap<>();
+        replacedDependencies.put("replaced", replaced);
 
         plugin1Dependencies.put("plugin1", plugin1);
         plugin1Dependencies.put("plugin1Dependency1", plugin1Dependency1);
@@ -692,6 +695,7 @@ public class PluginManagerTest {
         plugin2Dependencies.put("plugin2Dependency2", plugin2Dependency2);
         plugin2Dependencies.put("replaced", replaced2);
         plugin2Dependencies.put("replaced2", replacedSecond);
+        plugin2Dependencies.put("plugin2", plugin2);
 
         Map<String, Plugin> plugin3Dependencies = new HashMap<>();
         Plugin plugin3Dependency1 = new Plugin("plugin3Dependency1", "3.0.1", null, null);
@@ -699,11 +703,17 @@ public class PluginManagerTest {
 
         plugin3Dependencies.put("plugin3Dependency1", plugin3Dependency1);
         plugin3Dependencies.put("replaced2", replacedSecond2);
+        plugin3Dependencies.put("plugin3", plugin3);
 
-        doReturn(plugin1Dependencies).when(pluginManagerSpy).resolveRecursiveDependencies(plugin1);
-        doReturn(replacedDependencies).when(pluginManagerSpy).resolveRecursiveDependencies(replaced);
-        doReturn(plugin2Dependencies).when(pluginManagerSpy).resolveRecursiveDependencies(plugin2);
-        doReturn(plugin3Dependencies).when(pluginManagerSpy).resolveRecursiveDependencies(plugin3);
+        doNothing().when(pluginManagerSpy).resolveRecursiveDependencies(plugin1);
+        doNothing().when(pluginManagerSpy).resolveRecursiveDependencies(replaced);
+        doNothing().when(pluginManagerSpy).resolveRecursiveDependencies(plugin2);
+        doNothing().when(pluginManagerSpy).resolveRecursiveDependencies(plugin3);
+
+        doReturn(plugin1Dependencies).when(pluginManagerSpy).findOptimalDependencies(plugin1);
+        doReturn(replacedDependencies).when(pluginManagerSpy).findOptimalDependencies(replaced);
+        doReturn(plugin2Dependencies).when(pluginManagerSpy).findOptimalDependencies(plugin2);
+        doReturn(plugin3Dependencies).when(pluginManagerSpy).findOptimalDependencies(plugin3);
 
         List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3, replaced));
 
@@ -714,12 +724,13 @@ public class PluginManagerTest {
         Collections.sort(pluginsAndDependencies);
 
         List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
-                plugin2Dependency1, plugin2Dependency2, plugin3Dependency1, replaced2, replacedSecond2));
+                plugin2, plugin2Dependency1, plugin2Dependency2, plugin3, plugin3Dependency1, replaced2, replacedSecond2));
 
         Collections.sort(expectedPlugins);
 
         assertEquals(expectedPlugins, pluginsAndDependencies);
     }
+
 
     @Test
     public void downloadPluginAlreadyInstalledTest() {
@@ -1103,11 +1114,10 @@ public class PluginManagerTest {
         assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
     }
 
-    @Test
-    public void resolveRecursiveDependenciesTest() {
-        PluginManager pluginManagerSpy = spy(pm);
-        doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
 
+    /*
+    @Test
+    public void optimizeTest() {
         Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
         List<Plugin> grandParentDependencies = new ArrayList<>();
 
@@ -1129,7 +1139,7 @@ public class PluginManagerTest {
         grandParentDependencies.add(parent2);
         grandParentDependencies.add(parent3);
 
-        grandParent.setDependencies(grandParentDependencies);
+        grandParent.setDirectDependencies(grandParentDependencies);
 
         List<Plugin> parent1Dependencies = new ArrayList<>();
         parent1Dependencies.add(child1);
@@ -1137,52 +1147,207 @@ public class PluginManagerTest {
         parent1Dependencies.add(child7);
         parent1Dependencies.add(child3);
 
-        parent1.setDependencies(parent1Dependencies);
+        parent1.setDirectDependencies(parent1Dependencies);
 
         List<Plugin> parent2Dependencies = new ArrayList<>();
         parent2Dependencies.add(child3);
         parent2Dependencies.add(child8);
-        parent2.setDependencies(parent2Dependencies);
+        parent2.setDirectDependencies(parent2Dependencies);
 
         List<Plugin> parent3Dependencies = new ArrayList<>();
         parent3Dependencies.add(child9);
-        parent3.setDependencies(parent3Dependencies);
+        parent3.setDirectDependencies(parent3Dependencies);
 
         List<Plugin> child9Dependencies = new ArrayList<>();
         child9Dependencies.add(child4);
-        child9.setDependencies(child9Dependencies);
+        child9.setDirectDependencies(child9Dependencies);
 
         List<Plugin> child1Dependencies = new ArrayList<>();
         child1Dependencies.add(child6);
-        child1.setDependencies(child1Dependencies);
+        child1.setDirectDependencies(child1Dependencies);
 
         List<Plugin> child8Dependencies = new ArrayList<>();
         child8Dependencies.add(child5);
-        child8.setDependencies(child8Dependencies);
+        child8.setDirectDependencies(child8Dependencies);
 
         List<String> expectedDependencies = new ArrayList<>();
         expectedDependencies.add(grandParent.toString());
         expectedDependencies.add(parent1.toString());
-        expectedDependencies.add(child4.toString());  //highest version of replaced1
+        expectedDependencies.add(child4.toString());
         expectedDependencies.add(parent3.toString());
         expectedDependencies.add(child2.toString());
-        expectedDependencies.add(child3.toString());
-        expectedDependencies.add(child8.toString());
         expectedDependencies.add(child9.toString());
-        expectedDependencies.add(child5.toString());
-        expectedDependencies.add(child6.toString());
         Collections.sort(expectedDependencies);
+
+
 
         //See Jira JENKINS-58775 - the ideal solution has the following dependencies: grandparent, parent1, child4,
         //parent3, child2, child8, child3, and child9
 
-        Map<String, Plugin> recursiveDependencies = pluginManagerSpy.resolveRecursiveDependencies(grandParent);
+        Map<String, Plugin> recursiveDependencies = pm.findOptimalDependencies(grandParent);
 
         List<String> actualDependencies = convertPluginsToStrings(new ArrayList<>(recursiveDependencies.values()));
 
         assertEquals(expectedDependencies, actualDependencies);
     }
 
+    @Test
+    public void optimizeTest2() {
+        Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
+        List<Plugin> grandParentDependencies = new ArrayList<>();
+
+        Plugin parent1 = new Plugin("parent1", "1.0", null, null);
+        Plugin parent2 = new Plugin("replaced1", "2.0", null, null);
+        Plugin parent3= new Plugin("parent3", "1.2", null, null);
+
+        Plugin child1 = new Plugin("replaced1", "1.3", null, null);
+        Plugin child2 = new Plugin("child2", "3.2.1", null, null);
+        Plugin child3 = new Plugin("child3", "0.9", null, null);
+        Plugin child3_ = new Plugin("child3", "0.9", null, null);
+        Plugin child4 = new Plugin("replaced1", "1.5.1", null, null);
+        Plugin child5 = new Plugin("child5", "2.2.8", null, null);
+        Plugin child6 = new Plugin("child6", "2.1.1", null, null);
+        Plugin child7 = new Plugin("replaced2", "1.1.0", null, null);
+        Plugin child8 = new Plugin("replaced2", "2.3", null, null);
+        Plugin child9 = new Plugin("child9", "1.0.3", null, null);
+
+        grandParentDependencies.add(parent1);
+        grandParentDependencies.add(parent2);
+        //grandParentDependencies.add(parent3);
+
+        grandParent.setDirectDependencies(grandParentDependencies);
+
+        List<Plugin> parent1Dependencies = new ArrayList<>();
+        parent1Dependencies.add(child1);
+        parent1Dependencies.add(child2);
+        parent1Dependencies.add(child7);
+        parent1Dependencies.add(child3);
+
+        parent1.setDirectDependencies(parent1Dependencies);
+
+        List<Plugin> parent2Dependencies = new ArrayList<>();
+        parent2Dependencies.add(child3_);
+        parent2Dependencies.add(child8);
+        parent2.setDirectDependencies(parent2Dependencies);
+
+        List<Plugin> parent3Dependencies = new ArrayList<>();
+        parent3Dependencies.add(child9);
+        parent3.setDirectDependencies(parent3Dependencies);
+
+        List<Plugin> child9Dependencies = new ArrayList<>();
+        child9Dependencies.add(child4);
+        child9.setDirectDependencies(child9Dependencies);
+
+        List<Plugin> child1Dependencies = new ArrayList<>();
+        child1Dependencies.add(child6);
+        child1.setDirectDependencies(child1Dependencies);
+
+        List<Plugin> child8Dependencies = new ArrayList<>();
+        child8Dependencies.add(child5);
+        child8.setDirectDependencies(child8Dependencies);
+
+        List<String> expectedDependencies = new ArrayList<>();
+        expectedDependencies.add(grandParent.toString());
+        expectedDependencies.add(parent1.toString());
+        expectedDependencies.add(parent2.toString());
+        expectedDependencies.add(child2.toString());
+        expectedDependencies.add(child3.toString());
+        expectedDependencies.add(child8.toString());
+        expectedDependencies.add(child5.toString());
+        Collections.sort(expectedDependencies);
+
+        //See Jira JENKINS-58775 - the ideal solution has the following dependencies: grandparent, parent1, child4,
+        //parent3, child2, child8, child3, and child9
+
+        Map<String, Plugin> recursiveDependencies = pm.findOptimalDependencies(grandParent);
+
+        List<String> actualDependencies = convertPluginsToStrings(new ArrayList<>(recursiveDependencies.values()));
+
+        assertEquals(expectedDependencies, actualDependencies);
+    }
+
+*/
+    @Test
+    public void resolveRecursiveDependenciesTest() {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
+
+        Plugin parent1 = new Plugin("parent1", "1.0", null, null);
+        Plugin parent2 = new Plugin("replaced1", "1.0", null, null);
+        Plugin parent3 = new Plugin("parent3", "1.2", null, null);
+
+        Plugin child1 = new Plugin("replaced1", "1.3", null, null);
+        Plugin child2 = new Plugin("child2", "3.2.1", null, null);
+        Plugin child3 = new Plugin("child3", "0.9", null, null);
+        Plugin child4 = new Plugin("replaced1", "1.5.1", null, null);
+        Plugin child5 = new Plugin("child5", "2.2.8", null, null);
+        Plugin child6 = new Plugin("child6", "2.1.1", null, null);
+        Plugin child7 = new Plugin("replaced2", "1.1.0", null, null);
+        Plugin child8 = new Plugin("replaced2", "2.3", null, null);
+        Plugin child9 = new Plugin("child9", "1.0.3", null, null);
+
+        List<Plugin> grandParentDependencies = new ArrayList<>();
+        grandParentDependencies.add(parent1);
+        grandParentDependencies.add(parent2);
+        grandParentDependencies.add(parent3);
+
+        List<Plugin> parent1Dependencies = new ArrayList<>();
+        parent1Dependencies.add(child1);
+        parent1Dependencies.add(child2);
+        parent1Dependencies.add(child7);
+        parent1Dependencies.add(child3);
+
+        List<Plugin> parent2Dependencies = new ArrayList<>();
+        parent2Dependencies.add(child3);
+        parent2Dependencies.add(child8);
+        Collections.sort(parent2Dependencies);
+
+        List<Plugin> parent3Dependencies = new ArrayList<>();
+        parent3Dependencies.add(child9);
+
+        List<Plugin> child9Dependencies = new ArrayList<>();
+        child9Dependencies.add(child4);
+
+        List<Plugin> child1Dependencies = new ArrayList<>();
+        child1Dependencies.add(child6);
+
+        List<Plugin> child8Dependencies = new ArrayList<>();
+        child8Dependencies.add(child5);
+
+        doReturn(grandParentDependencies).when(pluginManagerSpy).resolveDirectDependencies(grandParent);
+        doReturn(parent1Dependencies).when(pluginManagerSpy).resolveDirectDependencies(parent1);
+        doReturn(parent2Dependencies).when(pluginManagerSpy).resolveDirectDependencies(parent2);
+        doReturn(parent3Dependencies).when(pluginManagerSpy).resolveDirectDependencies(parent3);
+        doReturn(child9Dependencies).when(pluginManagerSpy).resolveDirectDependencies(child9);
+        doReturn(child1Dependencies).when(pluginManagerSpy).resolveDirectDependencies(child1);
+        doReturn(child8Dependencies).when(pluginManagerSpy).resolveDirectDependencies(child8);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child2);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child3);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child4);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child5);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child6);
+        doReturn(new ArrayList<>()).when(pluginManagerSpy).resolveDirectDependencies(child7);
+
+        pluginManagerSpy.resolveRecursiveDependencies(grandParent);
+
+        List<Plugin> grandParentActualDependencies = grandParent.getDirectDependencies();
+        List<Plugin> parent1ActualDependencies = parent1.getDirectDependencies();
+        List<Plugin> parent2ActualDependencies = parent2.getDirectDependencies();
+        List<Plugin> parent3ActualDependencies = parent3.getDirectDependencies();
+        List<Plugin> child9ActualDependencies = child9.getDirectDependencies();
+        List<Plugin> child1ActualDependencies = child1.getDirectDependencies();
+        List<Plugin> child8ActualDependencies = child8.getDirectDependencies();
+
+        assertEquals(grandParentDependencies, grandParentActualDependencies);
+        assertEquals(parent1Dependencies, parent1ActualDependencies);
+        assertEquals(parent2Dependencies, parent2ActualDependencies);
+        assertEquals(parent3Dependencies, parent3ActualDependencies);
+        assertEquals(child9Dependencies, child9ActualDependencies);
+        assertEquals(child1Dependencies, child1ActualDependencies);
+        assertEquals(child8Dependencies, child8ActualDependencies);
+        assertEquals(true, child5.getDirectDependencies().isEmpty());
+    }
 
     @Test
     public void installedPluginsTest() throws IOException {
@@ -1587,6 +1752,7 @@ public class PluginManagerTest {
         Collections.sort(stringList);
         return stringList;
     }
+
 
     @After
     public void restoreStream() {
