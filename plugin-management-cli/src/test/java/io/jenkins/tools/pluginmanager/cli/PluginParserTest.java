@@ -1,6 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
-import io.jenkins.tools.pluginmanager.cli.PluginInputFormatException;
+import io.jenkins.tools.pluginmanager.cli.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URISyntaxException;
@@ -121,19 +121,19 @@ public class PluginParserTest {
         assertEquals(expectedPluginInfo, pluginInfo);
     }
 
-    @Test(expected = PluginInputFormatException.class)
+    @Test(expected = PluginInputException.class)
     public void badFormatYamlNoArtifactIdTest() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("/badformat1.yaml").toURI());
         List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
     }
 
-    @Test(expected = PluginInputFormatException.class)
+    @Test(expected = PluginInputException.class)
     public void badFormatYamlGroupIdNoVersion() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("/badformat2.yaml").toURI());
         List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);
     }
 
-    @Test(expected = PluginInputFormatException.class)
+    @Test(expected = PluginInputException.class)
     public void badFormatYamlGroupIdNoVersion2() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("/badformat3.yaml").toURI());
         List<Plugin> pluginsFromYamlFile = pluginParser.parsePluginYamlFile(pluginYmlFile);

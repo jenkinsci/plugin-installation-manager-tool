@@ -8,9 +8,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
@@ -18,16 +20,11 @@ import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
 
-
 class CliOptions {
     //path must include plugins.txt
-    @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt file",
+    @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt or plugins.yaml file",
             handler = FileOptionHandler.class)
-    private File pluginTxt;
-
-    @Option(name = "--plugin-yaml", aliases = {"-y"}, usage = "Path to plugins.yaml file",
-            handler = FileOptionHandler.class)
-    private File pluginYaml;
+    private File pluginFile;
 
     @Option(name = "--plugin-download-directory", aliases = {"-d"},
             usage = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.",
@@ -109,31 +106,22 @@ class CliOptions {
     }
 
     /**
-     * Outputs information about plugin txt file selected from CLI Option
+     * Outputs information about plugin txt or yaml file selected from CLI Option. Throws a PluginInputException if the
+     * file does not exist.
      *
-     * @return plugin txt file passed in through CLI, or null if user did not pass in txt file
+     * @return plugin txt or yaml file passed in through CLI, or null if user did not pass in a txt file
      */
-    private File getPluginTxt() {
-        if (pluginTxt == null) {
-            System.out.println("No .txt file containing list of plugins to be downloaded entered.");
+    private File getPluginFile() {
+        if (pluginFile == null) {
+            System.out.println("No .txt or .yaml file containing list of plugins to be downloaded entered.");
         } else {
-            System.out.println("File containing list of plugins to be downloaded: " + pluginTxt);
+            if (Files.exists(pluginFile.toPath())) {
+                System.out.println("File containing list of plugins to be downloaded: " + pluginFile);
+            } else {
+                throw new PluginInputException("File containing list of plugins does not exist " + pluginFile.toPath());
+            }
         }
-        return pluginTxt;
-    }
-
-    /**
-     * Outputs information about plugin yaml file option selected from CLI Option
-     *
-     * @return plugin yaml file passed in through CLI, or null if user did not pass in a yaml file
-     */
-    private File getPluginYaml() {
-        if (pluginYaml == null) {
-            System.out.println("No .yaml file containing list of plugins to be downloaded entered.");
-        } else {
-            System.out.println("Yaml file containing list of plugins to be downloaded: " + pluginYaml);
-        }
-        return pluginYaml;
+        return pluginFile;
     }
 
     /**
@@ -176,9 +164,36 @@ class CliOptions {
         List<Plugin> requestedPlugins = new ArrayList<>();
         PluginParser pluginParser = new PluginParser();
         requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
-        requestedPlugins.addAll(pluginParser.parsePluginTxtFile(getPluginTxt()));
-        requestedPlugins.addAll(pluginParser.parsePluginYamlFile(getPluginYaml()));
+
+        File pluginFile = getPluginFile();
+        if (pluginFile != null) {
+            if (isFileExtension(pluginFile, "yaml", "yml")) {
+                requestedPlugins.addAll(pluginParser.parsePluginYamlFile(pluginFile));
+            } else if (isFileExtension(pluginFile, "txt")) {
+                requestedPlugins.addAll(pluginParser.parsePluginTxtFile(pluginFile));
+            } else {
+                throw new PluginInputException("Unknown file type, file must have .yaml/.yml or .txt extension");
+            }
+        }
         return requestedPlugins;
+    }
+
+    /**
+     * Given a file containing a list of plugins and one or more file extensions, returns true if the file extension
+     * of the file matches any of the file extension strings gvien
+     *
+     * @param pluginFile plugin file of which to check extension
+     * @param extensions array of strings of extensions to check
+     * @return true if file extension matches any of the list of extensions
+     */
+    private boolean isFileExtension(File pluginFile, String... extensions) {
+        String fileExtension = FilenameUtils.getExtension(pluginFile.toString());
+        for (String ext : extensions) {
+            if (fileExtension.equals(ext)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -207,7 +222,7 @@ class CliOptions {
         return showAvailableUpdates;
     }
 
-    private boolean isVerbose() {
+    public boolean isVerbose() {
         return verbose;
     }
 

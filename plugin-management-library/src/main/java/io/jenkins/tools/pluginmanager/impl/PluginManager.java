@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -13,7 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -30,6 +29,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -76,7 +77,7 @@ public class PluginManager {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
         jenkinsWarFile = new File(cfg.getJenkinsWar());
-        failedPlugins = new ArrayList();
+        failedPlugins = new ArrayList<>();
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
         allSecurityWarnings = new HashMap<>();
@@ -116,7 +117,6 @@ public class PluginManager {
 
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
-            outputFailedPlugins();
         }
         System.out.println("Done");
     }
@@ -173,27 +173,21 @@ public class PluginManager {
             effectivePlugins.put(plugin.getName(), plugin);
         }
 
+        sortEffectivePlugins(effectivePlugins, installedPluginVersions);
+        sortEffectivePlugins(effectivePlugins, bundledPluginVersions);
+        return effectivePlugins;
+    }
+
+    private void sortEffectivePlugins(Map<String, Plugin> effectivePlugins,
+        Map<String, Plugin> installedPluginVersions) {
         for (Map.Entry<String, Plugin> installedEntry : installedPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(), installedEntry.getValue());
-            } else if (
-                    (effectivePlugins.get(installedEntry.getKey()).getVersion())
-                            .compareTo(installedEntry.getValue().getVersion()) <
-                            0) {
+            } else if ((effectivePlugins.get(installedEntry.getKey()).getVersion())
+                    .compareTo(installedEntry.getValue().getVersion()) < 0) {
                 effectivePlugins.replace(installedEntry.getKey(), installedEntry.getValue());
             }
         }
-
-        for (Map.Entry<String, Plugin> bundledEntry : bundledPluginVersions.entrySet()) {
-            if (!effectivePlugins.containsKey(bundledEntry.getKey())) {
-                effectivePlugins.put(bundledEntry.getKey(), bundledEntry.getValue());
-            } else if ((effectivePlugins.get(bundledEntry.getKey()).getVersion())
-                    .compareTo(bundledEntry.getValue().getVersion()) <
-                    0) {
-                effectivePlugins.replace(bundledEntry.getKey(), bundledEntry.getValue());
-            }
-        }
-        return effectivePlugins;
     }
 
     /**
@@ -373,30 +367,28 @@ public class PluginManager {
     }
 
     /**
-     * Prints out plugins that failed to download. Exits with status of 1 if any plugins failed to download.
-     */
-    @SuppressFBWarnings("DM_EXIT")
-    public void outputFailedPlugins() {
-        if (failedPlugins.size() > 0) {
-            System.out.println("Some plugins failed to download: ");
-            failedPlugins.stream().map(p -> p.getOriginalName() + " or " + p.getName()).forEach(System.out::println);
-            throw new DownloadPluginException("Failed plugins");
-        }
-    }
-
-    /**
      * Downloads a list of plugins
      *
      * @param plugins list of plugins to download
      */
     public void downloadPlugins(List<Plugin> plugins) {
-        plugins.parallelStream().forEach(plugin -> {
-            boolean successfulDownload = downloadPlugin(plugin, null);
-            if (!successfulDownload) {
-                System.out.println("Unable to download " + plugin.getName() + ". Skipping...");
-                failedPlugins.add(plugin);
+        ForkJoinPool ioThreadPool = new ForkJoinPool(64);
+        try {
+            ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
+                boolean successfulDownload = downloadPlugin(plugin, null);
+                if (!successfulDownload) {
+                    throw new DownloadPluginException("Unable to download " + plugin.getName());
+                }
+            })).get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof DownloadPluginException) {
+                throw (DownloadPluginException) e.getCause();
+            } else {
+                e.printStackTrace();
             }
-        });
+        }
     }
 
     /**
@@ -581,9 +573,8 @@ public class PluginManager {
             throw new UpdateCenterInfoRetrievalException("Malformed url for update center", e);
         }
         try {
-            String urlText = IOUtils.toString(url, Charset.forName("UTF-8"));
-            JSONObject updateCenterJson = new JSONObject(urlText);
-            return updateCenterJson;
+            String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
+            return new JSONObject(urlText);
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
@@ -647,9 +638,8 @@ public class PluginManager {
                     String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
-                System.out.println("Unable to resolve dependencies for " + plugin.getName());
                 Files.delete(tempFile.toPath());
-                return dependentPlugins;
+                throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
             }
 
             if (plugin.getVersion().toString().equals("latest") ||
