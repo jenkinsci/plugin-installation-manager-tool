@@ -117,9 +117,8 @@ class CliOptions {
         } else {
             if (Files.exists(pluginFile.toPath())) {
                 System.out.println("File containing list of plugins to be downloaded: " + pluginFile);
-            }
-            else {
-                throw new PluginInputException("File containing list of plugins does not exist");
+            } else {
+                throw new PluginInputException("File containing list of plugins does not exist " + pluginFile.toPath());
             }
         }
         return pluginFile;
