@@ -28,7 +28,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -822,11 +822,11 @@ public class PluginManagerTest {
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget)).thenReturn(response);
+        when(httpclient.execute(httphead)).thenReturn(response);
 
         StatusLine statusLine = mock(StatusLine.class);
         when(response.getStatusLine()).thenReturn(statusLine);
@@ -862,11 +862,11 @@ public class PluginManagerTest {
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget)).thenReturn(response);
+        when(httpclient.execute(httphead)).thenReturn(response);
 
         StatusLine statusLine = mock(StatusLine.class);
         when(response.getStatusLine()).thenReturn(statusLine);
@@ -1216,25 +1216,24 @@ public class PluginManagerTest {
         assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
-
     @Test
     public void downloadToFileTest() throws Exception {
         mockStatic(HttpClients.class);
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
         mockStatic(HttpClientContext.class);
 
         HttpClientContext context = mock(HttpClientContext.class);
         when(HttpClientContext.create()).thenReturn(context);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget, context)).thenReturn(response);
+        when(httpclient.execute(httphead, context)).thenReturn(response);
 
-        HttpHost target = PowerMockito.mock(HttpHost.class);
+        HttpHost target = mock(HttpHost.class);
         when(context.getTargetHost()).thenReturn(target);
 
         List<URI> redirectLocations = new ArrayList<>(); //Mockito.mock()
@@ -1247,7 +1246,7 @@ public class PluginManagerTest {
         URI downloadLocation = PowerMockito.mock(URI.class);
 
         URI requestedLocation = PowerMockito.mock(URI.class);
-        when(httpget.getURI()).thenReturn(requestedLocation);
+        when(httphead.getURI()).thenReturn(requestedLocation);
 
         when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
 

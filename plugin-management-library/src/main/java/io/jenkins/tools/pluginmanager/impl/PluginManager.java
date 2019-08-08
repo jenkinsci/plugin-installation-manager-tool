@@ -42,7 +42,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -353,8 +353,8 @@ public class PluginManager {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-                HttpGet httpget = new HttpGet(jenkinsVersionUcLatest);
-                try (CloseableHttpResponse response = httpclient.execute(httpget)) {
+                HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
+                try (CloseableHttpResponse response = httpclient.execute(httphead)) {
                     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                         System.out.println(
                                 "Using version specific update center for latest plugins: " + jenkinsVersionUcLatest);
@@ -773,12 +773,12 @@ public class PluginManager {
         }
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             HttpClientContext context = HttpClientContext.create();
-            HttpGet httpget = new HttpGet(urlString);
-            try (CloseableHttpResponse response = httpclient.execute(httpget, context)) {
+            HttpHead httphead = new HttpHead(urlString);
+            try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
                 HttpHost target = context.getTargetHost();
                 List<URI> redirectLocations = context.getRedirectLocations();
                 // Expected to be an absolute URI
-                URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
+                URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
                 FileUtils.copyURLToFile(location.toURL(), pluginFile);
             } catch (URISyntaxException | IOException e) {
                 logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
@@ -834,6 +834,7 @@ public class PluginManager {
             System.out.println("Unable to get version from war file");
             return null;
         }
+        logVerbose("Jenkins version: " + version);
         return new VersionNumber(version);
     }
 
