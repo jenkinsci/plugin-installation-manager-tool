@@ -48,7 +48,7 @@ public class PluginParser {
                         .map(line -> line.replaceAll("\\s", ""))
                         .filter(line -> !line.startsWith("#"))
                         .filter(line -> line.length() > 0)
-                        .map(line -> parsePluginLine(line))
+                        .map(this::parsePluginLine)
                         .collect(toList());
                 pluginsFromTxt.addAll(pluginsFromFile);
             } catch (IOException e) {

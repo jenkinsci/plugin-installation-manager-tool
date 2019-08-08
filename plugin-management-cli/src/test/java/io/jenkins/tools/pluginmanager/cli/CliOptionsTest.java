@@ -296,7 +296,7 @@ public class CliOptionsTest {
 
         parser.parseArgument("-v");
         options.showVersion();
-        assertEquals(version, outContent.toString().trim());
+        assertEquals(version, aliasVersionOut.toString().trim());
     }
 
 
