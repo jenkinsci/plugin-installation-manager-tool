@@ -222,6 +222,8 @@ public class PluginManager {
     /**
      * Gets the security warnings for plugins from the update center json and creates a list of all the security
      * warnings
+     *
+     * @return list of security warnings
      */
     public Map<String, List<SecurityWarning>> getSecurityWarnings() {
         if (latestUcJson == null) {
@@ -277,7 +279,7 @@ public class PluginManager {
      * Prints out security warning information for a list of plugins if isShowWarnings is set to true in the config
      * file
      *
-     * @param plugins
+     * @param plugins list of plugins for which to see security warnings
      */
 
     public void showSpecificSecurityWarnings(List<Plugin> plugins) {
@@ -344,7 +346,7 @@ public class PluginManager {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
-     * @param pluginsToBeDownloaded
+     * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
     public void checkVersionCompatibility(List<Plugin> pluginsToBeDownloaded) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
@@ -438,7 +440,7 @@ public class PluginManager {
      * highest required version
      *
      * @param plugin plugin to find dependencies
-     * @return map of <PluginName, Plugin> pairs corresponding to all optimal dependencies for the plugin passed in as
+     * @return map of PluginName, Plugin pairs corresponding to all optimal dependencies for the plugin passed in as
      * a parameter
      */
     public Map<String, Plugin> findOptimalDependencies(Plugin plugin) {
@@ -653,6 +655,7 @@ public class PluginManager {
      * or in other cases when getting information from json fails
      *
      * @param plugin plugin to resolve direct dependencies for
+     * @return list of dependencies that were parsed from the plugin's manifest file
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
         List<Plugin> dependentPlugins = new ArrayList<>();
@@ -756,6 +759,7 @@ public class PluginManager {
      * looking at update center json, it will. If that fails, the manifest will be used.
      *
      * @param plugin for which to find and download dependencies
+     * @return plugin's list of direct dependencies
      */
     public List<Plugin> resolveDirectDependencies(Plugin plugin) {
         List<Plugin> dependentPlugins;
@@ -811,6 +815,8 @@ public class PluginManager {
      * resolved after the plugin is downloaded.
      *
      * @param plugin to download
+     * @param location location to download plugin to. If location is set to null, will download to the plugin folder,
+     *                 otherwise will download to the temporary location specified. 
      * @return boolean signifying if plugin was successful
      */
     public boolean downloadPlugin(Plugin plugin, File location) {
