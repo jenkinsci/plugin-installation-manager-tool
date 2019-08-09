@@ -180,7 +180,7 @@ public class PluginManager {
     }
 
     private void sortEffectivePlugins(Map<String, Plugin> effectivePlugins,
-        Map<String, Plugin> installedPluginVersions) {
+                                      Map<String, Plugin> installedPluginVersions) {
         for (Map.Entry<String, Plugin> installedEntry : installedPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(), installedEntry.getValue());
@@ -471,9 +471,10 @@ public class PluginManager {
      * plugins with the same name
      *
      * @param optimizedChildDependencies map of entries corresponding to plugin names and plugin pairs
-     * @param allPlugins map of entries corresponding to plugin name and list of plugins that share that name pairs
+     * @param allPlugins                 map of entries corresponding to plugin name and list of plugins that share that name pairs
      */
-    public void addToAllDependentPlugins(Map<String, Plugin> optimizedChildDependencies, Map<String, List<Plugin>> allPlugins) {
+    public void addToAllDependentPlugins(Map<String, Plugin> optimizedChildDependencies,
+                                         Map<String, List<Plugin>> allPlugins) {
         for (Map.Entry<String, Plugin> entry : optimizedChildDependencies.entrySet()) {
             String dependencyName = entry.getKey();
             if (!allPlugins.containsKey(dependencyName)) {
@@ -495,7 +496,7 @@ public class PluginManager {
     public Map<String, Plugin> optimize(Map<String, List<Plugin>> childDependencies) {
         List<Plugin> duplicates = findDuplicates(childDependencies);
 
-        for (Plugin duplicate: duplicates) {
+        for (Plugin duplicate : duplicates) {
             removeFromOptimalDependencies(duplicate, childDependencies);
             List<Plugin> removedPluginsDependencies = new ArrayList<>(duplicate.getRecursiveDependencies().values());
             for (Plugin dependency : removedPluginsDependencies) {
@@ -506,7 +507,7 @@ public class PluginManager {
         Map<String, Plugin> optimizedDependencies = new HashMap<>();
 
         //after duplicates have been removed, should only be one plugin in the list
-        for (Map.Entry<String, List<Plugin>> entry: childDependencies.entrySet()) {
+        for (Map.Entry<String, List<Plugin>> entry : childDependencies.entrySet()) {
             if (!entry.getValue().isEmpty()) {
                 optimizedDependencies.put(entry.getKey(), entry.getValue().get(0));
             }
@@ -516,7 +517,8 @@ public class PluginManager {
 
     /**
      * Removes a plugin from the map corresponding to all plugin names and duplicated plugins
-     * @param pluginToRemove plugin that will be removed
+     *
+     * @param pluginToRemove    plugin that will be removed
      * @param childDependencies list of all of the optimized plugin dependencies of the children of the plugin to find
      *                          optimal dependencies for
      */
@@ -566,7 +568,8 @@ public class PluginManager {
 
     /**
      * Outputs information about a lower version of a plugin being replaced by a higher version
-     * @param lowerVersion lower version of plugin
+     *
+     * @param lowerVersion  lower version of plugin
      * @param higherVersion higher version of plugin
      */
     public void outputPluginReplacementInfo(Plugin lowerVersion, Plugin higherVersion) {
@@ -814,9 +817,9 @@ public class PluginManager {
      * Downloads a plugin, skipping if already installed or bundled in the war. A plugin's dependencies will be
      * resolved after the plugin is downloaded.
      *
-     * @param plugin to download
+     * @param plugin   to download
      * @param location location to download plugin to. If location is set to null, will download to the plugin folder,
-     *                 otherwise will download to the temporary location specified. 
+     *                 otherwise will download to the temporary location specified.
      * @return boolean signifying if plugin was successful
      */
     public boolean downloadPlugin(Plugin plugin, File location) {
