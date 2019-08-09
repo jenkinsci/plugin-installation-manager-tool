@@ -28,7 +28,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -375,7 +375,7 @@ public class PluginManagerTest {
 
         JSONObject browserStackIntegration= new JSONObject();
         JSONObject browserStack1 = new JSONObject();
-        browserStack1.put("buildDate", "Jul 12, 2016");
+        browserStack1.put("requiredCore", "1.580.1");
         JSONArray dependencies1 = new JSONArray();
         JSONObject credentials1 = new JSONObject();
         credentials1.put("name", "credentials");
@@ -387,12 +387,12 @@ public class PluginManagerTest {
         junit1.put("version", "1.10");
 
         dependencies1.put(credentials1);
-              dependencies1.put(junit1);
+        dependencies1.put(junit1);
         browserStack1.put("dependencies", dependencies1);
         browserStackIntegration.put("1.0.0", browserStack1);
 
         JSONObject browserStack111 = new JSONObject();
-        browserStack111.put("buildDate", "Jul 02, 2018");
+        browserStack111.put("requiredCore", "1.580.1");
         JSONArray dependencies111 = new JSONArray();
         JSONObject credentials111 = new JSONObject();
         credentials111.put("name", "credentials");
@@ -409,7 +409,7 @@ public class PluginManagerTest {
         browserStackIntegration.put("1.1.1", browserStack111);
 
         JSONObject browserStack112 = new JSONObject();
-        browserStack112.put("buildDate", "Aug 09, 2018");
+        browserStack112.put("requiredCore", "1.653");
         JSONArray dependencies112 = new JSONArray();
         JSONObject credentials112 = new JSONObject();
         credentials112.put("name", "credentials");
@@ -556,6 +556,55 @@ public class PluginManagerTest {
         // currently fails since 2.5.3 matches pattern even though 2.5.1 is last effected version
         assertEquals(true, pm.warningExists(sshAgents1));
         assertEquals(false, pm.warningExists(sshAgents2));
+    }
+
+    @Test
+    public void checkVersionCompatibilityNullTest() {
+        pm.setJenkinsVersion(null);
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(output));
+
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        plugin1.setJenkinsVersion("2.121.2");
+
+        Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
+        plugin2.setJenkinsVersion("1.609.3");
+
+        List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
+        pm.checkVersionCompatibility(pluginsToDownload);
+
+        assertEquals("", output.toString());
+    }
+
+    @Test(expected = VersionCompatibilityException.class)
+    public void checkVersionCompatibilityFailTest() throws IOException {
+        pm.setJenkinsVersion(new VersionNumber("1.609.3"));
+
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        plugin1.setJenkinsVersion("2.121.2");
+
+        Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
+        plugin2.setJenkinsVersion("1.609.3");
+
+        List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
+        pm.checkVersionCompatibility(pluginsToDownload);
+    }
+
+    @Test
+    public void checkVersionCompatibilityPassTest() {
+        pm.setJenkinsVersion(new VersionNumber("2.121.2"));
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(output));
+
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        plugin1.setJenkinsVersion("2.121.2");
+
+        Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
+        plugin2.setJenkinsVersion("1.609.3");
+
+        assertEquals("", output.toString());
     }
 
     @Test
@@ -830,11 +879,11 @@ public class PluginManagerTest {
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget)).thenReturn(response);
+        when(httpclient.execute(httphead)).thenReturn(response);
 
         StatusLine statusLine = mock(StatusLine.class);
         when(response.getStatusLine()).thenReturn(statusLine);
@@ -870,11 +919,11 @@ public class PluginManagerTest {
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget)).thenReturn(response);
+        when(httpclient.execute(httphead)).thenReturn(response);
 
         StatusLine statusLine = mock(StatusLine.class);
         when(response.getStatusLine()).thenReturn(statusLine);
@@ -1378,25 +1427,24 @@ public class PluginManagerTest {
         assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
-
     @Test
     public void downloadToFileTest() throws Exception {
         mockStatic(HttpClients.class);
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
         when(HttpClients.createDefault()).thenReturn(httpclient);
-        HttpGet httpget = mock(HttpGet.class);
+        HttpHead httphead = mock(HttpHead.class);
 
         mockStatic(HttpClientContext.class);
 
         HttpClientContext context = mock(HttpClientContext.class);
         when(HttpClientContext.create()).thenReturn(context);
 
-        whenNew(HttpGet.class).withAnyArguments().thenReturn(httpget);
+        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httpget, context)).thenReturn(response);
+        when(httpclient.execute(httphead, context)).thenReturn(response);
 
-        HttpHost target = PowerMockito.mock(HttpHost.class);
+        HttpHost target = mock(HttpHost.class);
         when(context.getTargetHost()).thenReturn(target);
 
         List<URI> redirectLocations = new ArrayList<>(); //Mockito.mock()
@@ -1409,7 +1457,7 @@ public class PluginManagerTest {
         URI downloadLocation = PowerMockito.mock(URI.class);
 
         URI requestedLocation = PowerMockito.mock(URI.class);
-        when(httpget.getURI()).thenReturn(requestedLocation);
+        when(httphead.getURI()).thenReturn(requestedLocation);
 
         when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
 
@@ -1611,6 +1659,7 @@ public class PluginManagerTest {
         mavenInvokerPlugin.put("dependencies", mavenInvokerDependencies);
 
         mavenInvokerPlugin.put("version", "2.4");
+        mavenInvokerPlugin.put("requiredCore", "2.89.4");
 
         pluginJson.put("maven-invoker-plugin", mavenInvokerPlugin);
 
@@ -1633,6 +1682,7 @@ public class PluginManagerTest {
 
         amazonEcsPlugin.put("dependencies", amazonEcsPluginDependencies);
         amazonEcsPlugin.put("version", "1.20");
+        amazonEcsPlugin.put("requiredCore", "2.107.3");
 
         pluginJson.put("amazon-ecs", amazonEcsPlugin);
 
@@ -1642,6 +1692,7 @@ public class PluginManagerTest {
 
         antPlugin.put("dependencies", antPluginDependencies);
         antPlugin.put("version", "1.9");
+        antPlugin.put("requiredVersion", "2.121.2");
 
         pluginJson.put("ant", antPlugin);
 

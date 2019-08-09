@@ -24,6 +24,7 @@ public class Plugin implements Comparable<Plugin> {
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
     private boolean experimental;
+    private VersionNumber jenkinsVersion;
 
     public Plugin(String name, String version, String url, String groupId) {
         this.originalName = name;
@@ -79,9 +80,12 @@ public class Plugin implements Comparable<Plugin> {
         this.recursiveDependencies = dependencies;
     }
 
-    public void setParent(Plugin parent)
-    {
+    public void setParent(Plugin parent) {
         this.parent = parent;
+    }
+
+    public void setJenkinsVersion(String jenkinsVersion) {
+        this.jenkinsVersion = new VersionNumber(jenkinsVersion);
     }
 
     public String getName() {
@@ -126,6 +130,10 @@ public class Plugin implements Comparable<Plugin> {
 
     public Plugin getParent() {
         return parent;
+    }
+
+    public VersionNumber getJenkinsVersion() {
+        return jenkinsVersion;
     }
 
     public void setSecurityWarnings(List<SecurityWarning> securityWarnings) {

@@ -9,7 +9,7 @@
     </parent>
 
     <properties>
-        <revision>0.1-alpha-10</revision>
+        <revision>0.1-alpha-11</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <!-- Version of Maven Components -->

@@ -45,7 +45,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -114,6 +114,7 @@ public class PluginManager {
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         showAvailableUpdates(pluginsToBeDownloaded);
+        checkVersionCompatibility(pluginsToBeDownloaded);
 
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
@@ -340,6 +341,27 @@ public class PluginManager {
     }
 
     /**
+     * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
+     * user specified Jenkins war file
+     *
+     * @param pluginsToBeDownloaded
+     */
+    public void checkVersionCompatibility(List<Plugin> pluginsToBeDownloaded) {
+        if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
+            for (Plugin p : pluginsToBeDownloaded) {
+                if (p.getJenkinsVersion() != null) {
+                    if (p.getJenkinsVersion().compareTo(jenkinsVersion) > 0) {
+                        throw new VersionCompatibilityException(
+                                String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s in %s",
+                                        p.getName(), p.getVersion().toString(), p.getJenkinsVersion().toString(),
+                                        jenkinsVersion.toString(), jenkinsWarFile.toString()));
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
      * center url String to include Jenkins Version. Otherwise, sets update center url to match the update center in
      * the configuration class
@@ -349,8 +371,8 @@ public class PluginManager {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-                HttpGet httpget = new HttpGet(jenkinsVersionUcLatest);
-                try (CloseableHttpResponse response = httpclient.execute(httpget)) {
+                HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
+                try (CloseableHttpResponse response = httpclient.execute(httphead)) {
                     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                         System.out.println(
                                 "Using version specific update center for latest plugins: " + jenkinsVersionUcLatest);
@@ -612,9 +634,11 @@ public class PluginManager {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+                plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
         } else {
+            plugin.setJenkinsVersion(pluginInfo.getString("requiredCore"));
             //plugin version is latest or experimental
             String version = pluginInfo.getString("version");
             plugin.setVersion(new VersionNumber(version));
@@ -675,6 +699,8 @@ public class PluginManager {
                             dependentPlugins.stream()
                                     .map(p -> p.getName() + " " + p.getVersion())
                                     .collect(Collectors.joining("\n")));
+
+            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
@@ -876,12 +902,12 @@ public class PluginManager {
         }
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             HttpClientContext context = HttpClientContext.create();
-            HttpGet httpget = new HttpGet(urlString);
-            try (CloseableHttpResponse response = httpclient.execute(httpget, context)) {
+            HttpHead httphead = new HttpHead(urlString);
+            try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
                 HttpHost target = context.getTargetHost();
                 List<URI> redirectLocations = context.getRedirectLocations();
                 // Expected to be an absolute URI
-                URI location = URIUtils.resolve(httpget.getURI(), target, redirectLocations);
+                URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
                 FileUtils.copyURLToFile(location.toURL(), pluginFile);
             } catch (URISyntaxException | IOException e) {
                 logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
@@ -937,6 +963,7 @@ public class PluginManager {
             System.out.println("Unable to get version from war file");
             return null;
         }
+        logVerbose("Jenkins version: " + version);
         return new VersionNumber(version);
     }
 
