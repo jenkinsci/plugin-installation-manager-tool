@@ -767,14 +767,14 @@ public class PluginManagerTest {
 
         List<Plugin> pluginsAndDependencies = new ArrayList<>(pluginsAndDependenciesMap.values());
 
-        Collections.sort(pluginsAndDependencies);
+        List<String> actualPluginInfo = convertPluginsToStrings(pluginsAndDependencies);
 
         List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
                 plugin2, plugin2Dependency1, plugin2Dependency2, plugin3, plugin3Dependency1, replaced2, replacedSecond2));
 
-        Collections.sort(expectedPlugins);
+        List<String> expectedPluginInfo = convertPluginsToStrings(expectedPlugins);
 
-        assertEquals(expectedPlugins, pluginsAndDependencies);
+        assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
 
@@ -1160,10 +1160,8 @@ public class PluginManagerTest {
         assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
     }
 
-
-    /*
     @Test
-    public void optimizeTest() {
+    public void findOptimalDependenciesTest() {
         Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
         List<Plugin> grandParentDependencies = new ArrayList<>();
 
@@ -1225,11 +1223,6 @@ public class PluginManagerTest {
         expectedDependencies.add(child9.toString());
         Collections.sort(expectedDependencies);
 
-
-
-        //See Jira JENKINS-58775 - the ideal solution has the following dependencies: grandparent, parent1, child4,
-        //parent3, child2, child8, child3, and child9
-
         Map<String, Plugin> recursiveDependencies = pm.findOptimalDependencies(grandParent);
 
         List<String> actualDependencies = convertPluginsToStrings(new ArrayList<>(recursiveDependencies.values()));
@@ -1238,7 +1231,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void optimizeTest2() {
+    public void findOptimalDependencies2() {
         Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
         List<Plugin> grandParentDependencies = new ArrayList<>();
 
@@ -1259,7 +1252,6 @@ public class PluginManagerTest {
 
         grandParentDependencies.add(parent1);
         grandParentDependencies.add(parent2);
-        //grandParentDependencies.add(parent3);
 
         grandParent.setDirectDependencies(grandParentDependencies);
 
@@ -1302,9 +1294,6 @@ public class PluginManagerTest {
         expectedDependencies.add(child5.toString());
         Collections.sort(expectedDependencies);
 
-        //See Jira JENKINS-58775 - the ideal solution has the following dependencies: grandparent, parent1, child4,
-        //parent3, child2, child8, child3, and child9
-
         Map<String, Plugin> recursiveDependencies = pm.findOptimalDependencies(grandParent);
 
         List<String> actualDependencies = convertPluginsToStrings(new ArrayList<>(recursiveDependencies.values()));
@@ -1312,7 +1301,7 @@ public class PluginManagerTest {
         assertEquals(expectedDependencies, actualDependencies);
     }
 
-*/
+
     @Test
     public void resolveRecursiveDependenciesTest() {
         PluginManager pluginManagerSpy = spy(pm);
