@@ -118,9 +118,10 @@ public class PluginManagerTest {
         doNothing().when(pluginManagerSpy).listPlugins();
         doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
         doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
+        doNothing().when(pluginManagerSpy).checkVersionCompatibility(anyList());
         doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
 
-        pluginManager.start();
+        pluginManagerSpy.start();
     }
 
     @Test(expected = DirectoryCreationException.class)
