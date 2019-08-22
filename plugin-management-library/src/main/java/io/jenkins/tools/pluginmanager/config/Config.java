@@ -28,6 +28,7 @@ public class Config {
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
+    private boolean doDownload;
 
     private Config(
             File pluginDir,
@@ -40,7 +41,8 @@ public class Config {
             List<Plugin> plugins,
             URL jenkinsUc,
             URL jenkinsUcExperimental,
-            URL jenkinsIncrementalsRepoMirror
+            URL jenkinsIncrementalsRepoMirror,
+            boolean doDownload
     ) {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
@@ -53,6 +55,7 @@ public class Config {
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+        this.doDownload = doDownload;
     }
 
     public File getPluginDir() {
@@ -100,13 +103,9 @@ public class Config {
     }
 
     public boolean doDownload() {
-        if (!isShowPluginsToBeDownloaded() && !isShowAllWarnings() && !isShowWarnings() &&
-                !isShowAvailableUpdates()) {
-            return true;
-        }
-        return false;
-
+        return doDownload;
     }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -123,6 +122,7 @@ public class Config {
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
+        private boolean doDownload;
 
         private Builder() {
         }
@@ -182,6 +182,11 @@ public class Config {
             return this;
         }
 
+        public Builder withDoDownload(boolean doDownload) {
+            this.doDownload = doDownload;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -194,7 +199,8 @@ public class Config {
                     plugins,
                     jenkinsUc,
                     jenkinsUcExperimental,
-                    jenkinsIncrementalsRepoMirror
+                    jenkinsIncrementalsRepoMirror,
+                    doDownload
             );
         }
 

@@ -72,8 +72,6 @@ public class CliOptionsTest {
         System.setOut(new PrintStream(outContent));
     }
 
-
-
     @Test
     public void setupDefaultsTest() throws CmdLineException {
         parser.parseArgument();
@@ -214,7 +212,6 @@ public class CliOptionsTest {
         assertEquals(jenkinsWar, cfg.getJenkinsWar());
     }
 
-
     @Test
     public void setupPluginDirTest() throws CmdLineException, IOException {
         String pluginDir = temporaryFolder.newFolder("plugins").toString();
@@ -277,7 +274,6 @@ public class CliOptionsTest {
         assertEquals(true, cfg.isShowWarnings());
     }
 
-
     @Test
     public void showVersionTest() throws Exception {
         parser.parseArgument("--version");
@@ -299,7 +295,6 @@ public class CliOptionsTest {
         assertEquals(version, aliasVersionOut.toString().trim());
     }
 
-
     @Test(expected = VersionNotFoundException.class)
     public void showVersionErrorTest() throws CmdLineException {
         ByteArrayOutputStream nullPropertiesOut = new ByteArrayOutputStream();
@@ -308,6 +303,13 @@ public class CliOptionsTest {
         parser.parseArgument("--version");
         doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
         cliOptionsSpy.showVersion();
+    }
+
+    @Test
+    public void noDownloadTest() throws CmdLineException {
+        parser.parseArgument("--no-download");
+        Config cfg = options.setup();
+        assertEquals(false, cfg.doDownload());
     }
 
     @After

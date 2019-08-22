@@ -84,6 +84,11 @@ class CliOptions {
     @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
     private boolean showVersion;
 
+    @Option(name = "--no-download", usage = "Set true to avoid downloading plugins; can be used in combination with " +
+            "other options to see information about plugins and their dependencies",
+            handler = BooleanOptionHandler.class)
+    private boolean isNoDownload;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -102,6 +107,7 @@ class CliOptions {
                 .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
                 .withShowAvailableUpdates(isShowAvailableUpdates())
                 .withIsVerbose(isVerbose())
+                .withDoDownload(!isNoDownload())
                 .build();
     }
 
@@ -309,6 +315,13 @@ class CliOptions {
         return jenkinsIncrementalsRepo;
     }
 
+    /**
+     * Returns true if user selected option to not download plugins. By default, isNoDownload is set to false and
+     * plugins will be downloaded.
+     */
+    private boolean isNoDownload() {
+        return isNoDownload;
+    }
 
     /**
      * Prints out the Plugin Management Tool version
