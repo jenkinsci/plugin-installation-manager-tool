@@ -178,7 +178,7 @@ public class PluginManager {
     }
 
     private void sortEffectivePlugins(Map<String, Plugin> effectivePlugins,
-        Map<String, Plugin> installedPluginVersions) {
+                                      Map<String, Plugin> installedPluginVersions) {
         for (Map.Entry<String, Plugin> installedEntry : installedPluginVersions.entrySet()) {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(), installedEntry.getValue());
@@ -220,6 +220,8 @@ public class PluginManager {
     /**
      * Gets the security warnings for plugins from the update center json and creates a list of all the security
      * warnings
+     *
+     * @return map of plugins and their security warnings
      */
     public Map<String, List<SecurityWarning>> getSecurityWarnings() {
         if (latestUcJson == null) {
@@ -275,7 +277,7 @@ public class PluginManager {
      * Prints out security warning information for a list of plugins if isShowWarnings is set to true in the config
      * file
      *
-     * @param plugins
+     * @param plugins list of plugins for which to see security warnings
      */
 
     public void showSpecificSecurityWarnings(List<Plugin> plugins) {
@@ -342,7 +344,7 @@ public class PluginManager {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
-     * @param pluginsToBeDownloaded
+     * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
     public void checkVersionCompatibility(List<Plugin> pluginsToBeDownloaded) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
@@ -432,18 +434,8 @@ public class PluginManager {
                     allPluginDependencies.put(dependencyName, dependentPlugin);
                 } else {
                     Plugin existingDependency = allPluginDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().compareTo(dependencyVersion) < 0) {
-                        logVerbose(String.format(
-                                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
-                                        "by %s (%s), upgrading required plugin version",
-                                dependencyName,
-                                existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString(),
-                                dependencyVersion.toString(),
-                                dependentPlugin.getParent().getName(),
-                                dependentPlugin.getParent().getVersion().toString()));
-
+                    if (existingDependency.getVersion().isOlderThan(dependencyVersion)) {
+                        outputPluginReplacementInfo(existingDependency, dependentPlugin);
                         allPluginDependencies.replace(existingDependency.getName(), dependentPlugin);
                     }
                 }
@@ -452,6 +444,24 @@ public class PluginManager {
         return allPluginDependencies;
     }
 
+    /**
+     * Outputs information about a lower version of a plugin being replaced by a higher version
+     *
+     * @param lowerVersion  lower version of plugin
+     * @param higherVersion higher version of plugin
+     */
+    public void outputPluginReplacementInfo(Plugin lowerVersion, Plugin higherVersion) {
+        logVerbose(String.format(
+                "Version of %s (%s) required by %s (%s) is lower than the version required (%s) " +
+                        "by %s (%s), upgrading required plugin version",
+                lowerVersion.getName(),
+                lowerVersion.getVersion().toString(),
+                lowerVersion.getParent().getName(),
+                lowerVersion.getParent().getVersion().toString(),
+                higherVersion.getVersion().toString(),
+                higherVersion.getParent().getName(),
+                higherVersion.getParent().getVersion().toString()));
+    }
 
     /**
      * Gets the json object at the given url
@@ -525,6 +535,7 @@ public class PluginManager {
      * or in other cases when getting information from json fails
      *
      * @param plugin plugin to resolve direct dependencies for
+     * @return list of dependencies that were parsed from the plugin's manifest file
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
         List<Plugin> dependentPlugins = new ArrayList<>();
@@ -561,8 +572,9 @@ public class PluginManager {
                     String[] pluginInfo = dependency.split(":");
                     String pluginName = pluginInfo[0];
                     String pluginVersion = pluginInfo[1];
-                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, false);
+                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
                     dependentPlugins.add(dependentPlugin);
+                    dependentPlugin.setParent(plugin);
                 }
             }
             logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
@@ -602,8 +614,9 @@ public class PluginManager {
             if (!isPluginOptional) {
                 String pluginName = dependency.getString("name");
                 String pluginVersion = dependency.getString("version");
-                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, isPluginOptional);
+                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
                 dependentPlugins.add(dependentPlugin);
+                dependentPlugin.setParent(plugin);
             }
         }
 
@@ -626,6 +639,7 @@ public class PluginManager {
      * looking at update center json, it will. If that fails, the manifest will be used.
      *
      * @param plugin for which to find and download dependencies
+     * @return plugin's list of direct dependencies
      */
     public List<Plugin> resolveDirectDependencies(Plugin plugin) {
         List<Plugin> dependentPlugins;
@@ -675,15 +689,8 @@ public class PluginManager {
                     queue.add(p);
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().compareTo(p.getVersion()) < 0) {
-                        logVerbose(String.format("Version of %s (%s) required by %s (%s) is lower than the " +
-                                        "version required (%s) by %s (%s), upgrading required plugin version",
-                                dependencyName, existingDependency.getVersion().toString(),
-                                existingDependency.getParent().getName(),
-                                existingDependency.getParent().getVersion().toString(),
-                                p.getVersion().toString(),
-                                p.getParent().getName(),
-                                p.getParent().getVersion().toString()));
+                    if (existingDependency.getVersion().isOlderThan(p.getVersion())) {
+                        outputPluginReplacementInfo(existingDependency, p);
                         queue.add(p); //in case the higher version contains dependencies the lower version didn't have
                         recursiveDependencies.replace(dependencyName, existingDependency, p);
                     }
@@ -697,7 +704,9 @@ public class PluginManager {
      * Downloads a plugin, skipping if already installed or bundled in the war. A plugin's dependencies will be
      * resolved after the plugin is downloaded.
      *
-     * @param plugin to download
+     * @param plugin   to download
+     * @param location location to download plugin to. If location is set to null, will download to the plugin folder
+     *                 otherwise will download to the temporary location specified.
      * @return boolean signifying if plugin was successful
      */
     public boolean downloadPlugin(Plugin plugin, File location) {
