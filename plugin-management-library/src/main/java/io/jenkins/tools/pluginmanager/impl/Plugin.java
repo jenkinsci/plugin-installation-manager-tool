@@ -42,25 +42,6 @@ public class Plugin implements Comparable<Plugin> {
         }
     }
 
-    public Plugin(String name, String version, boolean isPluginOptional) {
-        this.name = name;
-        this.originalName = name;
-        if (StringUtils.isEmpty(version)) {
-            version = "latest";
-        }
-        this.version = new VersionNumber(version);
-        this.isPluginOptional = isPluginOptional;
-        this.dependencies = new ArrayList<>();
-        this.parent = this;
-        this.securityWarnings = new ArrayList<>();
-        if (version.equals("latest")) {
-            latest = true;
-        }
-        if (version.equals("experimental")) {
-            experimental = true;
-        }
-    }
-
     public void setName(String name) {
         this.name = name;
     }

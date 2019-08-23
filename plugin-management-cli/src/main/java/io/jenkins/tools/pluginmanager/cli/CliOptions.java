@@ -89,6 +89,9 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean isNoDownload;
 
+    @Option(name = "--help", aliases = {"-h"}, help = true)
+    private boolean showHelp;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -338,6 +341,15 @@ class CliOptions {
         } catch (IOException e) {
             throw new VersionNotFoundException("No version information available", e);
         }
+    }
+
+    /**
+     * Returns boolean corresponding to if user wanted to view the help option output
+     *
+     * @return true if user wanted to show help
+     */
+    public boolean isShowHelp() {
+        return showHelp;
     }
 
     // visible for testing

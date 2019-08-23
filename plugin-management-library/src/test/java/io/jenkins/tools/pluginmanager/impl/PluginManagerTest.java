@@ -78,10 +78,10 @@ public class PluginManagerTest {
         pm = new PluginManager(cfg);
 
         directDependencyExpectedPlugins = new ArrayList<>();
-        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", false));
-        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", false));
-        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", false));
-        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", false));
+        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", null, null));
+        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", null, null));
 
     }
 
@@ -859,7 +859,6 @@ public class PluginManagerTest {
         assertEquals("plugin", pluginToDownload.getOriginalName());
     }
 
-
     @Test
     public void checkVersionSpecificUpdateCenterTest() throws Exception {
         //Test where version specific update center exists
@@ -885,6 +884,33 @@ public class PluginManagerTest {
 
         String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
         assertEquals(expected, pm.getJenkinsUCLatest());
+    }
+
+    @Test
+    public void outputPluginReplacementInfoTest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withIsVerbose(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        Plugin lowerVersion = new Plugin("plugin1", "1.0", null, null);
+        Plugin lowerVersionParent = new Plugin("plugin1parent1", "1.0.0", null, null);
+        Plugin higherVersion = new Plugin("plugin1", "2.0", null, null);
+        Plugin highVersionParent = new Plugin("plugin1parent2", "2.0.0", null, null);
+        lowerVersion.setParent(lowerVersionParent);
+        higherVersion.setParent(highVersionParent);
+
+        String expected = "Version of plugin1 (1.0) required by plugin1parent1 (1.0.0) is lower than the version " +
+                "required (2.0) by plugin1parent2 (2.0.0), upgrading required plugin version";
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(output));
+
+        pluginManager.outputPluginReplacementInfo(lowerVersion, higherVersion);
+
+        assertEquals(expected, output.toString().trim());
     }
 
     @Test(expected = UpdateCenterInfoRetrievalException.class)

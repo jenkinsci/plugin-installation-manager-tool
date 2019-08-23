@@ -27,6 +27,11 @@ public class Main {
                 return;
             }
 
+            if (options.isShowHelp()) {
+                parser.printUsage(System.out);
+                return;
+            }
+
             Config cfg = options.setup();
             PluginManager pm = new PluginManager(cfg);
             pm.start();
