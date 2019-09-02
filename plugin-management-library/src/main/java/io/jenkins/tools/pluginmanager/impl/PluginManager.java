@@ -67,7 +67,9 @@ public class PluginManager {
     private JSONObject latestUcJson;
     private JSONObject experimentalUcJson;
     private JSONObject pluginInfoJson;
+    private JSONObject latestPlugins;
     private boolean verbose;
+    private boolean useLatest;
 
     public static final String SEPARATOR = File.separator;
 
@@ -82,6 +84,7 @@ public class PluginManager {
         allPluginsAndDependencies = new HashMap<>();
         verbose = cfg.isVerbose();
         jenkinsUcLatest = cfg.getJenkinsUc().toString();
+        useLatest = cfg.isUseLatest();
     }
 
     /**
@@ -142,13 +145,13 @@ public class PluginManager {
             } else if (bundledPluginVersions.containsKey(pluginName) &&
                     installedPluginVersions.containsKey(pluginName)) {
                 installedVersion = bundledPluginVersions.get(pluginName).getVersion().
-                        compareTo(installedPluginVersions.get(pluginName).getVersion()) > 0 ?
+                        isNewerThan(installedPluginVersions.get(pluginName).getVersion()) ?
                         bundledPluginVersions.get(pluginName).getVersion() :
                         installedPluginVersions.get(pluginName).getVersion();
             }
             if (installedVersion == null) {
                 pluginsToDownload.add(plugin);
-            } else if (installedVersion.compareTo(plugin.getVersion()) < 0) {
+            } else if (installedVersion.isOlderThan(plugin.getVersion())) {
                 logVerbose(String.format(
                         "Installed version (%s) of %s is less than minimum required version of %s, bundled " +
                                 "plugin will be upgraded", installedVersion, pluginName, plugin.getVersion()));
@@ -183,7 +186,7 @@ public class PluginManager {
             if (!effectivePlugins.containsKey(installedEntry.getKey())) {
                 effectivePlugins.put(installedEntry.getKey(), installedEntry.getValue());
             } else if ((effectivePlugins.get(installedEntry.getKey()).getVersion())
-                    .compareTo(installedEntry.getValue().getVersion()) < 0) {
+                    .isOlderThan(installedEntry.getValue().getVersion())) {
                 effectivePlugins.replace(installedEntry.getKey(), installedEntry.getValue());
             }
         }
@@ -305,10 +308,8 @@ public class PluginManager {
         if (cfg.isShowAvailableUpdates()) {
             System.out.println("\nAvailable updates:");
             for (Plugin plugin : plugins) {
-                JSONObject pluginsJson = latestUcJson.getJSONObject("plugins");
-                JSONObject pluginInfo = (JSONObject) pluginsJson.get(plugin.getName());
-                VersionNumber latestVersion = new VersionNumber(pluginInfo.getString("version"));
-                if (plugin.getVersion().compareTo(latestVersion) < 0) {
+                VersionNumber latestVersion = getLatestPluginVersion(plugin.getName());
+                if (plugin.getVersion().isOlderThan(latestVersion)) {
                     System.out.println(String.format("%s (%s) has an available update: %s", plugin.getName(),
                             plugin.getVersion(), latestVersion));
                 }
@@ -350,7 +351,7 @@ public class PluginManager {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
                 if (p.getJenkinsVersion() != null) {
-                    if (p.getJenkinsVersion().compareTo(jenkinsVersion) > 0) {
+                    if (p.getJenkinsVersion().isNewerThan(jenkinsVersion)) {
                         throw new VersionCompatibilityException(
                                 String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s in %s",
                                         p.getName(), p.getVersion().toString(), p.getJenkinsVersion().toString(),
@@ -490,6 +491,7 @@ public class PluginManager {
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
         latestUcJson = getJson(jenkinsUcLatest + "/update-center.actual.json");
+        latestPlugins = latestUcJson.getJSONObject("plugins");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental() + "/update-center.actual.json");
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
@@ -507,9 +509,6 @@ public class PluginManager {
             return null;
         }
 
-        if (!plugins.has(plugin.getName())) {
-            return null;
-        }
         JSONObject pluginInfo = (JSONObject) plugins.get(plugin.getName());
 
         if (ucJson.equals(pluginInfoJson)) {
@@ -527,6 +526,23 @@ public class PluginManager {
             return (JSONArray) pluginInfo.get("dependencies");
         }
         return null;
+    }
+
+    /**
+     *
+     * @param pluginName
+     * @return
+     */
+    public VersionNumber getLatestPluginVersion(String pluginName) {
+        if (!latestPlugins.has(pluginName)) {
+            throw new PluginNotFoundException(String.format("Unable to find plugin %s in update center %s", pluginName,
+                    jenkinsUcLatest));
+        }
+
+        JSONObject pluginInfo = (JSONObject) latestPlugins.get(pluginName);
+        String latestPluginVersion = pluginInfo.getString("version");
+
+        return new VersionNumber(latestPluginVersion);
     }
 
     /**
@@ -573,6 +589,12 @@ public class PluginManager {
                     String pluginName = pluginInfo[0];
                     String pluginVersion = pluginInfo[1];
                     Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+                    if (useLatest && plugin.isLatest()) {
+                        VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                        dependentPlugin.setVersion(latestPluginVersion);
+                        dependentPlugin.setLatest(true);
+                    }
+
                     dependentPlugins.add(dependentPlugin);
                     dependentPlugin.setParent(plugin);
                 }
@@ -615,6 +637,11 @@ public class PluginManager {
                 String pluginName = dependency.getString("name");
                 String pluginVersion = dependency.getString("version");
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+                if (useLatest && plugin.isLatest()) {
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    dependentPlugin.setVersion(latestPluginVersion);
+                    dependentPlugin.setLatest(true);
+                }
                 dependentPlugins.add(dependentPlugin);
                 dependentPlugin.setParent(plugin);
             }
@@ -716,7 +743,7 @@ public class PluginManager {
         // even if plugin is already downloaded, still want to download the temp file to parse dependencies to ensure
         // that all dependencies are also installed
         if (location == null && installedPluginVersions.containsKey(pluginName) &&
-                installedPluginVersions.get(pluginName).getVersion().compareTo(pluginVersion) >= 0) {
+                installedPluginVersions.get(pluginName).getVersion().isNewerThanOrEqualTo(pluginVersion)) {
             logVerbose(pluginName + " already installed, skipping");
             return true;
         }
@@ -1059,6 +1086,14 @@ public class PluginManager {
     }
 
     /**
+     * Sets the json object containing latest plugin information
+     * @param latestPlugins JSONObject containing info for latest plugins
+     */
+    public void setLatestUcPlugins(JSONObject latestPlugins) {
+        this.latestPlugins = latestPlugins;
+    }
+
+    /**
      * Sets the security warnings
      *
      * @param securityWarnings map of the plugin name to the list of security warnings for that plugin
@@ -1075,6 +1110,7 @@ public class PluginManager {
     public void setPluginInfoJson(JSONObject pluginInfoJson) {
         this.pluginInfoJson = pluginInfoJson;
     }
+
 
     /**
      * Gets the list of failed plugins

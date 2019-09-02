@@ -29,6 +29,7 @@ public class Config {
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
     private boolean doDownload;
+    private boolean useLatest;
 
     private Config(
             File pluginDir,
@@ -42,7 +43,8 @@ public class Config {
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
-            boolean doDownload
+            boolean doDownload,
+            boolean useLatest
     ) {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
@@ -56,6 +58,7 @@ public class Config {
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
         this.doDownload = doDownload;
+        this.useLatest = useLatest;
     }
 
     public File getPluginDir() {
@@ -106,6 +109,10 @@ public class Config {
         return doDownload;
     }
 
+    public boolean isUseLatest() {
+        return useLatest;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -123,6 +130,7 @@ public class Config {
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
         private boolean doDownload;
+        private boolean useLatest;
 
         private Builder() {
         }
@@ -187,6 +195,11 @@ public class Config {
             return this;
         }
 
+        public Builder withUseLatest(boolean useLatest) {
+            this.useLatest = useLatest;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -200,7 +213,8 @@ public class Config {
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
-                    doDownload
+                    doDownload,
+                    useLatest
             );
         }
 

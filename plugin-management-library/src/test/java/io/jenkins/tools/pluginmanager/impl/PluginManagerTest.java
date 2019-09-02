@@ -617,6 +617,7 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
+
         List<Plugin> plugins = new ArrayList<>();
         plugins.add(new Plugin("ant", "1.8", null, null));
         plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
@@ -638,18 +639,21 @@ public class PluginManagerTest {
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
 
         List<Plugin> plugins = new ArrayList<>();
         plugins.add(new Plugin("ant", "1.8", null, null));
         plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
         plugins.add(new Plugin("maven-invoker-plugin", "2.4", null, null ));
 
-        pluginManager.setLatestUcJson(setTestUcJson());
+        doReturn(new VersionNumber("1.9")).when(pluginManagerSpy).getLatestPluginVersion("ant");
+        doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
+        doReturn(new VersionNumber("2.4")).when(pluginManagerSpy).getLatestPluginVersion("maven-invoker-plugin");
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         System.setOut(new PrintStream(output));
 
-        pluginManager.showAvailableUpdates(plugins);
+        pluginManagerSpy.showAvailableUpdates(plugins);
 
         String expectedOutput = "\nAvailable updates:\n" +
                 "ant (1.8) has an available update: 1.9\n" +
@@ -1009,6 +1013,62 @@ public class PluginManagerTest {
         assertEquals("1.10", pm.getPluginVersion(testHpi));
     }
 
+    @Test (expected = PluginNotFoundException.class)
+    public void getLatestPluginVersionExceptionTest() {
+        setTestUcJson();
+        pm.getLatestPluginVersion("git");
+    }
+
+    @Test
+    public void getLatestPluginTest() {
+        setTestUcJson();
+        VersionNumber antLatestVersion = pm.getLatestPluginVersion("ant");
+        assertEquals("1.9", antLatestVersion.toString());
+
+        VersionNumber amazonEcsLatestVersion = pm.getLatestPluginVersion("amazon-ecs");
+        assertEquals("1.20", amazonEcsLatestVersion.toString());
+    }
+
+    @Test
+    public void resolveDependenciesFromManifestLatest() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withUseLatest(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        Plugin testPlugin = new Plugin("test", "latest", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        mockStatic(Files.class);
+        Path tempPath = mock(Path.class);
+        File tempFile = mock(File.class);
+
+        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
+        when(tempPath.toFile()).thenReturn(tempFile);
+
+        doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
+                .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+
+        doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
+                getLatestPluginVersion(any(String.class));
+
+        List<Plugin> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add(new Plugin("workflow-scm-step", "2.4", null, null));
+        expectedPlugins.add(new Plugin("workflow-step-api", "2.20", null, null));
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(expectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(testPlugin.getVersion().toString(), "1.0.0");
+    }
+
     @Test
     public void resolveDependenciesFromManifestExceptionTest() throws IOException {
         mockStatic(Files.class);
@@ -1175,6 +1235,34 @@ public class PluginManagerTest {
 
         assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
     }
+
+
+    @Test
+    public void resolveDependenciesFromJsonLatestTest() throws IOException {
+        System.out.println("beginning test");
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withUseLatest(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        JSONObject testJson = setTestUcJson();
+        pluginManager.setLatestUcJson(testJson);
+        pluginManager.setLatestUcPlugins(testJson.getJSONObject("plugins"));
+
+        Plugin testWeaver = new Plugin("testweaver", "1.0.1", null, null);
+        testWeaver.setLatest(true);
+        List<Plugin> actualPlugins = pluginManager.resolveDependenciesFromJson(testWeaver, testJson);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        List<Plugin> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add(new Plugin("structs", "1.19", null, null));
+
+        assertEquals(convertPluginsToStrings(expectedPlugins), actualPluginInfo);
+    }
+
 
     @Test
     public void resolveRecursiveDependenciesTest() {
@@ -1484,14 +1572,42 @@ public class PluginManagerTest {
         JSONObject pluginJson = new JSONObject();
         latestUcJson.put("plugins", pluginJson);
 
+        JSONObject structsPlugin = new JSONObject();
+        JSONArray structsDependencies = new JSONArray();
+
+        JSONObject credentials = new JSONObject();
+        credentials.put("name", "scm-api");
+        credentials.put("optional", "false");
+        credentials.put("version", "2.2.6");
+
+        structsDependencies.put(credentials);
+        structsPlugin.put("dependencies", structsDependencies);
+        structsPlugin.put("version", "1.19");
+        structsPlugin.put("requiredCore", "2.60.3");
+        pluginJson.put("structs", structsPlugin);
+
+        JSONObject testWeaverPlugin = new JSONObject();
+        JSONArray testWeaverDependencies = new JSONArray();
+
+        JSONObject structsDependency = new JSONObject();
+        structsDependency.put("name", "structs");
+        structsDependency.put("optional", "false");
+        structsDependency.put("version", "1.7");
+
+        testWeaverDependencies.put(structsDependency);
+        testWeaverPlugin.put("dependencies", testWeaverDependencies);
+        testWeaverPlugin.put("version", "1.0.1");
+        testWeaverPlugin.put("requiredCore", "2.7.3");
+        pluginJson.put("testweaver", testWeaverPlugin);
+
         JSONObject mavenInvokerPlugin = new JSONObject();
 
         JSONArray mavenInvokerDependencies = new JSONArray();
 
-        JSONObject workflowApi = new JSONObject();
-        workflowApi.put("name", "workflow-api");
-        workflowApi.put("optional", "false");
-        workflowApi.put("version", "2.22");
+        JSONObject workflowApiDependency = new JSONObject();
+        workflowApiDependency.put("name", "workflow-api");
+        workflowApiDependency.put("optional", "false");
+        workflowApiDependency.put("version", "2.22");
 
         JSONObject workflowStepApi = new JSONObject();
         workflowStepApi.put("name", "workflow-step-api");
@@ -1513,7 +1629,7 @@ public class PluginManagerTest {
         structs.put("optional", "true");
         structs.put("version", "1.7");
 
-        mavenInvokerDependencies.put(workflowApi);
+        mavenInvokerDependencies.put(workflowApiDependency);
         mavenInvokerDependencies.put(workflowStepApi);
         mavenInvokerDependencies.put(mailer);
         mavenInvokerDependencies.put(scriptSecurity);
@@ -1554,7 +1670,7 @@ public class PluginManagerTest {
 
         antPlugin.put("dependencies", antPluginDependencies);
         antPlugin.put("version", "1.9");
-        antPlugin.put("requiredVersion", "2.121.2");
+        antPlugin.put("requiredCore", "2.121.2");
 
         pluginJson.put("ant", antPlugin);
 
@@ -1651,6 +1767,7 @@ public class PluginManagerTest {
         latestUcJson.put("warnings", warningArray);
 
         pm.setLatestUcJson(latestUcJson);
+        pm.setLatestUcPlugins(pluginJson);
         return latestUcJson;
     }
 
