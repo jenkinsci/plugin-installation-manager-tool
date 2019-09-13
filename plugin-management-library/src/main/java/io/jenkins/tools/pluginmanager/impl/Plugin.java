@@ -14,7 +14,6 @@ public class Plugin implements Comparable<Plugin> {
     private String groupId;
     private String url;
     private File file;
-    private boolean isPluginOptional;
     private List<Plugin> dependencies;
     private Plugin parent;
     private List<SecurityWarning> securityWarnings;
@@ -58,16 +57,16 @@ public class Plugin implements Comparable<Plugin> {
         this.file = file;
     }
 
-    public void setPluginOptional(boolean isPluginOptional) {
-        this.isPluginOptional = isPluginOptional;
-    }
-
     public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
     public void setJenkinsVersion(String jenkinsVersion) {
         this.jenkinsVersion = new VersionNumber(jenkinsVersion);
+    }
+
+    public void setLatest(boolean latest) {
+        this.latest = latest;
     }
 
     public String getName() {
@@ -84,10 +83,6 @@ public class Plugin implements Comparable<Plugin> {
 
     public String getArchiveFileName() {
         return name + ".jpi";
-    }
-
-    public boolean getPluginOptional() {
-        return isPluginOptional;
     }
 
     public File getFile() {

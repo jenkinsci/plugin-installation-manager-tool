@@ -312,6 +312,27 @@ public class CliOptionsTest {
         assertEquals(false, cfg.doDownload());
     }
 
+    @Test
+    public void downloadTest() throws CmdLineException {
+        parser.parseArgument();
+        Config cfg = options.setup();
+        assertEquals(true, cfg.doDownload());
+    }
+
+    @Test
+    public void useLatestTest() throws CmdLineException {
+        parser.parseArgument("--latest");
+        Config cfg = options.setup();
+        assertEquals(true, cfg.isUseLatest());
+    }
+
+    @Test
+    public void useNotLatestTest() throws CmdLineException {
+        parser.parseArgument();
+        Config cfg = options.setup();
+        assertEquals(false, cfg.isUseLatest());
+    }
+
     @After
     public void restoreStream() {
         System.setOut(originalOut);

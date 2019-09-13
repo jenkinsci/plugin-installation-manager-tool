@@ -89,6 +89,12 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean isNoDownload;
 
+    @Option(name = "--latest", usage = "Set true to download latest transitive dependencies of any plugin that is " +
+            "requested to have the latest version. By default, plugin dependency versions will be determined by the " +
+            "update center metadata or plugin MANIFEST.MF",
+            handler = BooleanOptionHandler.class)
+    private boolean useLatest;
+
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
 
@@ -111,6 +117,7 @@ class CliOptions {
                 .withShowAvailableUpdates(isShowAvailableUpdates())
                 .withIsVerbose(isVerbose())
                 .withDoDownload(!isNoDownload())
+                .withUseLatest(isUseLatest())
                 .build();
     }
 
@@ -350,6 +357,16 @@ class CliOptions {
      */
     public boolean isShowHelp() {
         return showHelp;
+    }
+
+    /**
+     * Returns boolean corresponding to if user wants dependencies of plugins with latest version specified to also be
+     * the latest version
+     *
+     * @return true if user wants transitive dependencies of latest version plugins to also have the latest version
+     */
+    public boolean isUseLatest() {
+        return useLatest;
     }
 
     // visible for testing
