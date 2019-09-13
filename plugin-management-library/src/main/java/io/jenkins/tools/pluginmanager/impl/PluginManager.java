@@ -69,7 +69,8 @@ public class PluginManager {
     private JSONObject pluginInfoJson;
     private JSONObject latestPlugins;
     private boolean verbose;
-    private boolean useLatest;
+    private boolean useLatestSpecified;
+    private boolean useLatestAll;
 
     public static final String SEPARATOR = File.separator;
 
@@ -84,7 +85,8 @@ public class PluginManager {
         allPluginsAndDependencies = new HashMap<>();
         verbose = cfg.isVerbose();
         jenkinsUcLatest = cfg.getJenkinsUc().toString();
-        useLatest = cfg.isUseLatest();
+        useLatestSpecified = cfg.isUseLatestSpecified();
+        useLatestAll = cfg.isUseLatestAll();
     }
 
     /**
@@ -98,6 +100,11 @@ public class PluginManager {
             } catch (IOException e) {
                 throw new DirectoryCreationException("Unable to create plugin directory", e);
             }
+        }
+
+        if (useLatestSpecified && useLatestAll) {
+            throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
+                    "at a time");
         }
 
         jenkinsVersion = getJenkinsVersionFromWar();
@@ -589,7 +596,7 @@ public class PluginManager {
                     String pluginName = pluginInfo[0];
                     String pluginVersion = pluginInfo[1];
                     Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                    if (useLatest && plugin.isLatest()) {
+                    if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
                         VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
                         dependentPlugin.setVersion(latestPluginVersion);
                         dependentPlugin.setLatest(true);
@@ -637,7 +644,7 @@ public class PluginManager {
                 String pluginName = dependency.getString("name");
                 String pluginVersion = dependency.getString("version");
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                if (useLatest && plugin.isLatest()) {
+                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
                     VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);

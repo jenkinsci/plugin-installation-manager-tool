@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,11 +90,17 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean isNoDownload;
 
-    @Option(name = "--latest", usage = "Set true to download latest transitive dependencies of any plugin that is " +
-            "requested to have the latest version. By default, plugin dependency versions will be determined by the " +
-            "update center metadata or plugin MANIFEST.MF",
+    @Option(name = "--latest-specified", usage = "Set to true to download latest transitive dependencies of any " +
+            "plugin that is requested to have the latest version. By default, plugin dependency versions will be " +
+            "determined by the update center metadata or plugin MANIFEST.MF",
             handler = BooleanOptionHandler.class)
-    private boolean useLatest;
+    private boolean useLatestSpecified;
+
+    @Option(name = "--latest-all", usage = "Set to true to download the latest version of all dependencies, even " +
+            "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
+            "will be determined by the update center metadata or plugin MANIFEST.MF",
+            handler = BooleanOptionHandler.class)
+    private boolean useLatestAll;
 
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
@@ -117,7 +124,8 @@ class CliOptions {
                 .withShowAvailableUpdates(isShowAvailableUpdates())
                 .withIsVerbose(isVerbose())
                 .withDoDownload(!isNoDownload())
-                .withUseLatest(isUseLatest())
+                .withUseLatestSpecified(isUseLatestSpecified())
+                .withUseLatestAll(isUseLatestAll())
                 .build();
     }
 
@@ -360,13 +368,30 @@ class CliOptions {
     }
 
     /**
-     * Returns boolean corresponding to if user wants dependencies of plugins with latest version specified to also be
-     * the latest version
+     * Returns the boolean corresponding to if user wants dependencies of plugins with latest version specified to also
+     * be the latest version
      *
      * @return true if user wants transitive dependencies of latest version plugins to also have the latest version
      */
-    public boolean isUseLatest() {
-        return useLatest;
+    public boolean isUseLatestSpecified() {
+        if (useLatestSpecified && useLatestAll) {
+            throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
+                    "at a time");
+        }
+        return useLatestSpecified;
+    }
+
+    /**
+     * Returns the boolean corresponding to if the user wants all dependencies to be the latest version, even the
+     * dependencies of a plugin that had a requested version that was not the latest
+     * @return true if the user wants all transitive dependencies to be the latest version
+     */
+    public boolean isUseLatestAll() {
+        if (useLatestSpecified && useLatestAll) {
+            throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
+                    "at a time");
+        }
+        return useLatestAll;
     }
 
     // visible for testing

@@ -29,7 +29,8 @@ public class Config {
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
     private boolean doDownload;
-    private boolean useLatest;
+    private boolean useLatestSpecified;
+    private boolean useLatestAll;
 
     private Config(
             File pluginDir,
@@ -44,7 +45,8 @@ public class Config {
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
             boolean doDownload,
-            boolean useLatest
+            boolean useLatestSpecified,
+            boolean useLatestAll
     ) {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
@@ -58,7 +60,9 @@ public class Config {
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
         this.doDownload = doDownload;
-        this.useLatest = useLatest;
+        this.useLatestSpecified = useLatestSpecified;
+        this.useLatestAll = useLatestAll;
+
     }
 
     public File getPluginDir() {
@@ -109,9 +113,11 @@ public class Config {
         return doDownload;
     }
 
-    public boolean isUseLatest() {
-        return useLatest;
+    public boolean isUseLatestSpecified() {
+        return useLatestSpecified;
     }
+
+    public boolean isUseLatestAll() { return useLatestAll; }
 
     public static Builder builder() {
         return new Builder();
@@ -130,7 +136,8 @@ public class Config {
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
         private boolean doDownload;
-        private boolean useLatest;
+        private boolean useLatestSpecified;
+        private boolean useLatestAll;
 
         private Builder() {
         }
@@ -195,8 +202,13 @@ public class Config {
             return this;
         }
 
-        public Builder withUseLatest(boolean useLatest) {
-            this.useLatest = useLatest;
+        public Builder withUseLatestSpecified(boolean useLatestSpecifed) {
+            this.useLatestSpecified = useLatestSpecifed;
+            return this;
+        }
+
+        public Builder withUseLatestAll(boolean useLatestAll) {
+            this.useLatestAll = useLatestAll;
             return this;
         }
 
@@ -214,7 +226,8 @@ public class Config {
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
                     doDownload,
-                    useLatest
+                    useLatestSpecified,
+                    useLatestAll
             );
         }
 

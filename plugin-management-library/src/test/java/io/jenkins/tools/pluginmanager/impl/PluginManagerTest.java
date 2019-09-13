@@ -1030,11 +1030,11 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatest() throws IOException {
+    public void resolveDependenciesFromManifestLatestSpecified() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
-                .withUseLatest(true)
+                .withUseLatestSpecified(true)
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -1067,6 +1067,45 @@ public class PluginManagerTest {
 
         assertEquals(expectedPluginInfo, actualPluginInfo);
         assertEquals(testPlugin.getVersion().toString(), "1.0.0");
+    }
+
+    @Test
+    public void resolveDependenciesFromManifestLatestAll() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withUseLatestAll(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        Plugin testPlugin = new Plugin("test", "1.1", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        mockStatic(Files.class);
+        Path tempPath = mock(Path.class);
+        File tempFile = mock(File.class);
+
+        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
+        when(tempPath.toFile()).thenReturn(tempFile);
+
+        doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
+                .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+
+        doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
+                getLatestPluginVersion(any(String.class));
+
+        List<Plugin> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add(new Plugin("workflow-scm-step", "2.4", null, null));
+        expectedPlugins.add(new Plugin("workflow-step-api", "2.20", null, null));
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(expectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
     }
 
     @Test
@@ -1236,14 +1275,12 @@ public class PluginManagerTest {
         assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
     }
 
-
     @Test
-    public void resolveDependenciesFromJsonLatestTest() throws IOException {
-        System.out.println("beginning test");
+    public void resolveDependenciesFromJsonLatestSpecifiedTest() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
-                .withUseLatest(true)
+                .withUseLatestSpecified(true)
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -1263,6 +1300,71 @@ public class PluginManagerTest {
         assertEquals(convertPluginsToStrings(expectedPlugins), actualPluginInfo);
     }
 
+    @Test
+    public void resolveDependenciesFromJsonLatestAll() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withUseLatestAll(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        JSONObject pluginJson = setTestUcJson();
+        Plugin mvnInvokerPlugin = new Plugin("maven-invoker-plugin", "2.4", null, null);
+
+        JSONArray mavenInvokerDependencies = new JSONArray();
+
+        JSONObject workflowApiDependency = new JSONObject();
+        workflowApiDependency.put("name", "workflow-api");
+        workflowApiDependency.put("optional", "false");
+        workflowApiDependency.put("version", "2.22");
+
+        JSONObject workflowStepApi = new JSONObject();
+        workflowStepApi.put("name", "workflow-step-api");
+        workflowStepApi.put("optional", "false");
+        workflowStepApi.put("version", "2.12");
+
+        JSONObject mailer = new JSONObject();
+        mailer.put("name", "mailer");
+        mailer.put("optional", "false");
+        mailer.put("version", "1.18");
+
+        JSONObject scriptSecurity = new JSONObject();
+        scriptSecurity.put("name", "script-security");
+        scriptSecurity.put("optional", "false");
+        scriptSecurity.put("version", "1.30");
+
+        JSONObject structs = new JSONObject();
+        structs.put("name", "structs");
+        structs.put("optional", "true");
+        structs.put("version", "1.7");
+
+        mavenInvokerDependencies.put(workflowApiDependency);
+        mavenInvokerDependencies.put(workflowStepApi);
+        mavenInvokerDependencies.put(mailer);
+        mavenInvokerDependencies.put(scriptSecurity);
+        mavenInvokerDependencies.put(structs);
+
+        doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
+        doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
+                .doReturn(new VersionNumber("2.0"))
+                .when(pluginManagerSpy).getLatestPluginVersion(any(String.class));
+
+        List<Plugin> expectedPlugins = new ArrayList<>();
+        expectedPlugins.add(new Plugin("workflow-api", "2.44", null, null));
+        expectedPlugins.add(new Plugin("workflow-step-api", "2.30", null, null));
+        expectedPlugins.add(new Plugin("mailer", "1.18", null, null));
+        expectedPlugins.add(new Plugin("script-security", "2.0", null, null));
+
+        List<String> expectedPluginInfo = convertPluginsToStrings(expectedPlugins);
+
+        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromJson(mvnInvokerPlugin, pluginJson);
+        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
+
+        assertEquals(expectedPluginInfo, actualPluginInfo);
+    }
 
     @Test
     public void resolveRecursiveDependenciesTest() {
@@ -1635,7 +1737,6 @@ public class PluginManagerTest {
         mavenInvokerDependencies.put(scriptSecurity);
         mavenInvokerDependencies.put(structs);
         mavenInvokerPlugin.put("dependencies", mavenInvokerDependencies);
-
         mavenInvokerPlugin.put("version", "2.4");
         mavenInvokerPlugin.put("requiredCore", "2.89.4");
 
