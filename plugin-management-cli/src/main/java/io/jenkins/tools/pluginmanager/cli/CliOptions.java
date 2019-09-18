@@ -96,7 +96,7 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean useLatestSpecified;
 
-    @Option(name = "--latest-all", usage = "Set to true to download the latest version of all dependencies, even " +
+    @Option(name = "--latest", usage = "Set to true to download the latest version of all dependencies, even " +
             "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
             "will be determined by the update center metadata or plugin MANIFEST.MF",
             handler = BooleanOptionHandler.class)

@@ -336,7 +336,7 @@ public class CliOptionsTest {
 
     @Test
     public void useLatestTest() throws CmdLineException {
-        parser.parseArgument("--latest-all");
+        parser.parseArgument("--latest");
         Config cfg = options.setup();
         assertEquals(true, cfg.isUseLatestAll());
     }
@@ -350,7 +350,7 @@ public class CliOptionsTest {
 
     @Test (expected = PluginDependencyStrategyException.class)
     public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
-        parser.parseArgument("--latest-all", "--latest-specified");
+        parser.parseArgument("--latest", "--latest-specified");
         Config cfg = options.setup();
     }
 
