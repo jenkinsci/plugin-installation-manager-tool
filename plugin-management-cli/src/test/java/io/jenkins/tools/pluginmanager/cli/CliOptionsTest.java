@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.cli;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -320,17 +321,37 @@ public class CliOptionsTest {
     }
 
     @Test
+    public void useLatestSpecifiedTest() throws CmdLineException {
+        parser.parseArgument("--latest-specified");
+        Config cfg = options.setup();
+        assertEquals(true, cfg.isUseLatestSpecified());
+    }
+
+    @Test
+    public void useNotLatestSpecifiedTest() throws CmdLineException {
+        parser.parseArgument();
+        Config cfg = options.setup();
+        assertEquals(false, cfg.isUseLatestSpecified());
+    }
+
+    @Test
     public void useLatestTest() throws CmdLineException {
         parser.parseArgument("--latest");
         Config cfg = options.setup();
-        assertEquals(true, cfg.isUseLatest());
+        assertEquals(true, cfg.isUseLatestAll());
     }
 
     @Test
     public void useNotLatestTest() throws CmdLineException {
         parser.parseArgument();
         Config cfg = options.setup();
-        assertEquals(false, cfg.isUseLatest());
+        assertEquals(false, cfg.isUseLatestAll());
+    }
+
+    @Test (expected = PluginDependencyStrategyException.class)
+    public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
+        parser.parseArgument("--latest", "--latest-specified");
+        Config cfg = options.setup();
     }
 
     @After

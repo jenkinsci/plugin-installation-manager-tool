@@ -23,6 +23,8 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 * `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--available-updates`: (optional) Set to true to show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
+* `--latest`: (optional) Set to true to download the latest version of all dependencies, even if the version(s) of the requested plugin(s) are not the latest.
+* `--latest-specified`: (optional) Set to true to download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
 * `--jenkins-update-center`: (optional) Sets the main update center, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io.
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental.
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
@@ -91,7 +93,7 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar -p "workflow
 ```
 
 #### Other Information
-The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file.
+The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file. By default, the versions of the plugin dependencies are determined by the update center metadata or the plugin MANIFEST.MF file, but the user can specify other behavior using the `latest` or `latest-specified` options.
 
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
 
