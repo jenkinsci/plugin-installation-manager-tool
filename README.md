@@ -50,7 +50,7 @@ Plugins can also be entered in a Jenkins yaml file with the following format:
 jenkins:
   ...
 plugins:
-- artifactId: git
+  - artifactId: git
     source:
       version: latest
   - artifactId: job-import-plugin
