@@ -25,6 +25,7 @@ public class Config {
     private String jenkinsWar;
     private List<Plugin> plugins;
     private boolean verbose;
+    private String jenkinsUcFilename;
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
@@ -41,6 +42,7 @@ public class Config {
             boolean verbose,
             String jenkinsWar,
             List<Plugin> plugins,
+            String jenkinsUcFilename,
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
@@ -56,6 +58,7 @@ public class Config {
         this.verbose = verbose;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
+        this.jenkinsUcFilename = jenkinsUcFilename;
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
@@ -97,6 +100,10 @@ public class Config {
         return plugins;
     }
 
+    public String getJenkinsUcFilename() {
+        return jenkinsUcFilename;
+    }
+
     public URL getJenkinsUc() {
         return jenkinsUc;
     }
@@ -132,6 +139,7 @@ public class Config {
         private boolean verbose;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
+        private String jenkinsUcFilename = Settings.DEFAULT_UPDATE_CENTER_FILENAME;
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
@@ -182,6 +190,11 @@ public class Config {
             return this;
         }
 
+        public Builder withJenkinsUcFilename(String jenkinsUcFilename) {
+            this.jenkinsUcFilename = jenkinsUcFilename;
+            return this;
+        }
+
         public Builder withJenkinsUc(URL jenkinsUc) {
             this.jenkinsUc = jenkinsUc;
             return this;
@@ -222,6 +235,7 @@ public class Config {
                     verbose,
                     jenkinsWar,
                     plugins,
+                    jenkinsUcFilename,
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,

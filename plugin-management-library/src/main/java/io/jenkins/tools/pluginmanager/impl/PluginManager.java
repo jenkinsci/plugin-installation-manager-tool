@@ -33,6 +33,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
@@ -54,6 +55,7 @@ import org.json.JSONObject;
 public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
+    private String jenkinsUcFilename;
     private String jenkinsUcLatest;
     private VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
@@ -84,6 +86,7 @@ public class PluginManager {
         allSecurityWarnings = new HashMap<>();
         allPluginsAndDependencies = new HashMap<>();
         verbose = cfg.isVerbose();
+        jenkinsUcFilename = cfg.getJenkinsUcFilename();
         jenkinsUcLatest = cfg.getJenkinsUc().toString();
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
@@ -238,6 +241,10 @@ public class PluginManager {
             System.out.println("Unable to get update center json");
             return allSecurityWarnings;
         }
+        if (!latestUcJson.has("warnings")) {
+            System.out.println("update center json has no warnings: ignoring");
+            return allSecurityWarnings;
+        }
         JSONArray warnings = latestUcJson.getJSONArray("warnings");
 
         for (int i = 0; i < warnings.length(); i++) {
@@ -377,7 +384,7 @@ public class PluginManager {
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
+            String jenkinsVersionUcLatest = appendPathOntoUrl(cfg.getJenkinsUc().toString(), jenkinsVersion.toString());
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
@@ -394,6 +401,20 @@ public class PluginManager {
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
         }
+    }
+
+    public String appendPathOntoUrl(String urlString, String pathSection) {
+        int urlLength = urlString.length();
+        while (urlString.charAt(urlLength - 1) == '/' &&
+                (urlLength < 2 || urlString.charAt(urlLength - 2) != ':')
+        ) {
+            urlLength--;
+        }
+        int pathStartCol = 0;
+        while (pathStartCol < pathSection.length() && pathSection.charAt(pathStartCol) == '/') {
+            pathStartCol++;
+        }
+        return urlString.substring(0, urlLength) + "/" + pathSection.substring(pathStartCol);
     }
 
     /**
@@ -486,10 +507,21 @@ public class PluginManager {
         }
         try {
             String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            return new JSONObject(urlText);
+            return new JSONObject(removePossibleWrapperText(urlText));
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
+    }
+
+    public String removePossibleWrapperText(String urlText) {
+        if (urlText.startsWith("updateCenter.post(")) {
+            Pattern pattern = Pattern.compile("updateCenter.post\\((.*)\\);", Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(urlText);
+            if (matcher.find()) {
+                return matcher.group(1);
+            }
+        }
+        return urlText;
     }
 
     /**
@@ -497,9 +529,9 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        latestUcJson = getJson(jenkinsUcLatest + "/update-center.actual.json");
+        latestUcJson = getJson(appendPathOntoUrl(jenkinsUcLatest, jenkinsUcFilename));
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental() + "/update-center.actual.json");
+        experimentalUcJson = getJson(appendPathOntoUrl(cfg.getJenkinsUcExperimental().toString(), jenkinsUcFilename));
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
 

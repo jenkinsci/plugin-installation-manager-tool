@@ -234,17 +234,21 @@ public class CliOptionsTest {
         when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
         when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
 
+        String ucFilenameCli = "update-center.cli.json";
         String ucCli = "https://updates.jenkins.io/cli";
         String experiementalCli = "https://updates.jenkins.io/experimental/cli";
         String incrementalsCli = "https://repo.jenkins-ci.org/incrementals/cli";
 
-        parser.parseArgument("--jenkins-update-center", ucCli,
+        parser.parseArgument(
+                "--jenkins-update-center-filename", ucFilenameCli,
+                "--jenkins-update-center", ucCli,
                 "--jenkins-experimental-update-center", experiementalCli,
                 "--jenkins-incrementals-repo-mirror", incrementalsCli);
 
         Config cfg = options.setup();
 
         // Cli options should override environment variables
+        assertEquals(ucFilenameCli, cfg.getJenkinsUcFilename());
         assertEquals(ucCli, cfg.getJenkinsUc().toString());
         assertEquals(experiementalCli, cfg.getJenkinsUcExperimental().toString());
         assertEquals(incrementalsCli, cfg.getJenkinsIncrementalsRepoMirror().toString());

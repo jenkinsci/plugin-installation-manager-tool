@@ -46,6 +46,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -497,6 +498,17 @@ public class PluginManagerTest {
         assertEquals(expectedSecurityInfo, securityWarningInfo);
 
         assertEquals(2, pipelineMavenSecurityWarning.get(0).getSecurityVersions().size());
+    }
+
+    @Test
+    public void getSecurityWarningsWhenNoWarningsTest() {
+        JSONObject json = setTestUcJson();
+        json.remove("warnings");
+        assertFalse(json.has("warnings"));
+
+        Map<String, List<SecurityWarning>> allSecurityWarnings = pm.getSecurityWarnings();
+
+        assertEquals(0, allSecurityWarnings.size());
     }
 
     @Test
