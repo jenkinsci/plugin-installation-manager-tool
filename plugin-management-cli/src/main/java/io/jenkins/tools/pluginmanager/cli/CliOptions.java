@@ -260,7 +260,7 @@ class CliOptions {
      * Determines the update center filename to be appended to the update center base url. If a value is set via CLI
      *  option, it will be used. If not set, the default value in the Setting class will be used.
      *
-     * @return
+     * @return  the configured update center file name
      */
     private String getUpdateCenterFilename() {
         String jenkinsUpdateCenterFilename;

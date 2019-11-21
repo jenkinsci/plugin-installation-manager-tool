@@ -21,7 +21,8 @@ public class PluginManager_removeWrapperTest {
         PluginManager objectUnderTest = new PluginManager(config);
 
         String result = objectUnderTest.removePossibleWrapperText(noActual);
-        assert result.equals(json);
+        assertThat(json, is(result));
+
         new JSONObject(result); // This asserts the result is valid json
     }
 
@@ -33,7 +34,8 @@ public class PluginManager_removeWrapperTest {
         PluginManager objectUnderTest = new PluginManager(config);
 
         String result = objectUnderTest.removePossibleWrapperText(json);
-        assert result.equals(json);
+        assertThat(json, is(result));
+
         new JSONObject(result); // This asserts the result is valid json
     }
 
@@ -46,7 +48,8 @@ public class PluginManager_removeWrapperTest {
         PluginManager objectUnderTest = new PluginManager(config);
 
         String result = objectUnderTest.removePossibleWrapperText(noActual);
-        assert result.equals(json);
+        assertThat(json, is(result));
+
         new JSONObject(result); // This asserts the result is valid json
     }
 
