@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import io.jenkins.tools.pluginmanager.config.Config;
 import org.json.JSONObject;
 import org.junit.Test;
 
