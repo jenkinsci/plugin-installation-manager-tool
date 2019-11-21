@@ -384,7 +384,7 @@ public class PluginManager {
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            String jenkinsVersionUcLatest = appendPathOntoUrl(cfg.getJenkinsUc().toString(), jenkinsVersion.toString());
+            String jenkinsVersionUcLatest = PluginManagerUtils.appendPathOntoUrl(cfg.getJenkinsUc().toString(), jenkinsVersion.toString());
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
@@ -401,20 +401,6 @@ public class PluginManager {
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
         }
-    }
-
-    public String appendPathOntoUrl(String urlString, String pathSection) {
-        int urlLength = urlString.length();
-        while (urlString.charAt(urlLength - 1) == '/' &&
-                (urlLength < 2 || urlString.charAt(urlLength - 2) != ':')
-        ) {
-            urlLength--;
-        }
-        int pathStartCol = 0;
-        while (pathStartCol < pathSection.length() && pathSection.charAt(pathStartCol) == '/') {
-            pathStartCol++;
-        }
-        return urlString.substring(0, urlLength) + "/" + pathSection.substring(pathStartCol);
     }
 
     /**
@@ -507,21 +493,10 @@ public class PluginManager {
         }
         try {
             String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            return new JSONObject(removePossibleWrapperText(urlText));
+            return new JSONObject(PluginManagerUtils.removePossibleWrapperText(urlText));
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
-    }
-
-    public String removePossibleWrapperText(String urlText) {
-        if (urlText.startsWith("updateCenter.post(")) {
-            Pattern pattern = Pattern.compile("updateCenter.post\\((.*)\\);", Pattern.DOTALL);
-            Matcher matcher = pattern.matcher(urlText);
-            if (matcher.find()) {
-                return matcher.group(1);
-            }
-        }
-        return urlText;
     }
 
     /**
@@ -529,9 +504,9 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        latestUcJson = getJson(appendPathOntoUrl(jenkinsUcLatest, jenkinsUcFilename));
+        latestUcJson = getJson(PluginManagerUtils.appendPathOntoUrl(jenkinsUcLatest, jenkinsUcFilename));
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(appendPathOntoUrl(cfg.getJenkinsUcExperimental().toString(), jenkinsUcFilename));
+        experimentalUcJson = getJson(PluginManagerUtils.appendPathOntoUrl(cfg.getJenkinsUcExperimental().toString(), jenkinsUcFilename));
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
 
