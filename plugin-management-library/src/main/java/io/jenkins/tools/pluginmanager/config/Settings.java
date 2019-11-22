@@ -11,7 +11,7 @@ public class Settings {
     public static final URL DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
     public static final String DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io/experimental/update-center.json";
     public static final URL DEFAULT_INCREMENTALS_REPO_MIRROR;
-    public static final String DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION = "https://repo.jenkins-ci.org/incrementals/update-center.json";
+    public static final String DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION = "https://repo.jenkins-ci.org/incrementals";
     public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/current/plugin-versions.json";
 
     static {
