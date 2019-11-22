@@ -62,11 +62,6 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showAllWarnings;
 
-    @Option(name = "--jenkins-update-center-filename",
-            usage = "Sets name of update center filename. If not set via CLI option, will default to " +
-                    Settings.DEFAULT_UPDATE_CENTER_FILENAME)
-    private String jenkinsUcFilename;
-
     @Option(name = "--jenkins-update-center",
             usage = "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI " +
                     "option or environment variable, will default to " + Settings.DEFAULT_UPDATE_CENTER_LOCATION,
@@ -119,7 +114,6 @@ class CliOptions {
         return Config.builder()
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())
-                .withJenkinsUcFilename(getUpdateCenterFilename())
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
@@ -254,25 +248,6 @@ class CliOptions {
 
     public boolean isVerbose() {
         return verbose;
-    }
-
-    /**
-     * Determines the update center filename to be appended to the update center base url. If a value is set via CLI
-     *  option, it will be used. If not set, the default value in the Setting class will be used.
-     *
-     * @return  the configured update center file name
-     */
-    private String getUpdateCenterFilename() {
-        String jenkinsUpdateCenterFilename;
-
-        if (jenkinsUcFilename != null) {
-            jenkinsUpdateCenterFilename = jenkinsUcFilename;
-        } else {
-            jenkinsUpdateCenterFilename = Settings.DEFAULT_UPDATE_CENTER_FILENAME;
-            System.out.println("No CLI option for update center filename, using default of " +
-                    jenkinsUpdateCenterFilename);
-        }
-        return jenkinsUpdateCenterFilename;
     }
 
     /**

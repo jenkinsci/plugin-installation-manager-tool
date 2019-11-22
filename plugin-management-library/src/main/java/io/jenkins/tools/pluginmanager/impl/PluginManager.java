@@ -54,7 +54,6 @@ import org.json.JSONObject;
 public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
-    private String jenkinsUcFilename;
     private String jenkinsUcLatest;
     private VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
@@ -85,7 +84,6 @@ public class PluginManager {
         allSecurityWarnings = new HashMap<>();
         allPluginsAndDependencies = new HashMap<>();
         verbose = cfg.isVerbose();
-        jenkinsUcFilename = cfg.getJenkinsUcFilename();
         jenkinsUcLatest = cfg.getJenkinsUc().toString();
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
@@ -503,9 +501,9 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        latestUcJson = getJson(PluginManagerUtils.appendPathOntoUrl(jenkinsUcLatest, jenkinsUcFilename));
+        latestUcJson = getJson(jenkinsUcLatest);
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(PluginManagerUtils.appendPathOntoUrl(cfg.getJenkinsUcExperimental().toString(), jenkinsUcFilename));
+        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental().toString());
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
 
