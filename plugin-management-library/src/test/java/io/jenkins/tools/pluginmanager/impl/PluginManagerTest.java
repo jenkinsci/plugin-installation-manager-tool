@@ -1546,9 +1546,10 @@ public class PluginManagerTest {
         assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
-        pm.setJenkinsUCLatest("https://updates.jenkins.io/2.176");
+        String latestUcUrl = "https://updates.jenkins.io/2.176";
+        pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
         VersionNumber latestVersion = new VersionNumber("latest");
-        String latestUrl = pm.getJenkinsUCLatest() + "/latest/pluginName.hpi";
+        String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
         Plugin pluginNoVersion = new Plugin("pluginName", null, null, null);
@@ -1566,7 +1567,8 @@ public class PluginManagerTest {
         assertEquals(incrementalUrl, pm.getPluginDownloadUrl(pluginIncrementalRepo));
 
         Plugin pluginOtherVersion = new Plugin("pluginName", "otherversion", null, null);
-        String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
+        String otherURL = PluginManagerUtils.dirName(cfg.getJenkinsUc().toString()) +
+                "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
 

@@ -10,42 +10,107 @@ public class PluginManagerUtilsTest {
 
     @Test
     public void appendPathOntoUrlTest() {
-        String url = "http://bob.com:8080";
-        String path = "file.json";
-
-        String result = PluginManagerUtils.appendPathOntoUrl(url, path);
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "file.json");
 
         assertThat(result, is("http://bob.com:8080/file.json"));
     }
 
     @Test
-    public void appendPathOntoUrlWithUrlTrailingSlashTest() {
-        String url = "http://bob.com:8080";
-        String path = "file.json";
+    public void appendPathOntoUrlTestBlankUrl() {
+        String result = PluginManagerUtils.appendPathOntoUrl("", "file.json");
 
-        String result = PluginManagerUtils.appendPathOntoUrl(url + "/", path);
+        assertThat(result, is("file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlTestNoUrl() {
+        String result = PluginManagerUtils.appendPathOntoUrl(null, "file.json");
+
+        assertThat(result, is("file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlWithUrlTrailingSlashTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080/", "file.json");
 
         assertThat(result, is("http://bob.com:8080/file.json"));
     }
 
     @Test
     public void appendPathOntoUrlWithPathLeadingSlashTest() {
-        String url = "http://bob.com:8080";
-        String path = "file.json";
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "/file.json");
 
-        String result = PluginManagerUtils.appendPathOntoUrl(url, "/" + path);
+        assertThat(result, is("http://bob.com:8080/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlWithPathTrailingAndLeadingSlashTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080/", "/file.json");
 
         assertThat(result, is("http://bob.com:8080/file.json"));
     }
 
     @Test
     public void appendPathOntoUrlNoDomainNameTest() {
-        String url = "anything://";
-        String path = "bob.com/file.json";
-
-        String result = PluginManagerUtils.appendPathOntoUrl(url, path);
+        String result = PluginManagerUtils.appendPathOntoUrl("anything://", "bob.com/file.json");
 
         assertThat(result, is("anything://bob.com/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlWithBlankPathTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "");
+
+        assertThat(result, is("http://bob.com:8080/"));
+    }
+
+    @Test
+    public void appendPathOntoUrlWithNoPathTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String[])null);
+
+        assertThat(result, is("http://bob.com:8080/"));
+    }
+
+    @Test
+    public void appendPathOntoUrlWithNullPathTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String)null);
+
+        assertThat(result, is("http://bob.com:8080/"));
+    }
+
+    @Test
+    public void appendPathOntoUrlMultiSegmentTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "path/to", "file.json");
+
+        assertThat(result, is("http://bob.com:8080/path/to/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlMultiSegmentTrailingSlashTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080/", "path/to/", "file.json");
+
+        assertThat(result, is("http://bob.com:8080/path/to/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlMultiSegmentLeadingSlashTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "/path/to", "/file.json");
+
+        assertThat(result, is("http://bob.com:8080/path/to/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlMultiSegmentTrailingAndLeadingSlashTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080/", "/path/to/", "/file.json");
+
+        assertThat(result, is("http://bob.com:8080/path/to/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlMultiSegmentOneBlankTest() {
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080/", "", "/file.json");
+
+        assertThat(result, is("http://bob.com:8080/file.json"));
     }
 
     @Test
@@ -92,6 +157,27 @@ public class PluginManagerUtilsTest {
         String result = PluginManagerUtils.removePossibleWrapperText(noActual);
         assertThat(json, is(result));
         new JSONObject(result); // This asserts the result is valid json
+    }
+
+    @Test
+    public void dirnameTest() {
+        String result = PluginManagerUtils.dirName("http://bob.com/path/to/file.json");
+
+        assertThat(result, is("http://bob.com/path/to/"));
+    }
+
+    @Test
+    public void dirnameTestNoPath() {
+        String result = PluginManagerUtils.dirName("http://bob.com");
+
+        assertThat(result, is("http://"));
+    }
+
+    @Test
+    public void dirnameTestNoSlashes() {
+        String result = PluginManagerUtils.dirName("bob.com");
+
+        assertThat(result, is("bob.com"));
     }
 
 }
