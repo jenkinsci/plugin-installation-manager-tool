@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,41 +33,10 @@ public final class PluginManagerUtils {
      * @return the two parts concatenated with one slash at the point they are joined.
      */
     static String appendPathOntoUrl(String urlString, String... pathSection) {
-        if (pathSection == null || pathSection.length < 1) {
-            if (urlString == null || urlString.isEmpty()) {
-                return urlString;
-            }
-            return urlString + (((urlString.charAt(urlString.length() - 1)) != '/') ? "/" : "");
-        }
-        if (urlString == null || urlString.isEmpty()) {
-            if (pathSection.length == 1) {
-                return pathSection[0];
-            } else {
-                String[] restOfPath = Arrays.copyOfRange(pathSection, 1, pathSection.length);
-                return appendPathOntoUrl(pathSection[0], restOfPath);
-            }
-        }
 
-        String retval = urlString;
-        for (String oneSection : pathSection) {
-            int urlLength = retval.length();
-            while (urlLength > 1 &&
-                    retval.charAt(urlLength - 1) == '/' &&
-                    (urlLength < 2 || retval.charAt(urlLength - 2) != ':')
-            ) {
-                urlLength--;
-            }
-
-            if (oneSection == null) {
-                oneSection = "";
-            }
-            int pathStartCol = 0;
-            while (pathStartCol < oneSection.length() && oneSection.charAt(pathStartCol) == '/') {
-                pathStartCol++;
-            }
-            retval = retval.substring(0, urlLength) + "/" + oneSection.substring(pathStartCol);
-        }
-        return retval;
+        return new URIStringBuilder(urlString)
+                .addPath(pathSection)
+                .build();
     }
 
     /**
@@ -142,9 +110,9 @@ public final class PluginManagerUtils {
     static String insertPathPreservingFilename(String urlString, String pathToInsert) {
         int lastSlashCol = urlString.lastIndexOf('/');
         if (lastSlashCol >= 0) {
-            return appendPathOntoUrl(urlString.substring(0, lastSlashCol), pathToInsert, urlString.substring(lastSlashCol + 1));
+            return appendPathOntoUrl(urlString.substring(0, lastSlashCol + 1), pathToInsert, urlString.substring(lastSlashCol + 1));
         } else {
-            return appendPathOntoUrl(urlString, pathToInsert);
+            return appendPathOntoUrl(pathToInsert, urlString);
         }
     }
 

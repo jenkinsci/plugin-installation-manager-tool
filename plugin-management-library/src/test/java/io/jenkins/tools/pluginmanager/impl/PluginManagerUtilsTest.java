@@ -78,21 +78,21 @@ public class PluginManagerUtilsTest {
     public void appendPathOntoUrlWithBlankPathTest() {
         String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", "");
 
-        assertThat(result, is("http://bob.com:8080/"));
+        assertThat(result, is("http://bob.com:8080"));
     }
 
     @Test
     public void appendPathOntoUrlWithNoPathTest() {
         String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String[]) null);
 
-        assertThat(result, is("http://bob.com:8080/"));
+        assertThat(result, is("http://bob.com:8080"));
     }
 
     @Test
     public void appendPathOntoUrlWithNullPathTest() {
         String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String) null);
 
-        assertThat(result, is("http://bob.com:8080/"));
+        assertThat(result, is("http://bob.com:8080"));
     }
 
     @Test
@@ -223,6 +223,13 @@ public class PluginManagerUtilsTest {
         String result = PluginManagerUtils.insertPathPreservingFilename("http://bob.com/updates/plugins/update-center.json", "2.190");
 
         assertThat(result, is("http://bob.com/updates/plugins/2.190/update-center.json"));
+    }
+
+    @Test
+    public void insertPathPreservingFilenameNoSlashes() {
+        String result = PluginManagerUtils.insertPathPreservingFilename("path", "2.190");
+
+        assertThat(result, is("2.190/path"));
     }
 
 }
