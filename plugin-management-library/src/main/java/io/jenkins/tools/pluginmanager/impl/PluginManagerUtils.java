@@ -10,6 +10,21 @@ public final class PluginManagerUtils {
     }
 
     /**
+     * Convert object arguments to strings and pass through to the String-ish method to append the path section
+     * onto the base URL string
+     *
+     * @see #appendPathOntoUrl(String, String...)
+     */
+    static String appendPathOntoUrl(Object urlString, Object... pathSection) {
+        String[] args = new String[pathSection.length];
+        for (int i = 0; i < pathSection.length; ++i) {
+            assert pathSection[i] != null;
+            args[i] = pathSection[i].toString();
+        }
+        return appendPathOntoUrl(urlString.toString(), args);
+    }
+
+    /**
      * Given two strings, concatenate with a single slash at the point they are joined. Additional trailing and leading
      * slashes at that point will be adjusted so only one remains. If the first one ends in '://', it is preserved.
      *
@@ -78,12 +93,60 @@ public final class PluginManagerUtils {
         return urlText;
     }
 
-    public static String dirName(String urlString) {
+    /**
+     * Convert object arguments to strings and pass through to the String-ish method to remove the last part of the path
+     * from a URL
+     *
+     * @see #dirName(String)
+     */
+    static String dirName(Object urlString) {
+        assert urlString != null;
+        return dirName(urlString.toString());
+    }
+
+    /**
+     * Extract the leading part of the URL up to but not including the last section (usually a filename). Parts in the
+     * URL are separated by slashes. If there is no slash in the string, the string is returned unchanged.
+     *
+     * @param urlString a string containing a url from which to remove the trailing section.
+     * @return
+     */
+    static String dirName(String urlString) {
         int lastSlashCol = urlString.lastIndexOf('/');
         if (lastSlashCol >= 0) {
             return urlString.substring(0, lastSlashCol + 1);
         }
         return urlString;
     }
+
+    /**
+     * Convert object arguments to strings and pass through to the String-ish method to insert the path into the url
+     * before the last section of the url (probably the filename part)
+     *
+     * @see #insertPathPreservingFilename(String, String)
+     */
+    static String insertPathPreservingFilename(Object urlString, Object pathToInsert) {
+        assert urlString != null;
+        assert pathToInsert != null;
+        return insertPathPreservingFilename(urlString.toString(), pathToInsert.toString());
+    }
+
+    /**
+     * Insert the supplied pathToInsert into the URL preceeding the file name part (last part) of the URL. The parts, as
+     * is usual for a URL, are separated by slashes.
+     *
+     * @param urlString    a complete URL string with domain name, path and filename, in that order.
+     * @param pathToInsert another section of path to be inserted before the filename part of the URL
+     * @return
+     */
+    static String insertPathPreservingFilename(String urlString, String pathToInsert) {
+        int lastSlashCol = urlString.lastIndexOf('/');
+        if (lastSlashCol >= 0) {
+            return appendPathOntoUrl(urlString.substring(0, lastSlashCol), pathToInsert, urlString.substring(lastSlashCol + 1));
+        } else {
+            return appendPathOntoUrl(urlString, pathToInsert);
+        }
+    }
+
 }
 

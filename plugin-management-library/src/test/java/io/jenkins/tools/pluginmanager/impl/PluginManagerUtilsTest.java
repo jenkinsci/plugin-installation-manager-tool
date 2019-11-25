@@ -3,10 +3,27 @@ package io.jenkins.tools.pluginmanager.impl;
 import org.json.JSONObject;
 import org.junit.Test;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class PluginManagerUtilsTest {
+
+    @Test
+    public void appendPathOntoUrlObjectsTest() throws MalformedURLException {
+        String result = PluginManagerUtils.appendPathOntoUrl(new URL("http://bob.com:8080"), new StringBuilder("file.json"));
+
+        assertThat(result, is("http://bob.com:8080/file.json"));
+    }
+
+    @Test
+    public void appendPathOntoUrlObjectsMultiSegmentTest() throws MalformedURLException {
+        String result = PluginManagerUtils.appendPathOntoUrl(new URL("http://bob.com:8080"), new StringBuilder("path/to"), new StringBuilder("file.json"));
+
+        assertThat(result, is("http://bob.com:8080/path/to/file.json"));
+    }
 
     @Test
     public void appendPathOntoUrlTest() {
@@ -66,14 +83,14 @@ public class PluginManagerUtilsTest {
 
     @Test
     public void appendPathOntoUrlWithNoPathTest() {
-        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String[])null);
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String[]) null);
 
         assertThat(result, is("http://bob.com:8080/"));
     }
 
     @Test
     public void appendPathOntoUrlWithNullPathTest() {
-        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String)null);
+        String result = PluginManagerUtils.appendPathOntoUrl("http://bob.com:8080", (String) null);
 
         assertThat(result, is("http://bob.com:8080/"));
     }
@@ -160,6 +177,13 @@ public class PluginManagerUtilsTest {
     }
 
     @Test
+    public void dirnameObjectTest() throws MalformedURLException {
+        String result = PluginManagerUtils.dirName(new URL("http://bob.com/path/to/file.json"));
+
+        assertThat(result, is("http://bob.com/path/to/"));
+    }
+
+    @Test
     public void dirnameTest() {
         String result = PluginManagerUtils.dirName("http://bob.com/path/to/file.json");
 
@@ -178,6 +202,27 @@ public class PluginManagerUtilsTest {
         String result = PluginManagerUtils.dirName("bob.com");
 
         assertThat(result, is("bob.com"));
+    }
+
+    @Test
+    public void insertPathPreservingFilenameObjectTest() throws MalformedURLException {
+        String result = PluginManagerUtils.insertPathPreservingFilename(new URL("http://bob.com/update-center.json"), new StringBuilder("2.190"));
+
+        assertThat(result, is("http://bob.com/2.190/update-center.json"));
+    }
+
+    @Test
+    public void insertPathPreservingFilenameTest() {
+        String result = PluginManagerUtils.insertPathPreservingFilename("http://bob.com/update-center.json", "2.190");
+
+        assertThat(result, is("http://bob.com/2.190/update-center.json"));
+    }
+
+    @Test
+    public void insertPathPreservingFilenameLongTest() {
+        String result = PluginManagerUtils.insertPathPreservingFilename("http://bob.com/updates/plugins/update-center.json", "2.190");
+
+        assertThat(result, is("http://bob.com/updates/plugins/2.190/update-center.json"));
     }
 
 }

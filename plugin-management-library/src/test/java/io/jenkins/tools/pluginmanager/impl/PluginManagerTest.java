@@ -45,6 +45,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -898,7 +899,7 @@ public class PluginManagerTest {
 
         pm.checkAndSetLatestUpdateCenter();
 
-        String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
+        String expected = dirName(cfg.getJenkinsUc()) + pm.getJenkinsVersion() + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
         assertEquals(expected, pm.getJenkinsUCLatest());
     }
 
@@ -1567,7 +1568,7 @@ public class PluginManagerTest {
         assertEquals(incrementalUrl, pm.getPluginDownloadUrl(pluginIncrementalRepo));
 
         Plugin pluginOtherVersion = new Plugin("pluginName", "otherversion", null, null);
-        String otherURL = PluginManagerUtils.dirName(cfg.getJenkinsUc().toString()) +
+        String otherURL = dirName(cfg.getJenkinsUc().toString()) +
                 "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
