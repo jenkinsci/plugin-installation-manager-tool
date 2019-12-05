@@ -378,7 +378,7 @@ public class PluginManager {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
-            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
                     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
