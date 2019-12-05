@@ -537,8 +537,8 @@ public class PluginManager {
 
     /**
      *
-     * @param pluginName
-     * @return
+     * @param pluginName the name of the plugin
+     * @return latest version of the specified plugin
      */
     public VersionNumber getLatestPluginVersion(String pluginName) {
         if (!latestPlugins.has(pluginName)) {
