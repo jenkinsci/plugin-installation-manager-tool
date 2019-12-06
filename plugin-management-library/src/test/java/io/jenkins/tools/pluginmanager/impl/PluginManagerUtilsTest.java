@@ -1,9 +1,9 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import org.json.JSONObject;
-import org.junit.Test;
 import java.net.MalformedURLException;
 import java.net.URL;
+import org.json.JSONObject;
+import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
