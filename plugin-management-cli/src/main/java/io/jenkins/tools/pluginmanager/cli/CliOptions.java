@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
@@ -344,6 +345,7 @@ class CliOptions {
     /**
      * Prints out the Plugin Management Tool version
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     public void showVersion() {
         try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
             if (propertyInputStream == null) {
