@@ -391,7 +391,6 @@ public class PluginManager {
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            // TODO: rework to insert jenkinsVersion before the file portion of the URL
             String jenkinsVersionUcLatest = insertPathPreservingFilename(cfg.getJenkinsUc(), jenkinsVersion);
             try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
@@ -812,7 +811,7 @@ public class PluginManager {
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
         } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
-            urlString = appendPathOntoUrl(cfg.getJenkinsUcExperimental(), "/latest", pluginName+".hpi");
+            urlString = appendPathOntoUrl(cfg.getJenkinsUcExperimental(), "/latest", pluginName + ".hpi");
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");

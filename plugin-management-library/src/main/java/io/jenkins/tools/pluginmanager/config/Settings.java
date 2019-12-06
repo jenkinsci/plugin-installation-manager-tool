@@ -7,7 +7,7 @@ public class Settings {
     public static final String DEFAULT_PLUGIN_DIR_LOCATION;
     public static final String DEFAULT_WAR;
     public static final URL DEFAULT_UPDATE_CENTER;
-    public static final String DEFAULT_UPDATE_CENTER_FILENAME = "/update-center.json";
+    public static final String DEFAULT_UPDATE_CENTER_FILENAME = "/update-center.actual.json";
     public static final String DEFAULT_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io" + DEFAULT_UPDATE_CENTER_FILENAME;
     public static final URL DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
     public static final String DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io/experimental" + DEFAULT_UPDATE_CENTER_FILENAME;
