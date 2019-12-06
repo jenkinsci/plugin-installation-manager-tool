@@ -61,7 +61,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
         URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class})
-@PowerMockIgnore({"javax.net.ssl.*","javax.security.*"})
+@PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
