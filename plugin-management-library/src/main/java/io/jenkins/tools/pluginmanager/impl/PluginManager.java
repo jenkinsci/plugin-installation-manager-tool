@@ -393,7 +393,7 @@ public class PluginManager {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             // TODO: rework to insert jenkinsVersion before the file portion of the URL
             String jenkinsVersionUcLatest = insertPathPreservingFilename(cfg.getJenkinsUc(), jenkinsVersion);
-            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
                     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
@@ -844,7 +844,7 @@ public class PluginManager {
         } else {
             pluginFile = fileLocation;
         }
-        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
             HttpClientContext context = HttpClientContext.create();
             HttpHead httphead = new HttpHead(urlString);
             try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
