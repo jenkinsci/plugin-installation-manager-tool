@@ -830,7 +830,7 @@ public class PluginManager {
         } else {
             pluginFile = fileLocation;
         }
-        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
             HttpClientContext context = HttpClientContext.create();
             HttpHead httphead = new HttpHead(urlString);
             try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {

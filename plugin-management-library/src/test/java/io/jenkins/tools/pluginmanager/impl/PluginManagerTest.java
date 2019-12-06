@@ -1484,7 +1484,7 @@ public class PluginManagerTest {
         mockStatic(HttpClients.class);
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
-        when(HttpClients.createDefault()).thenReturn(httpclient);
+        when(HttpClients.createSystem()).thenReturn(httpclient);
         HttpHead httphead = mock(HttpHead.class);
 
         mockStatic(HttpClientContext.class);
