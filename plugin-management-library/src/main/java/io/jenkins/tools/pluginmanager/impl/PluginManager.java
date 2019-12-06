@@ -384,7 +384,7 @@ public class PluginManager {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             String jenkinsVersionUcLatest = PluginManagerUtils.appendPathOntoUrl(cfg.getJenkinsUc().toString(), jenkinsVersion.toString());
-            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+            try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
                     if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
@@ -836,7 +836,7 @@ public class PluginManager {
         } else {
             pluginFile = fileLocation;
         }
-        try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+        try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
             HttpClientContext context = HttpClientContext.create();
             HttpHead httphead = new HttpHead(urlString);
             try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
