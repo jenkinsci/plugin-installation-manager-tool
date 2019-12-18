@@ -45,7 +45,9 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -500,6 +502,17 @@ public class PluginManagerTest {
     }
 
     @Test
+    public void getSecurityWarningsWhenNoWarningsTest() {
+        JSONObject json = setTestUcJson();
+        json.remove("warnings");
+        assertFalse(json.has("warnings"));
+
+        Map<String, List<SecurityWarning>> allSecurityWarnings = pm.getSecurityWarnings();
+
+        assertEquals(0, allSecurityWarnings.size());
+    }
+
+    @Test
     public void warningExistsTest() {
         Map<String, List<SecurityWarning>> securityWarnings = new HashMap<>();
         SecurityWarning scriptlerWarning = new SecurityWarning("SECURITY", "security warning",
@@ -886,7 +899,7 @@ public class PluginManagerTest {
 
         pm.checkAndSetLatestUpdateCenter();
 
-        String expected = cfg.getJenkinsUc().toString() + "/" + pm.getJenkinsVersion();
+        String expected = dirName(cfg.getJenkinsUc()) + pm.getJenkinsVersion() + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
         assertEquals(expected, pm.getJenkinsUCLatest());
     }
 
@@ -1534,9 +1547,10 @@ public class PluginManagerTest {
         assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
-        pm.setJenkinsUCLatest("https://updates.jenkins.io/2.176");
+        String latestUcUrl = "https://updates.jenkins.io/2.176";
+        pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
         VersionNumber latestVersion = new VersionNumber("latest");
-        String latestUrl = pm.getJenkinsUCLatest() + "/latest/pluginName.hpi";
+        String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
         Plugin pluginNoVersion = new Plugin("pluginName", null, null, null);
@@ -1554,7 +1568,8 @@ public class PluginManagerTest {
         assertEquals(incrementalUrl, pm.getPluginDownloadUrl(pluginIncrementalRepo));
 
         Plugin pluginOtherVersion = new Plugin("pluginName", "otherversion", null, null);
-        String otherURL = cfg.getJenkinsUc() + "/download/plugins/pluginName/otherversion/pluginName.hpi";
+        String otherURL = dirName(cfg.getJenkinsUc().toString()) +
+                "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
 

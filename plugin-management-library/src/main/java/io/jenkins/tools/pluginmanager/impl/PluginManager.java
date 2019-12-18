@@ -52,6 +52,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.appendPathOntoUrl;
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.insertPathPreservingFilename;
+import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.removePossibleWrapperText;
+
 public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
@@ -239,6 +244,10 @@ public class PluginManager {
             System.out.println("Unable to get update center json");
             return allSecurityWarnings;
         }
+        if (!latestUcJson.has("warnings")) {
+            System.out.println("update center json has no warnings: ignoring");
+            return allSecurityWarnings;
+        }
         JSONArray warnings = latestUcJson.getJSONArray("warnings");
 
         for (int i = 0; i < warnings.length(); i++) {
@@ -374,12 +383,17 @@ public class PluginManager {
      * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
      * center url String to include Jenkins Version. Otherwise, sets update center url to match the update center in
      * the configuration class
+     *
+     * Rules:
+     * jenkins version  | use if readable (HEAD)                    | use prior value anyway
+     *      YES         | http://update-center.jenkins.io/(version) | http://update-center.jenkins.io
+     *      NO          |                                           | http://update-center.jenkins.io
      */
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            String jenkinsVersionUcLatest = cfg.getJenkinsUc() + "/" + jenkinsVersion;
+            String jenkinsVersionUcLatest = insertPathPreservingFilename(cfg.getJenkinsUc(), jenkinsVersion);
             try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
                 HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
                 try (CloseableHttpResponse response = httpclient.execute(httphead)) {
@@ -488,7 +502,7 @@ public class PluginManager {
         }
         try {
             String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            return new JSONObject(urlText);
+            return new JSONObject(removePossibleWrapperText(urlText));
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
@@ -499,9 +513,9 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        latestUcJson = getJson(jenkinsUcLatest + "/update-center.actual.json");
+        latestUcJson = getJson(jenkinsUcLatest);
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental() + "/update-center.actual.json");
+        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental().toString());
         pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
 
@@ -797,19 +811,18 @@ public class PluginManager {
             logVerbose(String.format("Will use url: %s to download %s plugin", pluginUrl, plugin.getName()));
             urlString = pluginUrl;
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
-            urlString = String.format("%s/latest/%s.hpi", jenkinsUcLatest, pluginName);
+            urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
         } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
-            urlString = String.format("%s/latest/%s.hpi", cfg.getJenkinsUcExperimental(), pluginName);
+            urlString = appendPathOntoUrl(cfg.getJenkinsUcExperimental(), "/latest", pluginName + ".hpi");
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath =
                     String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
             urlString =
-                    String.format("%s/%s/%s", cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
+                    appendPathOntoUrl(cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
-            urlString = String.format("%s/download/plugins/%s/%s/%s.hpi", cfg.getJenkinsUc(), pluginName, pluginVersion,
-                    pluginName);
+            urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUc()), "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         }
         return urlString;
     }
