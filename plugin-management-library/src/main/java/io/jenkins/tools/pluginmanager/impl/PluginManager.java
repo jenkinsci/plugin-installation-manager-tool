@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -388,6 +389,7 @@ public class PluginManager {
      *      YES         | http://update-center.jenkins.io/(version) | http://update-center.jenkins.io
      *      NO          |                                           | http://update-center.jenkins.io
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public void checkAndSetLatestUpdateCenter() {
         //check if version specific update center
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
@@ -551,8 +553,8 @@ public class PluginManager {
 
     /**
      *
-     * @param pluginName
-     * @return
+     * @param pluginName the name of the plugin
+     * @return latest version of the specified plugin
      */
     public VersionNumber getLatestPluginVersion(String pluginName) {
         if (!latestPlugins.has(pluginName)) {
@@ -835,6 +837,7 @@ public class PluginManager {
      *                     be null
      * @return true if download is successful, false otherwise
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
         File pluginFile;
         if (fileLocation == null) {
@@ -953,6 +956,7 @@ public class PluginManager {
      *
      * @return list of names of plugins that are currently installed in the war
      */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
 
