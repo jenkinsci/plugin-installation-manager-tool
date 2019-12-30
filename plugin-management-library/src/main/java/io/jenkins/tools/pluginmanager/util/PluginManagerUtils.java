@@ -47,12 +47,12 @@ public final class PluginManagerUtils {
     }
 
     /**
-     * Given text loaded from a Jenkins update center, extract just the json content.<br/>
+     * Given text loaded from a Jenkins update center, extract just the json content.<br>
      * Jenkins update centers have meta-data in json form in a file "update-center.json" and, in the case of updates.jenkins.io,
      * another file "update-center.actual.json". The former file has wrapper text surrounding the json content. The latter
-     * file has no wrapper and is totally json. This method checks for the wrapper and removes it if found.<br/>
+     * file has no wrapper and is totally json. This method checks for the wrapper and removes it if found.<br>
      * Historically the wrapper is said to allow easier display of the json in browsers. The text to remove is
-     * "updateCenter.post( ...json here... );" with all json content inside.<br/>
+     * "updateCenter.post( ...json here... );" with all json content inside.<br>
      *
      * @param urlText text loaded from "update-center.json" or "update-center.actual.json"
      * @return the supplied text with any present wrapper removed
