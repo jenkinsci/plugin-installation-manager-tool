@@ -1,4 +1,4 @@
-package io.jenkins.tools.pluginmanager.impl;
+package io.jenkins.tools.pluginmanager.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -193,7 +193,14 @@ public class PluginManagerUtilsTest {
     public void dirnameTestNoPath() {
         String result = PluginManagerUtils.dirName("http://bob.com");
 
-        assertThat(result, is("http://"));
+        assertThat(result, is("http://bob.com"));
+    }
+
+    @Test
+    public void dirnameTestNoPathPlusPort() {
+        String result = PluginManagerUtils.dirName("http://bob.com:8080");
+
+        assertThat(result, is("http://bob.com:8080"));
     }
 
     @Test
@@ -201,6 +208,27 @@ public class PluginManagerUtilsTest {
         String result = PluginManagerUtils.dirName("bob.com");
 
         assertThat(result, is("bob.com"));
+    }
+
+    @Test
+    public void removePathTest() throws MalformedURLException {
+        String result = PluginManagerUtils.removePath(new URL("http://bob.com/path/to/file.json"));
+
+        assertThat(result, is("http://bob.com"));
+    }
+
+    @Test
+    public void removePathTestWithPort() {
+        String result = PluginManagerUtils.removePath("http://bob.com:8080/path/to/file.json");
+
+        assertThat(result, is("http://bob.com:8080"));
+    }
+
+    @Test
+    public void removePathTestNoPath() {
+        String result = PluginManagerUtils.removePath("http://bob.com");
+
+        assertThat(result, is("http://bob.com"));
     }
 
     @Test

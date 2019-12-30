@@ -45,7 +45,9 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -63,7 +65,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
         URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class})
-@PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
+@PowerMockIgnore({"javax.net.ssl.*", "javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -73,7 +75,7 @@ public class PluginManagerTest {
     @Before
     public void setUp() throws IOException {
         cfg = Config.builder()
-            .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
                 .build();
 
@@ -203,7 +205,7 @@ public class PluginManagerTest {
 
     @Test
     public void listPluginsOutputTest() throws IOException {
-         Config config = Config.builder()
+        Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
                 .withShowPluginsToBeDownloaded(true)
@@ -260,30 +262,30 @@ public class PluginManagerTest {
 
         String expectedOutput =
                 "\nInstalled plugins:\n" +
-                "installed1 1.0\n" +
-                "installed2 2.0\n" +
-                "\nBundled plugins:\n" +
-                "bundled1 1.0\n" +
-                "bundled2 2.0\n" +
-                "\nSet of all requested plugins:\n" +
-                "dependency1 1.0.0\n" +
-                "dependency2 1.0.0\n" +
-                "plugin1 1.0\n" +
-                "plugin2 2.0\n" +
-                "\nSet of all requested plugins that will be downloaded:\n" +
-                "dependency1 1.0.0\n" +
-                "dependency2 1.0.0\n" +
-                "plugin1 1.0\n" +
-                "plugin2 2.0\n" +
-                "\nSet of all existing plugins and plugins that will be downloaded:\n" +
-                "bundled1 1.0\n" +
-                "bundled2 2.0\n" +
-                "dependency1 1.0.0\n" +
-                "dependency2 1.0.0\n" +
-                "installed1 1.0\n" +
-                "installed2 2.0\n" +
-                "plugin1 1.0\n" +
-                "plugin2 2.0\n";
+                        "installed1 1.0\n" +
+                        "installed2 2.0\n" +
+                        "\nBundled plugins:\n" +
+                        "bundled1 1.0\n" +
+                        "bundled2 2.0\n" +
+                        "\nSet of all requested plugins:\n" +
+                        "dependency1 1.0.0\n" +
+                        "dependency2 1.0.0\n" +
+                        "plugin1 1.0\n" +
+                        "plugin2 2.0\n" +
+                        "\nSet of all requested plugins that will be downloaded:\n" +
+                        "dependency1 1.0.0\n" +
+                        "dependency2 1.0.0\n" +
+                        "plugin1 1.0\n" +
+                        "plugin2 2.0\n" +
+                        "\nSet of all existing plugins and plugins that will be downloaded:\n" +
+                        "bundled1 1.0\n" +
+                        "bundled2 2.0\n" +
+                        "dependency1 1.0.0\n" +
+                        "dependency2 1.0.0\n" +
+                        "installed1 1.0\n" +
+                        "installed2 2.0\n" +
+                        "plugin1 1.0\n" +
+                        "plugin2 2.0\n";
 
         ByteArrayOutputStream outContent = new ByteArrayOutputStream();
         System.setOut(new PrintStream(outContent));
@@ -355,7 +357,7 @@ public class PluginManagerTest {
 
         updateCenterJson.put("plugins", plugins);
 
-        Plugin awsCodeBuildPlugin = new Plugin("aws-codebuild", "1.2", null , null);
+        Plugin awsCodeBuildPlugin = new Plugin("aws-codebuild", "1.2", null, null);
         Plugin awsGlobalConfigPlugin = new Plugin("aws-global-configuration", "1.1", null, null);
         Plugin gitPlugin = new Plugin("structs", "1.17", null, null);
         JSONArray gitJson = pm.getPluginDependencyJsonArray(gitPlugin, updateCenterJson);
@@ -375,7 +377,7 @@ public class PluginManagerTest {
         JSONObject pluginVersionJson = new JSONObject();
         JSONObject plugins = new JSONObject();
 
-        JSONObject browserStackIntegration= new JSONObject();
+        JSONObject browserStackIntegration = new JSONObject();
         JSONObject browserStack1 = new JSONObject();
         browserStack1.put("requiredCore", "1.580.1");
         JSONArray dependencies1 = new JSONArray();
@@ -491,7 +493,7 @@ public class PluginManagerTest {
         Collections.sort(securityWarningInfo);
         List<String> expectedSecurityInfo = new ArrayList<>();
         expectedSecurityInfo.add("SECURITY-441 Arbitrary files from Jenkins master available in Pipeline by using the " +
-                        "withMaven step https://jenkins.io/security/advisory/2017-03-09/");
+                "withMaven step https://jenkins.io/security/advisory/2017-03-09/");
         expectedSecurityInfo.add("SECURITY-1409 XML External Entity processing vulnerability " +
                 "https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1409");
         Collections.sort(expectedSecurityInfo);
@@ -517,7 +519,7 @@ public class PluginManagerTest {
         Map<String, List<SecurityWarning>> securityWarnings = new HashMap<>();
         SecurityWarning scriptlerWarning = new SecurityWarning("SECURITY", "security warning",
                 "scriptler", "url");
-        scriptlerWarning.addSecurityVersion("", "",".*");
+        scriptlerWarning.addSecurityVersion("", "", ".*");
         List<SecurityWarning> scriptlerList = new ArrayList<>();
         scriptlerList.add(scriptlerWarning);
         securityWarnings.put("scriptler", scriptlerList);
@@ -657,7 +659,7 @@ public class PluginManagerTest {
         List<Plugin> plugins = new ArrayList<>();
         plugins.add(new Plugin("ant", "1.8", null, null));
         plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
-        plugins.add(new Plugin("maven-invoker-plugin", "2.4", null, null ));
+        plugins.add(new Plugin("maven-invoker-plugin", "2.4", null, null));
 
         doReturn(new VersionNumber("1.9")).when(pluginManagerSpy).getLatestPluginVersion("ant");
         doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
@@ -936,7 +938,7 @@ public class PluginManagerTest {
     }
 
     @Test(expected = UpdateCenterInfoRetrievalException.class)
-    public void getJsonURLIOTest() throws IOException{
+    public void getJsonURLIOTest() throws IOException {
         mockStatic(IOUtils.class);
 
         when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
@@ -1026,7 +1028,7 @@ public class PluginManagerTest {
         assertEquals("1.10", pm.getPluginVersion(testHpi));
     }
 
-    @Test (expected = PluginNotFoundException.class)
+    @Test(expected = PluginNotFoundException.class)
     public void getLatestPluginVersionExceptionTest() {
         setTestUcJson();
         pm.getLatestPluginVersion("git");
@@ -1130,7 +1132,7 @@ public class PluginManagerTest {
     }
 
     @Test(expected = DownloadPluginException.class)
-    public void resolveDependenciesFromManifestNoDownload() throws IOException{
+    public void resolveDependenciesFromManifestNoDownload() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
@@ -1389,7 +1391,7 @@ public class PluginManagerTest {
 
         Plugin parent1 = new Plugin("parent1", "1.0", null, null);
         Plugin parent2 = new Plugin("replaced1", "1.0", null, null);
-        Plugin parent3= new Plugin("parent3", "1.2", null, null);
+        Plugin parent3 = new Plugin("parent3", "1.2", null, null);
 
         Plugin child1 = new Plugin("replaced1", "1.3", null, null);
         Plugin child2 = new Plugin("child2", "3.2.1", null, null);
@@ -1546,6 +1548,8 @@ public class PluginManagerTest {
 
         assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
+        // Note: As of now (2019/12/18 lmm) there is no 'latest' folder in the cloudbees update center as a sibling of the "download" folder
+        //  so this is only applicable on jenkins.io
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
         String latestUcUrl = "https://updates.jenkins.io/2.176";
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
@@ -1557,7 +1561,7 @@ public class PluginManagerTest {
         assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoVersion));
 
         Plugin pluginExperimentalVersion = new Plugin("pluginName", "experimental", null, null);
-        String experimentalUrl = cfg.getJenkinsUcExperimental() + "/latest/pluginName.hpi";
+        String experimentalUrl = dirName(cfg.getJenkinsUcExperimental()) + "latest/pluginName.hpi";
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(pluginExperimentalVersion));
 
         Plugin pluginIncrementalRepo = new Plugin("pluginName", "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.pluginName");
@@ -1573,7 +1577,24 @@ public class PluginManagerTest {
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
 
-    @Test (expected = DownloadPluginException.class)
+    @Test
+    public void getDownloadPluginUrlTestComplexUpdateCenterUrl() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withJenkinsUc(new URL("https://jenkins-updates.cloudbees.com/update-center/envelope-cje/update-center.json?version=2.176.4.3"))
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        Plugin plugin = new Plugin("the-plugin", "1.0", null, null);
+
+        String result = pluginManager.getPluginDownloadUrl(plugin);
+
+        assertThat(result, is("https://jenkins-updates.cloudbees.com/download/plugins/the-plugin/1.0/the-plugin.hpi"));
+    }
+
+    @Test(expected = DownloadPluginException.class)
     public void getAttributeFromManifestExceptionTest() throws Exception {
         URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File testJpi = new File(jpiURL.getFile());
@@ -1671,9 +1692,9 @@ public class PluginManagerTest {
                 .build();
         PluginManager pluginManager = new PluginManager(config);
 
-        Map <String, Plugin> expectedPlugins = new HashMap<>();
-        expectedPlugins.put("credentials", new Plugin("credentials","2.1.18", null, null));
-        expectedPlugins.put("display-url-api", new Plugin("display-url-api","2.0", null, null));
+        Map<String, Plugin> expectedPlugins = new HashMap<>();
+        expectedPlugins.put("credentials", new Plugin("credentials", "2.1.18", null, null));
+        expectedPlugins.put("display-url-api", new Plugin("display-url-api", "2.0", null, null));
         expectedPlugins.put("github-branch-source", new Plugin("github-branch-source", "1.8", null, null));
 
         Map<String, Plugin> actualPlugins = pluginManager.bundledPlugins();

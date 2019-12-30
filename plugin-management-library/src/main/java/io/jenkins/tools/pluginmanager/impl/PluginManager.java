@@ -52,10 +52,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.appendPathOntoUrl;
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.insertPathPreservingFilename;
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.removePossibleWrapperText;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathOntoUrl;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.insertPathPreservingFilename;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 
 public class PluginManager {
     private List<Plugin> failedPlugins;
@@ -385,7 +386,7 @@ public class PluginManager {
      * the configuration class
      *
      * Rules:
-     * jenkins version  | use if readable (HEAD)                    | use prior value anyway
+     * jenkins version  | use if readable (http HEAD verb)          | use prior value anyway
      *      YES         | http://update-center.jenkins.io/(version) | http://update-center.jenkins.io
      *      NO          |                                           | http://update-center.jenkins.io
      */
@@ -813,7 +814,7 @@ public class PluginManager {
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
         } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
-            urlString = appendPathOntoUrl(cfg.getJenkinsUcExperimental(), "/latest", pluginName + ".hpi");
+            urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUcExperimental()), "/latest", pluginName + ".hpi");
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
@@ -822,7 +823,7 @@ public class PluginManager {
             urlString =
                     appendPathOntoUrl(cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
-            urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUc()), "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
+            urlString = appendPathOntoUrl(removePath(cfg.getJenkinsUc()), "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         }
         return urlString;
     }

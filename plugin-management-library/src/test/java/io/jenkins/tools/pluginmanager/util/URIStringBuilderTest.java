@@ -1,5 +1,6 @@
-package io.jenkins.tools.pluginmanager.impl;
+package io.jenkins.tools.pluginmanager.util;
 
+import io.jenkins.tools.pluginmanager.util.URIStringBuilder;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;
