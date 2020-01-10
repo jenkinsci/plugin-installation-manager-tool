@@ -3,6 +3,8 @@ package io.jenkins.tools.pluginmanager.util;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.requireNonNull;
+
 public final class PluginManagerUtils {
 
     private PluginManagerUtils() {
@@ -24,7 +26,7 @@ public final class PluginManagerUtils {
     public static String appendPathOntoUrl(Object urlString, Object... pathSection) {
         String[] args = new String[pathSection.length];
         for (int i = 0; i < pathSection.length; ++i) {
-            assert pathSection[i] != null;
+            requireNonNull(pathSection[i]);
             args[i] = pathSection[i].toString();
         }
         return appendPathOntoUrl(urlString.toString(), args);
@@ -79,7 +81,7 @@ public final class PluginManagerUtils {
      * @see #dirName(String)
      */
     public static String dirName(Object urlString) {
-        assert urlString != null;
+        requireNonNull(urlString);
         return dirName(urlString.toString());
     }
 
@@ -109,7 +111,7 @@ public final class PluginManagerUtils {
      * @see #removePath(String)
      */
     public static String removePath(Object urlString) {
-        assert urlString != null;
+        requireNonNull(urlString);
         return removePath(urlString.toString());
     }
 
@@ -145,8 +147,8 @@ public final class PluginManagerUtils {
      * @see #insertPathPreservingFilename(String, String)
      */
     public static String insertPathPreservingFilename(Object urlString, Object pathToInsert) {
-        assert urlString != null;
-        assert pathToInsert != null;
+        requireNonNull(urlString);
+        requireNonNull(pathToInsert);
         return insertPathPreservingFilename(urlString.toString(), pathToInsert.toString());
     }
 
@@ -169,4 +171,3 @@ public final class PluginManagerUtils {
     }
 
 }
-
