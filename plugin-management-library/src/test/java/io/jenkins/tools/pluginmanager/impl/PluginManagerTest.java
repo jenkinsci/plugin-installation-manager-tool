@@ -45,7 +45,9 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import static io.jenkins.tools.pluginmanager.impl.PluginManagerUtils.dirName;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -1546,6 +1548,8 @@ public class PluginManagerTest {
 
         assertEquals("pluginURL", pm.getPluginDownloadUrl(plugin));
 
+        // Note: As of now (2019/12/18 lmm) there is no 'latest' folder in the cloudbees update center as a sibling of the "download" folder
+        //  so this is only applicable on jenkins.io
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
         String latestUcUrl = "https://updates.jenkins.io/2.176";
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
@@ -1557,7 +1561,7 @@ public class PluginManagerTest {
         assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoVersion));
 
         Plugin pluginExperimentalVersion = new Plugin("pluginName", "experimental", null, null);
-        String experimentalUrl = cfg.getJenkinsUcExperimental() + "/latest/pluginName.hpi";
+        String experimentalUrl = dirName(cfg.getJenkinsUcExperimental()) + "latest/pluginName.hpi";
         Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(pluginExperimentalVersion));
 
         Plugin pluginIncrementalRepo = new Plugin("pluginName", "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.pluginName");
@@ -1573,7 +1577,24 @@ public class PluginManagerTest {
         assertEquals(otherURL, pm.getPluginDownloadUrl(pluginOtherVersion));
     }
 
-    @Test (expected = DownloadPluginException.class)
+    @Test
+    public void getDownloadPluginUrlTestComplexUpdateCenterUrl() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withJenkinsUc(new URL("https://jenkins-updates.cloudbees.com/update-center/envelope-cje/update-center.json?version=2.176.4.3"))
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        Plugin plugin = new Plugin("the-plugin", "1.0", null, null);
+
+        String result = pluginManager.getPluginDownloadUrl(plugin);
+
+        assertThat(result, is("https://jenkins-updates.cloudbees.com/download/plugins/the-plugin/1.0/the-plugin.hpi"));
+    }
+
+    @Test(expected = DownloadPluginException.class)
     public void getAttributeFromManifestExceptionTest() throws Exception {
         URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File testJpi = new File(jpiURL.getFile());
