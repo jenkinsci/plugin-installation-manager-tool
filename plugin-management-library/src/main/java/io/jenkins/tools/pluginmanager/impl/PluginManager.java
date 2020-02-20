@@ -81,6 +81,8 @@ public class PluginManager {
 
     public static final String SEPARATOR = File.separator;
 
+    private static final int DEFAULT_MAX_RETRIES = 3;
+
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
@@ -838,8 +840,23 @@ public class PluginManager {
      *                     be null
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
+        return downloadToFile(urlString, plugin, fileLocation, DEFAULT_MAX_RETRIES);
+    }
+
+    /**
+     * Downloads a plugin from a url to a file.
+     *
+     * @param urlString    String url to download the plugin from
+     * @param plugin       Plugin object representing plugin to be downloaded
+     * @param fileLocation contains the temp file if the plugin is downloaded so that dependencies can be parsed from
+     *                     the manifest, if the plugin will be downloaded to the plugin download location, this will
+     *                     be null
+     * @param maxRetries   Maximum number of times to retry the download before failing
+     * @return true if download is successful, false otherwise
+     */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
             pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
@@ -847,34 +864,50 @@ public class PluginManager {
         } else {
             pluginFile = fileLocation;
         }
-        try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
-            HttpClientContext context = HttpClientContext.create();
-            HttpHead httphead = new HttpHead(urlString);
-            try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
-                HttpHost target = context.getTargetHost();
-                List<URI> redirectLocations = context.getRedirectLocations();
-                // Expected to be an absolute URI
-                URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
-                FileUtils.copyURLToFile(location.toURL(), pluginFile);
-            } catch (URISyntaxException | IOException e) {
-                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
-                        urlString, plugin.getName()));
-                return false;
+
+        boolean success = true;
+        for (int i = 1; i <= maxRetries; i++) {
+            success = true;
+            try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
+                HttpClientContext context = HttpClientContext.create();
+                HttpHead httphead = new HttpHead(urlString);
+                try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
+                    HttpHost target = context.getTargetHost();
+                    List<URI> redirectLocations = context.getRedirectLocations();
+                    // Expected to be an absolute URI
+                    URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
+                    FileUtils.copyURLToFile(location.toURL(), pluginFile);
+                } catch (URISyntaxException | IOException e) {
+                    logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file on try %d",
+                            urlString, plugin.getName(), i));
+                    success = false;
+                }
+            } catch (IOException e) {
+                System.out.println("Unable to create HTTP connection to download plugin");
+                success = false;
             }
-        } catch (IOException e) {
-            System.out.println("Unable to create HTTP connection to download plugin");
-            return false;
+
+            // Check integrity of plugin file
+            if (success) {
+                try (JarFile pluginJpi = new JarFile(pluginFile)) {
+                    plugin.setFile(pluginFile);
+                } catch (IOException e) {
+                    System.out.println("Downloaded file for "+plugin.getName()+" is not a valid ZIP");
+                    success = false;
+                }
+            }
+
+            if (success) {
+                break;
+            } else if (pluginFile.exists()) {
+                pluginFile.delete();
+            }
         }
 
-        // Check integrity of plugin file
-        try (JarFile pluginJpi = new JarFile(pluginFile)) {
-            plugin.setFile(pluginFile);
-        } catch (IOException e) {
+        if (!success) {
             failedPlugins.add(plugin);
-            System.out.println("Downloaded file is not a valid ZIP");
-            return false;
         }
-        return true;
+        return success;
     }
 
     /**
