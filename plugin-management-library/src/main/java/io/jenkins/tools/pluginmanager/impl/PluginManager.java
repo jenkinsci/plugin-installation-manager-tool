@@ -869,8 +869,12 @@ public class PluginManager {
 
         boolean success = true;
         for (int i = 0; i < maxRetries; i++) {
-            if (pluginFile.exists()) {
-                Files.delete(pluginFile.toPath());
+            try {
+                if (pluginFile.exists()) {
+                    Files.delete(pluginFile.toPath());
+                }
+            } catch (IOException) {
+                logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1);
             }
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
