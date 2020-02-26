@@ -870,7 +870,7 @@ public class PluginManager {
         boolean success = true;
         for (int i = 0; i < maxRetries; i++) {
             if (pluginFile.exists()) {
-                pluginFile.delete();
+                Files.delete(pluginFile.toPath());
             }
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
