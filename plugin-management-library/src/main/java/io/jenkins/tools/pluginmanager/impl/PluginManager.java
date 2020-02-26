@@ -875,7 +875,7 @@ public class PluginManager {
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
                     .addInterceptorLast((HttpRequestInterceptor) (request, context) -> {
-                        throw new IOException("Planned");
+                        throw new IOException("Retry on any failure");
                     })
                     .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, false))
                     .build()) {
