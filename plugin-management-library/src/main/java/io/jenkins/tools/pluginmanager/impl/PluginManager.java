@@ -874,7 +874,7 @@ public class PluginManager {
                     Files.delete(pluginFile.toPath());
                 }
             } catch (IOException e) {
-                logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1);
+                logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1));
             }
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
