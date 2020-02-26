@@ -873,7 +873,7 @@ public class PluginManager {
                 if (pluginFile.exists()) {
                     Files.delete(pluginFile.toPath());
                 }
-            } catch (IOException) {
+            } catch (IOException e) {
                 logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1);
             }
 
