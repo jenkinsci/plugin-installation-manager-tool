@@ -32,6 +32,7 @@ import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -64,7 +65,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class})
+        URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class, HttpClientBuilder.class})
 @PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
@@ -1499,7 +1500,10 @@ public class PluginManagerTest {
         mockStatic(HttpClients.class);
         CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
 
-        when(HttpClients.createSystem()).thenReturn(httpclient);
+        HttpClientBuilder builder = mock(HttpClientBuilder.class);
+        when(HttpClients.custom()).thenReturn(builder);
+        when(builder.build()).thenReturn(httpclient);
+
         HttpHead httphead = mock(HttpHead.class);
 
         mockStatic(HttpClientContext.class);

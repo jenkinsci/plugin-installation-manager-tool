@@ -42,12 +42,14 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -80,6 +82,8 @@ public class PluginManager {
     private boolean useLatestAll;
 
     public static final String SEPARATOR = File.separator;
+
+    private static final int DEFAULT_MAX_RETRIES = 3;
 
     public PluginManager(Config cfg) {
         this.cfg = cfg;
@@ -838,43 +842,85 @@ public class PluginManager {
      *                     be null
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
+        return downloadToFile(urlString, plugin, fileLocation, DEFAULT_MAX_RETRIES);
+    }
+
+    /**
+     * Downloads a plugin from a url to a file.
+     *
+     * @param urlString    String url to download the plugin from
+     * @param plugin       Plugin object representing plugin to be downloaded
+     * @param fileLocation contains the temp file if the plugin is downloaded so that dependencies can be parsed from
+     *                     the manifest, if the plugin will be downloaded to the plugin download location, this will
+     *                     be null
+     * @param maxRetries   Maximum number of times to retry the download before failing
+     * @return true if download is successful, false otherwise
+     */
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
-            pluginFile = new File(refDir + SEPARATOR + plugin.getArchiveFileName());
+            pluginFile = new File(refDir, plugin.getArchiveFileName());
             System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
         } else {
             pluginFile = fileLocation;
         }
-        try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
-            HttpClientContext context = HttpClientContext.create();
-            HttpHead httphead = new HttpHead(urlString);
-            try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
-                HttpHost target = context.getTargetHost();
-                List<URI> redirectLocations = context.getRedirectLocations();
-                // Expected to be an absolute URI
-                URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
-                FileUtils.copyURLToFile(location.toURL(), pluginFile);
-            } catch (URISyntaxException | IOException e) {
-                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
-                        urlString, plugin.getName()));
-                return false;
+
+        boolean success = true;
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                if (pluginFile.exists()) {
+                    Files.delete(pluginFile.toPath());
+                }
+            } catch (IOException e) {
+                logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1));
             }
-        } catch (IOException e) {
-            System.out.println("Unable to create HTTP connection to download plugin");
-            return false;
+
+            try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
+                    .addInterceptorLast((HttpRequestInterceptor) (request, context) -> {
+                        throw new IOException("Retry on any failure");
+                    })
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, false))
+                    .build()) {
+                HttpClientContext context = HttpClientContext.create();
+                HttpHead httphead = new HttpHead(urlString);
+                try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
+                    HttpHost target = context.getTargetHost();
+                    List<URI> redirectLocations = context.getRedirectLocations();
+                    // Expected to be an absolute URI
+                    URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
+                    FileUtils.copyURLToFile(location.toURL(), pluginFile);
+                } catch (URISyntaxException | IOException e) {
+                    logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
+                            urlString, plugin.getName()));
+                    success = false;
+                }
+            } catch (IOException e) {
+                System.out.println("Unable to create HTTP connection to download plugin");
+                success = false;
+            }
+
+            // Check integrity of plugin file
+            if (success) {
+                try (JarFile pluginJpi = new JarFile(pluginFile)) {
+                    plugin.setFile(pluginFile);
+                } catch (IOException e) {
+                    System.out.println("Downloaded file for " + plugin.getName() + " is not a valid ZIP");
+                    success = false;
+                }
+            }
+
+            // both the download and zip validation passed
+            if(success) {
+                break;
+            }
         }
 
-        // Check integrity of plugin file
-        try (JarFile pluginJpi = new JarFile(pluginFile)) {
-            plugin.setFile(pluginFile);
-        } catch (IOException e) {
+        if (!success) {
             failedPlugins.add(plugin);
-            System.out.println("Downloaded file is not a valid ZIP");
-            return false;
         }
-        return true;
+        return success;
     }
 
     /**
