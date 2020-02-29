@@ -431,9 +431,8 @@ public class PluginManager {
                 try {
                     failedPluginsFile.createNewFile();
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    System.out.println("File cannot be created at the path: " + failedPluginsFile
-                        .getAbsolutePath());
+                    logVerbose(String.format("File cannot be created at the path: " + failedPluginsFile
+                        .getAbsolutePath()));
                 }
             }
 
@@ -446,10 +445,9 @@ public class PluginManager {
                     System.out.println(failedPluginName);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                logVerbose(String.format("Unable to write to file: " + e.getMessage()));
             }
         }
-        System.exit(1);
     }
 
     /**
