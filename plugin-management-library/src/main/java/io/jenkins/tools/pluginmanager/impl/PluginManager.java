@@ -7,6 +7,7 @@ import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -138,6 +139,7 @@ public class PluginManager {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
+        outputFailedPlugins();
         System.out.println("Done");
     }
 
@@ -415,6 +417,39 @@ public class PluginManager {
                         "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
         }
+    }
+    /**
+     * Outputs a list of plugins which have failed to download
+     */
+    public void outputFailedPlugins() {
+        if (failedPlugins.size() > 0) {
+            System.out.println("Some plugins failed to download: ");
+            //Create a new Failed Plugins text file
+            File failedPluginsFile = new File(refDir.getAbsolutePath() + File.separator + "failed-plugins.txt");
+
+            if (!failedPluginsFile.exists()) {
+                try {
+                    failedPluginsFile.createNewFile();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("File cannot be created at the path: " + failedPluginsFile
+                        .getAbsolutePath());
+                }
+            }
+
+            try {
+                String newLine = System.getProperty("line.separator");
+                FileWriter fileWriter = new FileWriter(failedPluginsFile.getPath());
+                for (Plugin plugin : failedPlugins) {
+                    String failedPluginName = plugin.getName();
+                    fileWriter.write(failedPluginName + newLine);
+                    System.out.println(failedPluginName);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        System.exit(1);
     }
 
     /**
