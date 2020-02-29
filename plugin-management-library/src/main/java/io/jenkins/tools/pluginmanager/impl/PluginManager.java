@@ -423,9 +423,9 @@ public class PluginManager {
      */
     public void outputFailedPlugins() {
         if (failedPlugins.size() > 0) {
-            System.out.println("Some plugins failed to download: ");
+            System.out.println(failedPlugins.size() + " plugin(s) failed to download: ");
             //Create a new Failed Plugins text file
-            File failedPluginsFile = new File(refDir.getAbsolutePath() + File.separator + "failed-plugins.txt");
+            File failedPluginsFile = new File(refDir.getAbsolutePath(), "failed-plugins.txt");
 
             if (!failedPluginsFile.exists()) {
                 try {
