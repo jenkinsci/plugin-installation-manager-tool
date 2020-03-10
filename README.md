@@ -98,3 +98,5 @@ The plugin manager tries to use update center data to get the latest information
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
 
 Support for downloading plugins from maven is not currently supported. [JENKINS-58217](https://issues.jenkins-ci.org/browse/JENKINS-58217)
+
+When using `--latest` you may run into a scenario where the jenkins update mirror contains the directory of the newer version of a plugin(release in progress), regardless of if their is a jpi to download, which results in a download failure. It's recommended that you pin your plugin requirement versions until the mirror has been updated to more accurately represent what's available, more information can be found [here](https://groups.google.com/forum/#!topic/jenkins-infra/R7QqpgoSkbI), and [here](https://github.com/jenkinsci/plugin-installation-manager-tool/issues/87).
