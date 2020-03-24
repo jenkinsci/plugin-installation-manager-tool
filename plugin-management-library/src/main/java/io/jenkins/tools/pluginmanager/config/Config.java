@@ -222,6 +222,7 @@ public class Config {
 
         public Builder withSkipFailedPlugins(boolean skipFailedPlugins) {
             this.skipFailedPlugins = skipFailedPlugins;
+            return this;
         }
 
         public Config build() {
