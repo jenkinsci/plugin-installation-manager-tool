@@ -108,7 +108,7 @@ class CliOptions {
 
     @Option(name = "--skip-failed-plugins", usage = "Set to true to skip installing plugins that have failed to download. " +
             "By default, if a single plugin is unavailable then all plugins fail to download and install.",
-            hander = BooleanOptionHandler.class)
+            handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;
 
     /**
