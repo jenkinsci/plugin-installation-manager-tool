@@ -48,7 +48,7 @@ public class Config {
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
-            boolean skipFailedPlugins;
+            boolean skipFailedPlugins
     ) {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
