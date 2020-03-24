@@ -429,10 +429,10 @@ public class PluginManager {
         try {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
                 boolean successfulDownload = downloadPlugin(plugin, null);
-                if (!successfulDownload && skipFailedPlugins) {
+                if (skipFailedPlugins) {
                     System.out.println(
                                 "SKIP: Unable to download " + plugin.getName());
-                } else {
+                } else if (!successfulDownload) {
                     throw new DownloadPluginException("Unable to download " + plugin.getName());
                 }
             })).get();
