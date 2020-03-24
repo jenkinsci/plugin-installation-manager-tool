@@ -106,6 +106,11 @@ class CliOptions {
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
 
+    @Option(name = "--skip-failed-plugins", usage = "Set to true to skip installing plugins that have failed to download. " +
+            "By default, if a single plugin is unavailable then all plugins fail to download and install.",
+            hander = BooleanOptionHandler.class)
+    private boolean skipFailedPlugins;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -127,6 +132,7 @@ class CliOptions {
                 .withDoDownload(!isNoDownload())
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
+                .withSkipFailedPlugins(isSkipFailedPlugins())
                 .build();
     }
 
@@ -381,6 +387,16 @@ class CliOptions {
                     "at a time");
         }
         return useLatestSpecified;
+    }
+
+    /**
+     * Returns the boolean corresponding to if the user wants to skip plugins that fail to download, including their
+     * dependencies
+     *
+     * @return true if the user wants to skip plugins that have failed to download from the specified UpdateCenter
+     */
+    public boolean isSkipFailedPlugins() {
+        return skipFailedPlugins;
     }
 
     /**
