@@ -105,10 +105,11 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
-        when(refDir.exists()).thenReturn(true);
+        when(refDir.exists()).thenReturn(false);
 
         PluginManager pluginManagerSpy = spy(pluginManager);
 
+        doNothing().when(pluginManagerSpy).createRefDir();
         doReturn(new VersionNumber("2.182")).when(pluginManagerSpy).getJenkinsVersionFromWar();
         doNothing().when(pluginManagerSpy).checkAndSetLatestUpdateCenter();
         doNothing().when(pluginManagerSpy).getUCJson();
@@ -944,7 +945,8 @@ public class PluginManagerTest {
 
         when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
 
-        pm.getJson("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json");
+        pm.setCm(new MockCacheManager());
+        pm.getJson(new URL("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"), "update-center");
     }
 
     @Test
