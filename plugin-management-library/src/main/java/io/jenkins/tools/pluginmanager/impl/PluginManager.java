@@ -45,12 +45,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.ServiceUnavailableRetryStrategy;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.DefaultServiceUnavailableRetryStrategy;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -925,14 +927,11 @@ public class PluginManager {
             }
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
-                    .addInterceptorLast((HttpRequestInterceptor) (request, context) -> {
-                        throw new IOException("Retry on any failure");
-                    })
-                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, false))
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, true))
                     .build()) {
                 HttpClientContext context = HttpClientContext.create();
                 HttpHead httphead = new HttpHead(urlString);
-                try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
+                try (CloseableHttpResponse ignored = httpclient.execute(httphead, context)) {
                     HttpHost target = context.getTargetHost();
                     List<URI> redirectLocations = context.getRedirectLocations();
                     // Expected to be an absolute URI
