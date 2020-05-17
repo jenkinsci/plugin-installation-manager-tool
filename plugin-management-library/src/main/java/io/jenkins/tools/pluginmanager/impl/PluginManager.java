@@ -833,15 +833,6 @@ public class PluginManager {
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
-        if (!successfulDownload) {
-            logVerbose(String.format("First download attempt of %s unsuccessful, reattempting",
-                    plugin.getName()));
-            //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
-            String newPluginName = plugin.getName() + "-plugin";
-            plugin.setName(newPluginName);
-            pluginDownloadUrl = getPluginDownloadUrl(plugin);
-            successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
-        }
         if (successfulDownload && location == null) {
             System.out.println(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), plugin);

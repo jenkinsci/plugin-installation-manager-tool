@@ -801,60 +801,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadPluginUnsuccessfulFirstAttempt() throws IOException {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Map<String, Plugin> installedVersions = new HashMap<>();
-        installedVersions.put("plugin1", new Plugin("plugin1", "1.0", null, null));
-        installedVersions.put("plugin2", new Plugin("plugin2", "2.0", null, null));
-
-        pluginManagerSpy.setInstalledPluginVersions(installedVersions);
-
-        Plugin pluginToDownload = new Plugin("plugin", "0.2", null, null);
-
-        doReturn("url").doReturn("newUrl").when(pluginManagerSpy).getPluginDownloadUrl(pluginToDownload);
-        doReturn(false).when(pluginManagerSpy).downloadToFile("url", pluginToDownload, null);
-        doReturn(true).when(pluginManagerSpy).downloadToFile("newUrl", pluginToDownload, null);
-
-        assertEquals(true, pluginManagerSpy.downloadPlugin(pluginToDownload, null));
-        assertEquals("plugin-plugin", pluginToDownload.getName());
-        assertEquals("plugin", pluginToDownload.getOriginalName());
-    }
-
-    @Test
-    public void downloadPluginUnsuccessfulSecondAttempt() throws IOException {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Map<String, Plugin> installedVersions = new HashMap<>();
-        installedVersions.put("plugin1", new Plugin("plugin1", "1.0", null, null));
-        installedVersions.put("plugin2", new Plugin("plugin2", "2.0", null, null));
-
-        pluginManagerSpy.setInstalledPluginVersions(installedVersions);
-
-        Plugin pluginToDownload = new Plugin("plugin", "0.2", null, null);
-
-        doReturn("url").doReturn("newUrl").when(pluginManagerSpy).getPluginDownloadUrl(pluginToDownload);
-        doReturn(false).when(pluginManagerSpy).downloadToFile("url", pluginToDownload, null);
-        doReturn(false).when(pluginManagerSpy).downloadToFile("newUrl", pluginToDownload, null);
-
-        assertEquals(false, pluginManagerSpy.downloadPlugin(pluginToDownload, null));
-        assertEquals("plugin-plugin", pluginToDownload.getName());
-        assertEquals("plugin", pluginToDownload.getOriginalName());
-    }
-
-    @Test
     public void downloadPluginSuccessfulFirstAttempt() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
