@@ -560,23 +560,13 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        createCacheManager();
+        cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
         cm.createCache();
 
         latestUcJson = getJson(stringToUrlQuietly(jenkinsUcLatest), "update-center");
         latestPlugins = latestUcJson.getJSONObject("plugins");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center");
         pluginInfoJson = getJson(stringToUrlQuietly(Settings.DEFAULT_PLUGIN_INFO_LOCATION), "plugin-versions");
-    }
-
-    private void createCacheManager() {
-        Path path = jenkinsWarFile.toPath();
-        Path parent = path.getParent();
-        if (parent == null) {
-            throw new IllegalArgumentException("Jenkins WAR file has no parent directory");
-        }
-        Path cachePath = parent.resolve("plugin-installation-tool-cache");
-        cm = new CacheManager(cachePath, verbose);
     }
 
     /**
