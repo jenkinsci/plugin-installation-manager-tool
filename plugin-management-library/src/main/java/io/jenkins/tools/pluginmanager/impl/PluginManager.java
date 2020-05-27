@@ -80,6 +80,7 @@ public class PluginManager {
     private boolean verbose;
     private boolean useLatestSpecified;
     private boolean useLatestAll;
+    private boolean skipFailedPlugins;
 
     public static final String SEPARATOR = File.separator;
 
@@ -98,6 +99,7 @@ public class PluginManager {
         jenkinsUcLatest = cfg.getJenkinsUc().toString();
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
+        skipFailedPlugins = cfg.isSkipFailedPlugins();
     }
 
     /**
@@ -427,7 +429,10 @@ public class PluginManager {
         try {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
                 boolean successfulDownload = downloadPlugin(plugin, null);
-                if (!successfulDownload) {
+                if (skipFailedPlugins) {
+                    System.out.println(
+                                "SKIP: Unable to download " + plugin.getName());
+                } else if (!successfulDownload) {
                     throw new DownloadPluginException("Unable to download " + plugin.getName());
                 }
             })).get();

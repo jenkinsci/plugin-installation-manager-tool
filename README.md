@@ -30,6 +30,8 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
 * `--version` or `-v`: (optional) Displays the plugin managment tool version and exits.
 * `--no-download`: (optional) Set to true to avoid downloading plugins. By default it is set to false and plugins will be downloaded.
+* `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
+Jenkins in a broken state.
 
 #### Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
