@@ -9,6 +9,7 @@ import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -42,7 +43,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
@@ -83,6 +83,7 @@ public class PluginManager {
     private boolean skipFailedPlugins;
 
     public static final String SEPARATOR = File.separator;
+    private CacheManager cm;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
 
@@ -107,13 +108,14 @@ public class PluginManager {
      * the failed plugins
      */
     public void start() {
-        if (!refDir.exists()) {
+        if (refDir.exists()) {
             try {
-                Files.createDirectories(refDir.toPath());
+                FileUtils.deleteDirectory(refDir);
             } catch (IOException e) {
-                throw new DirectoryCreationException("Unable to create plugin directory", e);
+                throw new UncheckedIOException("Unable to delete: " + refDir.getAbsolutePath(), e);
             }
         }
+        createRefDir();
 
         if (useLatestSpecified && useLatestAll) {
             throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
@@ -141,6 +143,14 @@ public class PluginManager {
             downloadPlugins(pluginsToBeDownloaded);
         }
         System.out.println("Done");
+    }
+
+    void createRefDir() {
+        try {
+            Files.createDirectories(refDir.toPath());
+        } catch (IOException e) {
+            throw new DirectoryCreationException("Unable to create plugin directory", e);
+        }
     }
 
     /**
@@ -501,18 +511,50 @@ public class PluginManager {
      * Gets the json object at the given url
      *
      * @param urlString string representing the url from which to get the json object
+     * @deprecated see {@link #getJson(URL, String)}
      * @return json object
      */
+    @Deprecated
     public JSONObject getJson(String urlString) {
+        URL url = stringToUrlQuietly(urlString);
+        return getJson(url, null);
+    }
+
+    private URL stringToUrlQuietly(String urlString) {
         URL url;
         try {
             url = new URL(urlString);
         } catch (MalformedURLException e) {
             throw new UpdateCenterInfoRetrievalException("Malformed url for update center", e);
         }
+        return url;
+    }
+
+    /**
+     * Retrieves JSON from a URL and caches it
+     *
+     * @param url the url to retrieve json from
+     * @param cacheKey a key to use for caching i.e. 'update-center'
+     * @return the JSON
+     */
+    public JSONObject getJson(URL url, String cacheKey) {
+        JSONObject jsonObject = cm.retrieveFromCache(cacheKey);
+        if (jsonObject != null) {
+            if (verbose) {
+                System.out.println("Returning cached value for: " + cacheKey);
+            }
+            return jsonObject;
+        } else {
+            if (verbose) {
+                System.out.println("Cache miss for: " + cacheKey);
+            }
+        }
+
         try {
             String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            return new JSONObject(removePossibleWrapperText(urlText));
+            String result = removePossibleWrapperText(urlText);
+            cm.addToCache(cacheKey, result);
+            return new JSONObject(result);
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
@@ -523,10 +565,13 @@ public class PluginManager {
      */
     public void getUCJson() {
         logVerbose("\nRetrieving update center information");
-        latestUcJson = getJson(jenkinsUcLatest);
+        cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
+        cm.createCache();
+
+        latestUcJson = getJson(stringToUrlQuietly(jenkinsUcLatest), "update-center");
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental().toString());
-        pluginInfoJson = getJson(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
+        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center");
+        pluginInfoJson = getJson(stringToUrlQuietly(Settings.DEFAULT_PLUGIN_INFO_LOCATION), "plugin-versions");
     }
 
     /**
@@ -782,15 +827,6 @@ public class PluginManager {
         }
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
-        if (!successfulDownload) {
-            logVerbose(String.format("First download attempt of %s unsuccessful, reattempting",
-                    plugin.getName()));
-            //some plugin don't follow the rules about artifact ID, i.e. docker-plugin
-            String newPluginName = plugin.getName() + "-plugin";
-            plugin.setName(newPluginName);
-            pluginDownloadUrl = getPluginDownloadUrl(plugin);
-            successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
-        }
         if (successfulDownload && location == null) {
             System.out.println(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), plugin);
@@ -879,18 +915,15 @@ public class PluginManager {
                     Files.delete(pluginFile.toPath());
                 }
             } catch (IOException e) {
-                logVerbose(String.format("Unable to delete %s before retry %d",pluginFile,i+1));
+                logVerbose(String.format("Unable to delete %s before retry %d", pluginFile, i + 1));
             }
 
             try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
-                    .addInterceptorLast((HttpRequestInterceptor) (request, context) -> {
-                        throw new IOException("Retry on any failure");
-                    })
-                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, false))
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, true))
                     .build()) {
                 HttpClientContext context = HttpClientContext.create();
                 HttpHead httphead = new HttpHead(urlString);
-                try (CloseableHttpResponse response = httpclient.execute(httphead, context)) {
+                try (CloseableHttpResponse ignored = httpclient.execute(httphead, context)) {
                     HttpHost target = context.getTargetHost();
                     List<URI> redirectLocations = context.getRedirectLocations();
                     // Expected to be an absolute URI
@@ -1187,6 +1220,9 @@ public class PluginManager {
         this.pluginInfoJson = pluginInfoJson;
     }
 
+    public void setCm(CacheManager cm) {
+        this.cm = cm;
+    }
 
     /**
      * Gets the list of failed plugins

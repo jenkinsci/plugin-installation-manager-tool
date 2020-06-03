@@ -28,10 +28,15 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 * `--jenkins-update-center`: (optional) Sets the main update center filename, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/update-center.actual.json
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental/update-center.actual.json
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
-* `--version` or `-v`: (optional) Displays the plugin managment tool version and exits.
+* `--version` or `-v`: (optional) Displays the plugin management tool version and exits.
 * `--no-download`: (optional) Set to true to avoid downloading plugins. By default it is set to false and plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
 Jenkins in a broken state.
+
+#### Advanced configuration
+
+* `CACHE_DIR`: used to configure the directory where the plugins update center cache is located. By default it will be in `~/.cache/jenkins-plugin-management-cli`,
+if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jenkins-plugin-management-cli`.
 
 #### Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
