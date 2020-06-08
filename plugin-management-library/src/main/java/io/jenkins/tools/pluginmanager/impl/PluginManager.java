@@ -54,6 +54,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import javax.annotation.CheckForNull;
+
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathOntoUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.insertPathPreservingFilename;
@@ -479,11 +481,16 @@ public class PluginManager {
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
-        Map<String, Plugin> allPluginDependencies = new HashMap<>();
+        // Prepare the initial list by putting all explicitly requested plugins
+        Map<String, Plugin> topLevelDependencies = new HashMap<>();
+        for (Plugin requestedPlugin : requestedPlugins) {
+            topLevelDependencies.put(requestedPlugin.getName(), requestedPlugin);
+        }
+        Map<String, Plugin> allPluginDependencies = new HashMap<>(topLevelDependencies);
 
         for (Plugin requestedPlugin : requestedPlugins) {
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
-            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin);
+            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
@@ -788,13 +795,19 @@ public class PluginManager {
 
     /**
      * Finds all recursive dependencies for a given plugin. If the same plugin is required by different plugins, the
-     * highest required version will be taken
+     * highest required version will be taken.
      *
      * @param plugin to resolve dependencies for
      * @return map of plugin names and plugins representing all of the dependencies of the requested plugin, including
      * the requested plugin itself
      */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
+        return resolveRecursiveDependencies(plugin, null);
+    }
+
+    // TODO(oleg_nenashev): This method is private, because it is only a partial fix for https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
+    // A full dependency graph resolution and removal of non-needed dependency trees is required
+    private Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
@@ -809,6 +822,23 @@ public class PluginManager {
 
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
+                Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
+
+                // See https://github.com/jenkinsci/plugin-installation-manager-tool/pull/102
+                if (pinnedPlugin != null) { // There is a top-level plugin with the same ID
+                    if (pinnedPlugin.getVersion().isNewerThanOrEqualTo(p.getVersion())) {
+                        if (verbose) {
+                            logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
+                                    p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
+                        }
+                        continue;
+                    } else {
+                        String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                                plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
+                        throw new PluginDependencyStrategyException(message);
+                    }
+                }
+
                 if (!recursiveDependencies.containsKey(dependencyName)) {
                     recursiveDependencies.put(dependencyName, p);
                     queue.add(p);
