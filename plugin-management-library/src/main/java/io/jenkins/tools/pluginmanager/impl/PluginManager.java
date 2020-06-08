@@ -108,6 +108,18 @@ public class PluginManager {
      * the failed plugins
      */
     public void start() {
+        start(true);
+    }
+
+    /**
+     * Drives the process to download plugins.
+     * Calls methods to find installed plugins, download plugins, and output the failed plugins.
+     *
+     * @param downloadUc {@code false} to disable Update Center download.
+     *                   In such case the update center metadata should be provided by API.
+     * @since TODO
+     */
+    public void start(boolean downloadUc) {
         if (refDir.exists()) {
             try {
                 FileUtils.deleteDirectory(refDir);
@@ -122,9 +134,11 @@ public class PluginManager {
                     "at a time");
         }
 
-        jenkinsVersion = getJenkinsVersionFromWar();
-        checkAndSetLatestUpdateCenter();
-        getUCJson();
+        if (downloadUc) {
+            jenkinsVersion = getJenkinsVersionFromWar();
+            checkAndSetLatestUpdateCenter();
+            getUCJson();
+        }
         getSecurityWarnings();
         showAllSecurityWarnings();
         bundledPluginVersions = bundledPlugins();
@@ -607,11 +621,17 @@ public class PluginManager {
     }
 
     /**
+     * Retrieves the latest available version of a specified plugin.
      *
      * @param pluginName the name of the plugin
      * @return latest version of the specified plugin
+     * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
     public VersionNumber getLatestPluginVersion(String pluginName) {
+        if (latestPlugins == null) {
+            throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
+        }
+
         if (!latestPlugins.has(pluginName)) {
             throw new PluginNotFoundException(String.format("Unable to find plugin %s in update center %s", pluginName,
                     jenkinsUcLatest));
@@ -1175,7 +1195,7 @@ public class PluginManager {
     }
 
     /**
-     * Outputs inforation to the console if verbose option was set to true
+     * Outputs information to the console if verbose option was set to true
      *
      * @param message informational string to output
      */
