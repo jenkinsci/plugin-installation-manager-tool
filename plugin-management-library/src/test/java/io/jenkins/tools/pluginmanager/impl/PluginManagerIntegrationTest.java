@@ -13,12 +13,15 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.contrib.java.lang.system.SystemOutRule;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -30,6 +33,7 @@ import static org.junit.Assert.assertThat;
 public class PluginManagerIntegrationTest {
 
     static JSONObject latestUcJson;
+    static File pluginVersionsFile;
 
     @ClassRule
     public static TemporaryFolder tmp = new TemporaryFolder();
@@ -40,6 +44,7 @@ public class PluginManagerIntegrationTest {
     @Rule
     public final SystemOutRule systemOutRule = new SystemOutRule().enableLog();
 
+    // TODO: Convert to a rule
     public interface Configurator {
         void configure(Config.Builder configBuilder);
     }
@@ -59,15 +64,39 @@ public class PluginManagerIntegrationTest {
         pluginManager.setJenkinsVersion(new VersionNumber("2.222.1"));
         pluginManager.setLatestUcJson(latestUcJson);
         pluginManager.setLatestUcPlugins(latestUcJson.getJSONObject("plugins"));
-        pluginManager.setPluginInfoJson(pluginManager.getJson(new URL(Settings.DEFAULT_PLUGIN_INFO_LOCATION), "plugin-versions"));
+        pluginManager.setPluginInfoJson(pluginManager.getJson(pluginVersionsFile.toURI().toURL(), "plugin-versions"));
 
         return pluginManager;
     }
 
+    private static void unzipResource(Class clazz, String resourceName, String fileName, File target) throws IOException {
+        final File archivePath = new File(tmp.getRoot(), target.toPath().getFileName() + ".zip");
+        try (InputStream archive = clazz.getResourceAsStream(resourceName)) {
+            Files.copy(archive, archivePath.toPath());
+        }
+
+        try (ZipFile zip = new ZipFile(archivePath)){
+            ZipEntry entry = zip.getEntry(fileName);
+            if (entry == null) {
+                throw new IOException(String.format("Cannot find file %s within ZIP resource %s/%s", fileName, clazz.getName(), resourceName));
+            }
+            try(InputStream archive = zip.getInputStream(entry)) {
+                Files.copy(archive, target.toPath());
+            }
+        }
+    }
+
     @BeforeClass
     public static void setup() throws Exception {
-        String jsonString = IOUtils.toString(PluginManagerIntegrationTest.class.getResource("updates.json"), StandardCharsets.UTF_8);
-        latestUcJson = new JSONObject(jsonString);
+        File updatesJSON = new File(tmp.getRoot(), "updates.json");
+        unzipResource(PluginManagerIntegrationTest.class, "updates.zip", "updates.json", updatesJSON);
+        try (InputStream istream = new FileInputStream(updatesJSON)) {
+            latestUcJson = new JSONObject(IOUtils.toString(istream, StandardCharsets.UTF_8));
+        }
+
+        pluginVersionsFile = new File(tmp.getRoot(), "plugin-versions.json");
+        unzipResource(PluginManagerIntegrationTest.class, "plugin-versions.zip", "plugin-versions.json", pluginVersionsFile);
+
         //TODO: Use real 2.222.1 war instead
         jenkinsWar = new File(tmp.getRoot(), "jenkins.war");
         try(InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
