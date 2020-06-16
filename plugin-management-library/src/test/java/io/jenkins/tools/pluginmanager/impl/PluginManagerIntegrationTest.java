@@ -151,7 +151,7 @@ public class PluginManagerIntegrationTest {
 
         // Expected
         List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
-                plugin2Dependency1, plugin2Dependency2, plugin3Dependency1, replaced2, replacedSecond2));
+                plugin2Dependency1, plugin2, plugin2Dependency2, plugin3, plugin3Dependency1, replaced2, replacedSecond2));
         Collections.sort(expectedPlugins);
 
         // Actual
