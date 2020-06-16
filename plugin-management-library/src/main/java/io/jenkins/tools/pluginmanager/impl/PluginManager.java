@@ -37,6 +37,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -53,8 +54,6 @@ import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import javax.annotation.CheckForNull;
 
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathOntoUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
