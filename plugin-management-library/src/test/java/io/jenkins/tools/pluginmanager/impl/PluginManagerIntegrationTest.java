@@ -2,7 +2,6 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
-import io.jenkins.tools.pluginmanager.config.Settings;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
@@ -16,7 +15,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -132,24 +130,24 @@ public class PluginManagerIntegrationTest {
     @Test
     public void findPluginsAndDependenciesTest() throws IOException {
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
-        Plugin replaced = new Plugin("replaced", "1.0", null, null);
+        Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
         Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
         Plugin plugin3 = new Plugin("plugin3", "3.0", null, null);
 
-        Plugin plugin1Dependency1 = new Plugin("plugin1Dependency1", "1.0.1", null, null);
-        Plugin plugin1Dependency2 = new Plugin("plugin1Dependency2", "1.0.2", null, null);
-        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null);
+        Plugin plugin1Dependency1 = new Plugin("plugin1Dependency1", "1.0.1", null, null).withoutDependencies();
+        Plugin plugin1Dependency2 = new Plugin("plugin1Dependency2", "1.0.2", null, null).withoutDependencies();
+        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
         plugin1.setDependencies(Arrays.asList(plugin1Dependency1, plugin1Dependency2, replaced1));
 
-        Plugin plugin2Dependency1 = new Plugin("plugin2Dependency1", "2.0.1", null, null);
-        Plugin plugin2Dependency2 = new Plugin("plugin2Dependency2", "2.0.2", null, null);
-        Plugin replaced2 = new Plugin("replaced", "2.0.2", null, null);
-        Plugin replacedSecond = new Plugin("replaced2", "2.0.2", null, null);
+        Plugin plugin2Dependency1 = new Plugin("plugin2Dependency1", "2.0.1", null, null).withoutDependencies();
+        Plugin plugin2Dependency2 = new Plugin("plugin2Dependency2", "2.0.2", null, null).withoutDependencies();
+        Plugin replaced2 = new Plugin("replaced", "2.0.2", null, null).withoutDependencies();
+        Plugin replacedSecond = new Plugin("replaced2", "2.0.2", null, null).withoutDependencies();
         plugin2.setDependencies(Arrays.asList(plugin2Dependency1, plugin2Dependency2, replaced2, replacedSecond));
 
-        Plugin plugin3Dependency1 = new Plugin("plugin3Dependency1", "3.0.1", null, null);
-        Plugin replacedSecond2 = new Plugin("replaced2", "3.2", null, null);
-        plugin2.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
+        Plugin plugin3Dependency1 = new Plugin("plugin3Dependency1", "3.0.1", null, null).withoutDependencies();
+        Plugin replacedSecond2 = new Plugin("replaced2", "3.2", null, null).withoutDependencies();
+        plugin3.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
 
         // Expected
         List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
