@@ -37,6 +37,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.CheckForNull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -108,6 +109,18 @@ public class PluginManager {
      * the failed plugins
      */
     public void start() {
+        start(true);
+    }
+
+    /**
+     * Drives the process to download plugins.
+     * Calls methods to find installed plugins, download plugins, and output the failed plugins.
+     *
+     * @param downloadUc {@code false} to disable Update Center and other external resources download.
+     *                   In such case the update center metadata should be provided by API.
+     * @since TODO
+     */
+    public void start(boolean downloadUc) {
         if (refDir.exists()) {
             try {
                 FileUtils.deleteDirectory(refDir);
@@ -122,9 +135,11 @@ public class PluginManager {
                     "at a time");
         }
 
-        jenkinsVersion = getJenkinsVersionFromWar();
-        checkAndSetLatestUpdateCenter();
-        getUCJson();
+        if (downloadUc) {
+            jenkinsVersion = getJenkinsVersionFromWar();
+            checkAndSetLatestUpdateCenter();
+            getUCJson();
+        }
         getSecurityWarnings();
         showAllSecurityWarnings();
         bundledPluginVersions = bundledPlugins();
@@ -465,11 +480,16 @@ public class PluginManager {
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
-        Map<String, Plugin> allPluginDependencies = new HashMap<>();
+        // Prepare the initial list by putting all explicitly requested plugins
+        Map<String, Plugin> topLevelDependencies = new HashMap<>();
+        for (Plugin requestedPlugin : requestedPlugins) {
+            topLevelDependencies.put(requestedPlugin.getName(), requestedPlugin);
+        }
+        Map<String, Plugin> allPluginDependencies = new HashMap<>(topLevelDependencies);
 
         for (Plugin requestedPlugin : requestedPlugins) {
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
-            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin);
+            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
@@ -607,11 +627,17 @@ public class PluginManager {
     }
 
     /**
+     * Retrieves the latest available version of a specified plugin.
      *
      * @param pluginName the name of the plugin
      * @return latest version of the specified plugin
+     * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
     public VersionNumber getLatestPluginVersion(String pluginName) {
+        if (latestPlugins == null) {
+            throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
+        }
+
         if (!latestPlugins.has(pluginName)) {
             throw new PluginNotFoundException(String.format("Unable to find plugin %s in update center %s", pluginName,
                     jenkinsUcLatest));
@@ -768,13 +794,19 @@ public class PluginManager {
 
     /**
      * Finds all recursive dependencies for a given plugin. If the same plugin is required by different plugins, the
-     * highest required version will be taken
+     * highest required version will be taken.
      *
      * @param plugin to resolve dependencies for
      * @return map of plugin names and plugins representing all of the dependencies of the requested plugin, including
      * the requested plugin itself
      */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
+        return resolveRecursiveDependencies(plugin, null);
+    }
+
+    // TODO(oleg_nenashev): This method is private, because it is only a partial fix for https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
+    // A full dependency graph resolution and removal of non-needed dependency trees is required
+    private Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
@@ -783,12 +815,31 @@ public class PluginManager {
         while (queue.size() != 0) {
             Plugin dependency = queue.poll();
 
-            if (dependency.getDependencies().isEmpty()) {
+            if (!dependency.isDependenciesSpecified()) {
                 dependency.setDependencies(resolveDirectDependencies(dependency));
             }
 
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
+                Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
+
+                // See https://github.com/jenkinsci/plugin-installation-manager-tool/pull/102
+                if (pinnedPlugin != null) { // There is a top-level plugin with the same ID
+                    if (pinnedPlugin.getVersion().isNewerThanOrEqualTo(p.getVersion())) {
+                        if (verbose) {
+                            logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
+                                    p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
+                        }
+                        continue;
+                    } else {
+                        String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                                plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
+                        // TODO(oleg_nenashev): Should be an error by default, but it is not how the tests are written now
+                        // throw new PluginDependencyStrategyException(message);
+                        logVerbose(message);
+                    }
+                }
+
                 if (!recursiveDependencies.containsKey(dependencyName)) {
                     recursiveDependencies.put(dependencyName, p);
                     queue.add(p);
@@ -1175,7 +1226,7 @@ public class PluginManager {
     }
 
     /**
-     * Outputs inforation to the console if verbose option was set to true
+     * Outputs information to the console if verbose option was set to true
      *
      * @param message informational string to output
      */

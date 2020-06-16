@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.impl;
 import hudson.util.VersionNumber;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
@@ -15,6 +16,8 @@ public class Plugin implements Comparable<Plugin> {
     private String url;
     private File file;
     private List<Plugin> dependencies;
+    //TODO(oleg_nenashev): better to use nullable API
+    private boolean dependenciesSpecified;
     private Plugin parent;
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
@@ -99,10 +102,25 @@ public class Plugin implements Comparable<Plugin> {
 
     public void setDependencies(List<Plugin> dependencies) {
         this.dependencies = dependencies;
+        this.dependenciesSpecified = true;
+    }
+
+    public Plugin withDependencies(List<Plugin> dependencies) {
+        this.setDependencies(dependencies);
+        return this;
+    }
+
+    public Plugin withoutDependencies() {
+        this.setDependencies(Collections.emptyList());
+        return this;
     }
 
     public List<Plugin> getDependencies() {
         return dependencies;
+    }
+
+    public boolean isDependenciesSpecified() {
+        return dependenciesSpecified;
     }
 
     public void setParent(Plugin parent) {
