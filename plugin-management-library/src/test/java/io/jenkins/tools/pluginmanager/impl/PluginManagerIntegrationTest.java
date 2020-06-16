@@ -2,15 +2,6 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
-import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.contrib.java.lang.system.SystemOutRule;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -23,6 +14,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.contrib.java.lang.system.SystemOutRule;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
