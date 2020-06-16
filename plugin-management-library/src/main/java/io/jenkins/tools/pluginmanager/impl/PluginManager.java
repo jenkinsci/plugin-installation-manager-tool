@@ -117,7 +117,7 @@ public class PluginManager {
      * Drives the process to download plugins.
      * Calls methods to find installed plugins, download plugins, and output the failed plugins.
      *
-     * @param downloadUc {@code false} to disable Update Center download.
+     * @param downloadUc {@code false} to disable Update Center and other external resources download.
      *                   In such case the update center metadata should be provided by API.
      * @since TODO
      */
