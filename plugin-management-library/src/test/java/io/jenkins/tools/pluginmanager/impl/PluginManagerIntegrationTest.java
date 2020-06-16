@@ -19,11 +19,17 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -72,6 +78,9 @@ public class PluginManagerIntegrationTest {
     private static void unzipResource(Class clazz, String resourceName, String fileName, File target) throws IOException {
         final File archivePath = new File(tmp.getRoot(), target.toPath().getFileName() + ".zip");
         try (InputStream archive = clazz.getResourceAsStream(resourceName)) {
+            if (archive == null) {
+                throw new IOException("Cannot find " + resourceName + " in " + clazz);
+            }
             Files.copy(archive, archivePath.toPath());
         }
 
@@ -118,5 +127,42 @@ public class PluginManagerIntegrationTest {
 
         pluginManager.start(false);
         assertThat(systemOutRule.getLog(), not(containsString("uithemes")));
+    }
+
+    @Test
+    public void findPluginsAndDependenciesTest() throws IOException {
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Plugin replaced = new Plugin("replaced", "1.0", null, null);
+        Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
+        Plugin plugin3 = new Plugin("plugin3", "3.0", null, null);
+
+        Plugin plugin1Dependency1 = new Plugin("plugin1Dependency1", "1.0.1", null, null);
+        Plugin plugin1Dependency2 = new Plugin("plugin1Dependency2", "1.0.2", null, null);
+        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null);
+        plugin1.setDependencies(Arrays.asList(plugin1Dependency1, plugin1Dependency2, replaced1));
+
+        Plugin plugin2Dependency1 = new Plugin("plugin2Dependency1", "2.0.1", null, null);
+        Plugin plugin2Dependency2 = new Plugin("plugin2Dependency2", "2.0.2", null, null);
+        Plugin replaced2 = new Plugin("replaced", "2.0.2", null, null);
+        Plugin replacedSecond = new Plugin("replaced2", "2.0.2", null, null);
+        plugin2.setDependencies(Arrays.asList(plugin2Dependency1, plugin2Dependency2, replaced2, replacedSecond));
+
+        Plugin plugin3Dependency1 = new Plugin("plugin3Dependency1", "3.0.1", null, null);
+        Plugin replacedSecond2 = new Plugin("replaced2", "3.2", null, null);
+        plugin2.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
+
+        // Expected
+        List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
+                plugin2Dependency1, plugin2Dependency2, plugin3Dependency1, replaced2, replacedSecond2));
+        Collections.sort(expectedPlugins);
+
+        // Actual
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3, replaced));
+        PluginManager pluginManager = initPluginManager(
+            configBuilder -> configBuilder.withPlugins(requestedPlugins));
+        List<Plugin> pluginsAndDependencies = new ArrayList<>(pluginManager.findPluginsAndDependencies(requestedPlugins).values());
+        Collections.sort(pluginsAndDependencies);
+
+        assertEquals(expectedPlugins, pluginsAndDependencies);
     }
 }
