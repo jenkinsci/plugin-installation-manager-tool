@@ -1,6 +1,7 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;

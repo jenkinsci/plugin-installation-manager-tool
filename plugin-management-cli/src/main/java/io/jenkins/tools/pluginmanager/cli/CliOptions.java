@@ -2,6 +2,8 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.PluginInputException;
+import io.jenkins.tools.pluginmanager.util.PluginListParser;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
@@ -193,7 +195,7 @@ class CliOptions {
      */
     private List<Plugin> getPlugins() {
         List<Plugin> requestedPlugins = new ArrayList<>();
-        PluginParser pluginParser = new PluginParser();
+        PluginListParser pluginParser = new PluginListParser();
         requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
 
         File pluginFile = getPluginFile();
