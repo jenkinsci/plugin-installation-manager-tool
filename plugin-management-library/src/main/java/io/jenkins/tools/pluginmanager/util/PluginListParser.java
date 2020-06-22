@@ -1,6 +1,6 @@
-package io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.util;
 
-import io.jenkins.tools.pluginmanager.cli.PluginInputException;
+import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,7 +20,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import static java.util.stream.Collectors.toList;
 
-public class PluginParser {
+public class PluginListParser {
 
     public List<Plugin> parsePluginsFromCliOption(String[] plugins) {
         if (plugins == null) {

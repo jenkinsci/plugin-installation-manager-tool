@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import io.jenkins.tools.pluginmanager.util.PluginListParser;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,6 +28,6 @@ public class URLValidatorTest {
 
     @Test
     public void validURLs() {
-        assertTrue(PluginParser.isURL(url));
+        assertTrue(PluginListParser.isURL(url));
     }
 }

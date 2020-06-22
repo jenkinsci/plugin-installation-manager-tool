@@ -1,4 +1,4 @@
-package io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.config;
 
 public class PluginInputException extends RuntimeException {
 
