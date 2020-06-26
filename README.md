@@ -43,7 +43,7 @@ The expected format for plugins in the .txt file or entered through the `--plugi
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
-The version and  download url are optional. By default, the latest version of the plugin will be downloaded. If both a version and an url are supplied, the version will not be used to determine the plugin download location and the library will attempt to download the plugin from the given url.
+The version and download url are optional. By default, the latest version of the plugin will be downloaded. If both a version and a url are supplied, the version will not be used to determine the plugin download location and the library will attempt to download the plugin from the given url.
 
 The following custom version specifiers can also be used:
 
@@ -83,7 +83,7 @@ Any root object other than `plugins` will be ignored by the plugin installation 
 
 
 #### Examples
-If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:
+If a url is included, then a placeholder should be included for the version. Examples of plugin inputs:
 
 * `github-branch-source` - will download the latest version
 * `github-branch-source:latest` - will download the latest version
@@ -93,7 +93,7 @@ If an url is included, then a placeholder should be included for the version. Ex
 * `github-branch-source:https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will treat the url like the version, which is not likely the behavior you want
 * `github-branch-source::https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will download plugin from url
 
-If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpretted as the end of the command.
+If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpreted as the end of the command.
 
 ```
 java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
