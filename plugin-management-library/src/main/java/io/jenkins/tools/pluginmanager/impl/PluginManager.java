@@ -591,7 +591,7 @@ public class PluginManager {
         latestUcJson = getJson(stringToUrlQuietly(jenkinsUcLatest), "update-center");
         latestPlugins = latestUcJson.getJSONObject("plugins");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center");
-        pluginInfoJson = getJson(stringToUrlQuietly(Settings.DEFAULT_PLUGIN_INFO_LOCATION), "plugin-versions");
+        pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
     }
 
     /**

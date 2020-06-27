@@ -83,6 +83,7 @@ public class CliOptionsTest {
         when(System.getenv("JENKINS_UC")).thenReturn("");
         when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn("");
         when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn("");
+        when(System.getenv("JENKINS_PLUGIN_INFO")).thenReturn("");
 
         Config cfg = options.setup();
 
@@ -95,6 +96,7 @@ public class CliOptionsTest {
                 cfg.getJenkinsUcExperimental().toString());
         assertEquals(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
                 cfg.getJenkinsIncrementalsRepoMirror().toString());
+        assertEquals(Settings.DEFAULT_PLUGIN_INFO_LOCATION, cfg.getJenkinsPluginInfo().toString());
     }
 
 
@@ -229,19 +231,23 @@ public class CliOptionsTest {
         String ucEnvVar = "https://updates.jenkins.io/env";
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
+        String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
 
         mockStatic(System.class);
         when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
         when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
         when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
+        when(System.getenv("JENKINS_PLUGIN_INFO")).thenReturn(pluginInfoEnvVar);
 
         String ucCli = "https://updates.jenkins.io/cli";
         String experiementalCli = "https://updates.jenkins.io/experimental/cli";
         String incrementalsCli = "https://repo.jenkins-ci.org/incrementals/cli";
+        String pluginInfoCli = "https://updates.jenkins.io/current/plugin-versions/cli";
 
         parser.parseArgument("--jenkins-update-center", ucCli,
                 "--jenkins-experimental-update-center", experiementalCli,
-                "--jenkins-incrementals-repo-mirror", incrementalsCli);
+                "--jenkins-incrementals-repo-mirror", incrementalsCli,
+                "--jenkins-plugin-info", pluginInfoCli);
 
         Config cfg = options.setup();
 
@@ -249,6 +255,7 @@ public class CliOptionsTest {
         assertEquals(ucCli, cfg.getJenkinsUc().toString());
         assertEquals(experiementalCli, cfg.getJenkinsUcExperimental().toString());
         assertEquals(incrementalsCli, cfg.getJenkinsIncrementalsRepoMirror().toString());
+        assertEquals(pluginInfoCli, cfg.getJenkinsPluginInfo().toString());
     }
 
     @Test
@@ -256,16 +263,19 @@ public class CliOptionsTest {
         String ucEnvVar = "https://updates.jenkins.io/env";
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
+        String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
 
         mockStatic(System.class);
         when(System.getenv("JENKINS_UC")).thenReturn(ucEnvVar);
         when(System.getenv("JENKINS_UC_EXPERIMENTAL")).thenReturn(experimentalUcEnvVar);
         when(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR")).thenReturn(incrementalsEnvVar);
+        when(System.getenv("JENKINS_PLUGIN_INFO")).thenReturn(pluginInfoEnvVar);
 
         Config cfg = options.setup();
         assertEquals(ucEnvVar, cfg.getJenkinsUc().toString());
         assertEquals(experimentalUcEnvVar, cfg.getJenkinsUcExperimental().toString());
         assertEquals(incrementalsEnvVar, cfg.getJenkinsIncrementalsRepoMirror().toString());
+        assertEquals(pluginInfoEnvVar, cfg.getJenkinsPluginInfo().toString());
     }
 
     @Test

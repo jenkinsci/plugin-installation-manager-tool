@@ -15,6 +15,7 @@ public class Settings {
     public static final String DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io/experimental" + DEFAULT_UPDATE_CENTER_FILENAME;
     public static final URL DEFAULT_INCREMENTALS_REPO_MIRROR;
     public static final String DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION = "https://repo.jenkins-ci.org/incrementals";
+    public static final URL DEFAULT_PLUGIN_INFO;
     public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/current/plugin-versions.json";
     public static final Path DEFAULT_CACHE_PATH;
 
@@ -35,6 +36,7 @@ public class Settings {
             DEFAULT_UPDATE_CENTER = new URL(DEFAULT_UPDATE_CENTER_LOCATION);
             DEFAULT_EXPERIMENTAL_UPDATE_CENTER = new URL(DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
             DEFAULT_INCREMENTALS_REPO_MIRROR = new URL(DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
+            DEFAULT_PLUGIN_INFO = new URL(DEFAULT_PLUGIN_INFO_LOCATION);
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
