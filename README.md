@@ -8,7 +8,16 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 ### Usage
 
 #### Getting Started
+
+Download the latest plugin-management-cli jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
+
+```bash
+java -jar /file/path/plugin-management-cli-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
+
+Alternatively you may build it yourself from source:
+
+```bash
 mvn clean install 
 java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
@@ -28,6 +37,7 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 * `--jenkins-update-center`: (optional) Sets the main update center filename, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/update-center.actual.json
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental/update-center.actual.json
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
+* `--jenkins-plugin-info`: (optional) Sets the location of plugin information, which can also be set via the JENKINS_PLUGIN_INFO environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/current/plugin-versions.json.
 * `--version` or `-v`: (optional) Displays the plugin management tool version and exits.
 * `--no-download`: (optional) Set to true to avoid downloading plugins. By default it is set to false and plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
@@ -43,7 +53,7 @@ The expected format for plugins in the .txt file or entered through the `--plugi
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
 
-The version and  download url are optional. By default, the latest version of the plugin will be downloaded. If both a version and an url are supplied, the version will not be used to determine the plugin download location and the library will attempt to download the plugin from the given url.
+The version and download url are optional. By default, the latest version of the plugin will be downloaded. If both a version and a url are supplied, the version will not be used to determine the plugin download location and the library will attempt to download the plugin from the given url.
 
 The following custom version specifiers can also be used:
 
@@ -83,7 +93,7 @@ Any root object other than `plugins` will be ignored by the plugin installation 
 
 
 #### Examples
-If an url is included, then a placeholder should be included for the version. Examples of plugin inputs:
+If a url is included, then a placeholder should be included for the version. Examples of plugin inputs:
 
 * `github-branch-source` - will download the latest version
 * `github-branch-source:latest` - will download the latest version
@@ -93,11 +103,20 @@ If an url is included, then a placeholder should be included for the version. Ex
 * `github-branch-source:https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will treat the url like the version, which is not likely the behavior you want
 * `github-branch-source::https://updates.jenkins.io/2.121/latest/github-branch-source.hpi` - will download plugin from url
 
-If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpretted as the end of the command.
+If a plugin to be downloaded from the incrementals repository is requested using the -plugins option from the CLI, the plugin name should be enclosed in quotes, since the semi-colon is otherwise interpreted as the end of the command.
 
 ```
 java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
+
+#### Proxy Support
+Proxy support is available using standard [Java networking system properties](https://docs.oracle.com/javase/7/docs/api/java/net/doc-files/net-properties.html) `http.proxyHost` and `http.proxyPort`. Note that this provides only basic NTLM support and you may need to use an authentication proxy like [CNTLM](https://sourceforge.net/projects/cntlm/).
+
+```bash
+# Example using proxy system properties
+java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar
+```
+
 
 #### Other Information
 The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file. By default, the versions of the plugin dependencies are determined by the update center metadata or the plugin MANIFEST.MF file, but the user can specify other behavior using the `latest` or `latest-specified` options.

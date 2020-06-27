@@ -28,6 +28,7 @@ public class Config {
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
+    private URL jenkinsPluginInfo;
     private boolean doDownload;
     private boolean useLatestSpecified;
     private boolean useLatestAll;
@@ -45,6 +46,7 @@ public class Config {
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
+            URL jenkinsPluginInfo,
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
@@ -61,6 +63,7 @@ public class Config {
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+        this.jenkinsPluginInfo = jenkinsPluginInfo;
         this.doDownload = doDownload;
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
@@ -112,6 +115,10 @@ public class Config {
         return jenkinsIncrementalsRepoMirror;
     }
 
+    public URL getJenkinsPluginInfo() {
+        return jenkinsPluginInfo;
+    }
+
     public boolean doDownload() {
         return doDownload;
     }
@@ -142,6 +149,7 @@ public class Config {
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
+        private URL jenkinsPluginInfo = Settings.DEFAULT_PLUGIN_INFO;
         private boolean doDownload;
         private boolean useLatestSpecified;
         private boolean useLatestAll;
@@ -205,6 +213,11 @@ public class Config {
             return this;
         }
 
+        public Builder withJenkinsPluginInfo(URL jenkinsPluginInfo) {
+            this.jenkinsPluginInfo = jenkinsPluginInfo;
+            return this;
+        }
+
         public Builder withDoDownload(boolean doDownload) {
             this.doDownload = doDownload;
             return this;
@@ -238,6 +251,7 @@ public class Config {
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
+                    jenkinsPluginInfo,
                     doDownload,
                     useLatestSpecified,
                     useLatestAll,

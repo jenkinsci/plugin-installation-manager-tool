@@ -85,6 +85,13 @@ class CliOptions {
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
 
+    @Option(name = "--jenkins-plugin-info",
+            usage = "Sets the location of plugin information; will override JENKINS_PLUGIN_INFO environment variable. " +
+                    "If not set via CLI option or environment variable, will default to " +
+                    Settings.DEFAULT_PLUGIN_INFO_LOCATION,
+            handler = URLOptionHandler.class)
+    private URL jenkinsPluginInfo;
+
     @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
     private boolean showVersion;
 
@@ -125,6 +132,7 @@ class CliOptions {
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
+                .withJenkinsPluginInfo(getPluginInfo())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
@@ -340,6 +348,33 @@ class CliOptions {
                     jenkinsIncrementalsRepo);
         }
         return jenkinsIncrementalsRepo;
+    }
+
+    /**
+     * Determines the plugin information url string. If a value is set via CLI option, it will override a value
+     * set via environment variable. If neither are set, the default in the Settings class will be used.
+     *
+     * @return the plugin information url
+     */
+    private URL getPluginInfo() {
+        URL pluginInfo;
+        if (jenkinsPluginInfo != null) {
+            pluginInfo = jenkinsPluginInfo;
+            System.out.println("Using plugin info " + jenkinsPluginInfo + " specified with CLI option");
+        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_PLUGIN_INFO"))) {
+            try {
+                pluginInfo = new URL(System.getenv("JENKINS_PLUGIN_INFO"));
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("Using plugin info " + pluginInfo +
+                    " from JENKINS_PLUGIN_INFO environment variable");
+        } else {
+            pluginInfo = Settings.DEFAULT_PLUGIN_INFO;
+            System.out.println("No CLI option or environment variable set for plugin info, using default of " +
+                    pluginInfo);
+        }
+        return pluginInfo;
     }
 
     /**
