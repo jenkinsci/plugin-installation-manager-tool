@@ -112,17 +112,8 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar -p "workflow
 #### Proxy Support
 Proxy support is available using standard [Java networking system properties](https://docs.oracle.com/javase/7/docs/api/java/net/doc-files/net-properties.html) `http.proxyHost` and `http.proxyPort`. Note that this provides only basic NTLM support and you may need to use an authentication proxy like [CNTLM](https://sourceforge.net/projects/cntlm/).
 
-If you are behind a corporate proxy using a self-signed certificate you may wish to use the http variants of the default urls. The full list is given below for convenience.
-
 ```bash
-# Corporate environment example, using proxy and avoiding https, assume CNTLM running at http://myproxy.example.com:3128
-# In windows use set instead of export
-
-export JENKINS_INCREMENTALS_REPO_MIRROR=http://repo.jenkins-ci.org/incrementals
-export JENKINS_UC_EXPERIMENTAL=http://updates.jenkins.io/experimental/update-center.actual.json
-export JENKINS_UC=http://updates.jenkins.io/update-center.actual.json
-export JENKINS_PLUGIN_INFO=http://updates.jenkins.io/current/plugin-versions.json
-
+# Example using proxy system properties
 java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar
 ```
 
