@@ -168,6 +168,7 @@ class CliOptions {
     /**
      * Gets the user specified plugin download directory from the CLI option and sets this in the configuration class
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     private File getPluginDir() {
         if (pluginDir != null) {
             System.out.println("Plugin download location: " + pluginDir);

@@ -1566,7 +1566,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    @PrepareForTest({HttpClients.class, HttpClientContext.class, HttpHost.class})
     public void bundledPluginsTest() {
         URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());
