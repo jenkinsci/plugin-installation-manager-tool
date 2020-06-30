@@ -12,7 +12,7 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 Download the latest plugin-management-cli jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
 
 ```bash
-java -jar /file/path/plugin-management-cli-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar /file/path/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 Alternatively you may build it yourself from source:
