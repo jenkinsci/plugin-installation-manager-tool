@@ -83,11 +83,11 @@ public class PluginManager {
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
 
-    public static final String SEPARATOR = File.separator;
     private CacheManager cm;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
@@ -660,7 +660,7 @@ public class PluginManager {
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
         List<Plugin> dependentPlugins = new ArrayList<>();
         try {
-            File tempFile = Files.createTempFile(plugin.getName(), ".jpi").toFile();
+            File tempFile = Files.createTempFile(FilenameUtils.getName(plugin.getName()), ".jpi").toFile();
             logVerbose(
                     String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
@@ -949,7 +949,7 @@ public class PluginManager {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
     public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
@@ -1092,7 +1092,7 @@ public class PluginManager {
      *
      * @return list of names of plugins that are currently installed in the war
      */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
 
