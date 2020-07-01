@@ -47,6 +47,8 @@ public class PluginListParserTest {
         expectedPluginInfo.add(new Plugin("blueocean", "latest", null, null).toString());
         expectedPluginInfo.add(new Plugin("google-api-client-plugin", "latest",
                 "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null).toString());
+        expectedPluginInfo.add(new Plugin("build-timeout", "1.20",
+                null, null).toString());
 
         Collections.sort(expectedPluginInfo);
 
@@ -64,7 +66,8 @@ public class PluginListParserTest {
                 "junit:experimental",
                 "credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi",
                 "google-api-client-plugin::https://updates.jenkins.io/latest/google-api-client-plugin.hpi",
-                "blueocean:"};
+                "blueocean:",
+                "build-timeout:1.20"};
 
         List<Plugin> plugins = pluginList.parsePluginsFromCliOption(pluginInput);
 
