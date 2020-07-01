@@ -6,7 +6,7 @@ plugins:
       version: latest
   - artifactId: job-import-plugin
     source:
-      version: 2.1
+      version: "2.1"
   - artifactId: docker
   - artifactId: cloudbees-bitbucket-branch-source
     source:
