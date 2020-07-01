@@ -13,3 +13,4 @@ matrix-project::httttp://ftp-chi.osuosl.org/pub/jenkins/plugins/matrix-project/1
  junit:experimental
 credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
 blueocean #comment
+build-timeout:1.20
