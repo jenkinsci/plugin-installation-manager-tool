@@ -92,7 +92,9 @@ public class PluginListParser {
                         if (StringUtils.isNotEmpty(groupId) && version == null) {
                             throw new PluginInputException("Version must be input for " + name);
                         }
-                        if (version == null) version = "latest";
+                        if (version == null) {
+                            version = "latest";
+                        }
                         String url = pluginSource.getUrl();
                         if (!isURL(url)) {
                             url = null;
