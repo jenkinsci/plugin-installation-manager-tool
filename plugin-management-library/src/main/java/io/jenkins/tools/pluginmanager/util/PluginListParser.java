@@ -83,7 +83,6 @@ public class PluginListParser {
                     Object groupIdObject = pluginInfo.get("groupId");
                     String groupId = groupIdObject == null ? null : groupIdObject.toString();
                     Map pluginSource = (Map) pluginInfo.get("source");
-                    String incrementalsVersion = null;
                     Plugin plugin;
                     if (pluginSource == null && !StringUtils.isEmpty(groupId)) {
                         throw new PluginInputException("Version must be input for " + name);
@@ -94,7 +93,16 @@ public class PluginListParser {
                         if (!StringUtils.isEmpty(groupId) && versionObject == null) {
                             throw new PluginInputException("Version must be input for " + name);
                         }
-                        String version = versionObject == null ? "latest" : versionObject.toString();
+                        String version;
+                        if (versionObject != null) {
+                            if (versionObject instanceof String) {
+                                version = (String)versionObject;
+                            } else {
+                                throw new PluginInputException("Version must be in quotes for " + name);
+                            }
+                        } else {
+                            version = "latest";
+                        }
                         Object urlObject = pluginSource.get("url");
                         String url;
                         if (urlObject != null && isURL(urlObject.toString())) {

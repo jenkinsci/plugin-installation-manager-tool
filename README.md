@@ -72,7 +72,7 @@ plugins:
       version: latest
   - artifactId: job-import-plugin
     source:
-      version: 2.1
+      version: "2.1"
   - artifactId: docker
   - artifactId: cloudbees-bitbucket-branch-source
     source:
@@ -89,7 +89,7 @@ tool:
   ...
 ```
 
-Any root object other than `plugins` will be ignored by the plugin installation manager tool. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default. If a groupId is entered, the tool will try to download the plugin from the incrementals repository.
+Any root object other than `plugins` will be ignored by the plugin installation manager tool. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default. You must ensure that versions are explicit strings in yaml, if in doubt put the version in quotes. If a groupId is entered, the tool will try to download the plugin from the incrementals repository.
 
 
 #### Examples

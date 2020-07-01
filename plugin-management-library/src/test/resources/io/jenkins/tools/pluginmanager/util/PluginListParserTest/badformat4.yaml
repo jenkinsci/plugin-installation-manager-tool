@@ -1,0 +1,6 @@
+jenkins:
+  systemMessage: "Testing"
+plugins:
+  - artifactId: build-timeout
+    source:
+      version: 1.20

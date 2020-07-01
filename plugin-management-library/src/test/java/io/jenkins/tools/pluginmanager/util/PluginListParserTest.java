@@ -139,6 +139,12 @@ public class PluginListParserTest {
         List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
     }
 
+    @Test(expected = PluginInputException.class)
+    public void badFormatYamlVersionAsNumber() throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat4.yaml").toURI());
+        List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
+    }
+
     @Test
     public void fileExistsTest() throws URISyntaxException {
         assertEquals(false, pluginList.fileExists(null));
