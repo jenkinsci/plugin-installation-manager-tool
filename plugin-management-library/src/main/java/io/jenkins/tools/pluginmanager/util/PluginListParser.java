@@ -13,10 +13,10 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
-
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.representer.Representer;
 
 import static java.util.stream.Collectors.toList;
 
@@ -69,37 +69,32 @@ public class PluginListParser {
     public List<Plugin> parsePluginYamlFile(File pluginYamlFile) {
         List<Plugin> pluginsFromYaml = new ArrayList<>();
         if (fileExists(pluginYamlFile)) {
-            Yaml yaml = new Yaml();
+            Representer representer = new Representer();
+            representer.getPropertyUtils().setSkipMissingProperties(true);
+            Yaml yaml = new Yaml(new Constructor(Plugins.class), representer);
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
-                Map map = (Map) yaml.load(inputStream);
-                List plugins = (List) map.get("plugins");
-                for (Object p : plugins) {
-                    Map pluginInfo = (Map) p;
-                    Object nameObject = pluginInfo.get("artifactId");
-                    String name = nameObject == null ? null : nameObject.toString();
+                Plugins plugins = yaml.load(inputStream);
+                for (PluginInfo pluginInfo : plugins.getPlugins()) {
+                    String name = pluginInfo.getArtifactId();
                     if (StringUtils.isEmpty(name)) {
                         throw new PluginInputException("ArtifactId is required");
                     }
-                    Object groupIdObject = pluginInfo.get("groupId");
-                    String groupId = groupIdObject == null ? null : groupIdObject.toString();
-                    Map pluginSource = (Map) pluginInfo.get("source");
+                    String groupId = pluginInfo.getGroupId();
+                    Source pluginSource = pluginInfo.getSource();
                     String incrementalsVersion = null;
                     Plugin plugin;
-                    if (pluginSource == null && !StringUtils.isEmpty(groupId)) {
+                    if (pluginSource == null && StringUtils.isNotEmpty(groupId)) {
                         throw new PluginInputException("Version must be input for " + name);
                     } else if (pluginSource == null) {
                         plugin = new Plugin(name, "latest", null, null);
                     } else {
-                        Object versionObject = pluginSource.get("version");
-                        if (!StringUtils.isEmpty(groupId) && versionObject == null) {
+                        String version = pluginSource.getVersion();
+                        if (StringUtils.isNotEmpty(groupId) && version == null) {
                             throw new PluginInputException("Version must be input for " + name);
                         }
-                        String version = versionObject == null ? "latest" : versionObject.toString();
-                        Object urlObject = pluginSource.get("url");
-                        String url;
-                        if (urlObject != null && isURL(urlObject.toString())) {
-                            url = urlObject.toString();
-                        } else {
+                        if (version == null) version = "latest";
+                        String url = pluginSource.getUrl();
+                        if (!isURL(url)) {
                             url = null;
                         }
                         plugin = new Plugin(name, version, url, groupId);
