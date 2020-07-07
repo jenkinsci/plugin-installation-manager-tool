@@ -18,11 +18,10 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.SystemOutRule;
 import org.junit.rules.TemporaryFolder;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -42,9 +41,6 @@ public class PluginManagerIntegrationTest {
     public static File jenkinsWar;
     public static File cacheDir;
     public static File pluginsDir;
-
-    @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog();
 
     // TODO: Convert to a rule
     public interface Configurator {
@@ -114,15 +110,16 @@ public class PluginManagerIntegrationTest {
 
     // https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
     @Test
-    public void showAvailableUpdates_shouldNotFailOnUIThemes() throws IOException {
+    public void showAvailableUpdates_shouldNotFailOnUIThemes() throws Exception {
         Plugin pluginDockerCommons = new Plugin("docker-commons", "1.16", null, null);
         Plugin pluginYAD = new Plugin("yet-another-docker-plugin", "0.2.0", null, null);
         Plugin pluginIconShim = new Plugin("icon-shim", "2.0.3", null, null);
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(Arrays.asList(pluginDockerCommons, pluginIconShim, pluginYAD)));
 
-        pluginManager.start(false);
-        assertThat(systemOutRule.getLog(), not(containsString("uithemes")));
+        String output = tapSystemOut(
+                () -> pluginManager.start(false));
+        assertThat(output, not(containsString("uithemes")));
     }
 
     @Test
