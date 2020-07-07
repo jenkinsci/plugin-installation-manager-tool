@@ -47,6 +47,7 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
+import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -82,12 +83,12 @@ public class PluginManagerTest {
 
         pm = new PluginManager(cfg);
 
-        directDependencyExpectedPlugins = new ArrayList<>();
-        directDependencyExpectedPlugins.add(new Plugin("workflow-api", "2.22", null, null));
-        directDependencyExpectedPlugins.add(new Plugin("workflow-step-api", "2.12", null, null));
-        directDependencyExpectedPlugins.add(new Plugin("mailer", "1.18", null, null));
-        directDependencyExpectedPlugins.add(new Plugin("script-security", "1.30", null, null));
-
+        directDependencyExpectedPlugins = Arrays.asList(
+            new Plugin("workflow-api", "2.22", null, null),
+            new Plugin("workflow-step-api", "2.12", null, null),
+            new Plugin("mailer", "1.18", null, null),
+            new Plugin("script-security", "1.30", null, null)
+        );
     }
 
     @Test
@@ -168,11 +169,10 @@ public class PluginManagerTest {
         pm.setBundledPluginVersions(bundledPlugins);
         pm.setInstalledPluginVersions(installedPlugins);
 
-        List<Plugin> requestedPlugins = new ArrayList<>();
-
-        requestedPlugins.add(new Plugin("git", "1.3", null, null));
-        requestedPlugins.add(new Plugin("script-security", "1.25", null, null));
-        requestedPlugins.add(new Plugin("scm-api", "2.2.3", null, null));
+        List<Plugin> requestedPlugins = Arrays.asList(
+                new Plugin("git", "1.3", null, null),
+                new Plugin("script-security", "1.25", null, null),
+                new Plugin("scm-api", "2.2.3", null, null));
 
         Map<String, Plugin> effectivePlugins = pm.findEffectivePlugins(requestedPlugins);
 
@@ -218,7 +218,6 @@ public class PluginManagerTest {
         Map<String, Plugin> installedPluginVersions = new HashMap<>();
         Map<String, Plugin> bundledPluginVersions = new HashMap<>();
         Map<String, Plugin> allPluginsAndDependencies = new HashMap<>();
-        List<Plugin> pluginsToBeDownloaded = new ArrayList<>();
         HashMap<String, Plugin> effectivePlugins = new HashMap<>();
 
         installedPluginVersions.put("installed1", new Plugin("installed1", "1.0", null, null));
@@ -251,15 +250,11 @@ public class PluginManagerTest {
         effectivePlugins.put("dependency1", dependency1);
         effectivePlugins.put("dependency2", dependency2);
 
-        pluginsToBeDownloaded.add(plugin1);
-        pluginsToBeDownloaded.add(plugin2);
-        pluginsToBeDownloaded.add(dependency1);
-        pluginsToBeDownloaded.add(dependency2);
-
         pluginManager.setInstalledPluginVersions(installedPluginVersions);
         pluginManager.setBundledPluginVersions(bundledPluginVersions);
         pluginManager.setAllPluginsAndDependencies(allPluginsAndDependencies);
-        pluginManager.setPluginsToBeDownloaded(pluginsToBeDownloaded);
+        pluginManager.setPluginsToBeDownloaded(
+                Arrays.asList(plugin1, plugin2, dependency1, dependency2));
         pluginManager.setEffectivePlugins(effectivePlugins);
 
         String expectedOutput =
@@ -522,9 +517,7 @@ public class PluginManagerTest {
         SecurityWarning scriptlerWarning = new SecurityWarning("SECURITY", "security warning",
                 "scriptler", "url");
         scriptlerWarning.addSecurityVersion("", "",".*");
-        List<SecurityWarning> scriptlerList = new ArrayList<>();
-        scriptlerList.add(scriptlerWarning);
-        securityWarnings.put("scriptler", scriptlerList);
+        securityWarnings.put("scriptler", singletonList(scriptlerWarning));
 
         SecurityWarning lockableResourceWarning1 = new SecurityWarning("SECURITY", "security warning1",
                 "lockable-resources", "url");
@@ -533,25 +526,19 @@ public class PluginManagerTest {
                 "lockable-resources", "url");
         lockableResourceWarning2.addSecurityVersion("", "2.2", "1[.].*|2[.][012](|[.-].*)");
 
-        List<SecurityWarning> lockableResourceWarningList = new ArrayList<>();
-        lockableResourceWarningList.add(lockableResourceWarning1);
-        lockableResourceWarningList.add(lockableResourceWarning2);
-        securityWarnings.put("lockable-resources", lockableResourceWarningList);
+        securityWarnings.put("lockable-resources",
+                Arrays.asList(lockableResourceWarning1, lockableResourceWarning2));
 
         SecurityWarning cucumberReports = new SecurityWarning("SECURITY", "security warning", "cucumber-reports",
                 "url");
         cucumberReports.addSecurityVersion("1.3.0", "2.5.1", "(1[.][34]|2[.][012345])(|[.-].*)");
 
-        List<SecurityWarning> cucumberReportWarningList = new ArrayList<>();
-        cucumberReportWarningList.add(cucumberReports);
-        securityWarnings.put("cucumber-reports", cucumberReportWarningList);
+        securityWarnings.put("cucumber-reports", singletonList(cucumberReports));
 
         SecurityWarning sshAgentsWarning = new SecurityWarning("SECURITY", "security warning", "ssh-slaves", "url");
         sshAgentsWarning.addSecurityVersion("", "1.14", "0[.].*|1[.][0-9](|[.-].*)|1[.]1[01234](|[.-].*)");
 
-        ArrayList<SecurityWarning> sshAgentsWarningList = new ArrayList<>();
-        sshAgentsWarningList.add(sshAgentsWarning);
-        securityWarnings.put("ssh-slaves", sshAgentsWarningList);
+        securityWarnings.put("ssh-slaves", singletonList(sshAgentsWarning));
 
         pm.setAllSecurityWarnings(securityWarnings);
 
@@ -635,9 +622,9 @@ public class PluginManagerTest {
         PluginManager pluginManager = new PluginManager(config);
 
 
-        List<Plugin> plugins = new ArrayList<>();
-        plugins.add(new Plugin("ant", "1.8", null, null));
-        plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
+        List<Plugin> plugins = Arrays.asList(
+                new Plugin("ant", "1.8", null, null),
+                new Plugin("amazon-ecs", "1.15", null, null));
 
         ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
         System.setOut(new PrintStream(expectedNoOutput));
@@ -658,10 +645,10 @@ public class PluginManagerTest {
         PluginManager pluginManager = new PluginManager(config);
         PluginManager pluginManagerSpy = spy(pluginManager);
 
-        List<Plugin> plugins = new ArrayList<>();
-        plugins.add(new Plugin("ant", "1.8", null, null));
-        plugins.add(new Plugin("amazon-ecs", "1.15", null, null));
-        plugins.add(new Plugin("maven-invoker-plugin", "2.4", null, null ));
+        List<Plugin> plugins = Arrays.asList(
+                new Plugin("ant", "1.8", null, null),
+                new Plugin("amazon-ecs", "1.15", null, null),
+                new Plugin("maven-invoker-plugin", "2.4", null, null ));
 
         doReturn(new VersionNumber("1.9")).when(pluginManagerSpy).getLatestPluginVersion("ant");
         doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
@@ -691,10 +678,8 @@ public class PluginManagerTest {
 
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
 
-        Plugin plugin = new Plugin("plugin", "1.0", null, null);
-
-        List<Plugin> plugins = new ArrayList<>();
-        plugins.add(plugin);
+        List<Plugin> plugins = singletonList(
+                new Plugin("plugin", "1.0", null, null));
 
         pluginManagerSpy.downloadPlugins(plugins);
 
@@ -713,10 +698,8 @@ public class PluginManagerTest {
 
         doReturn(false).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
 
-        Plugin plugin = new Plugin("plugin", "1.0", null, null);
-
-        List<Plugin> plugins = new ArrayList<>();
-        plugins.add(plugin);
+        List<Plugin> plugins = singletonList(
+                new Plugin("plugin", "1.0", null, null));
 
         pluginManagerSpy.downloadPlugins(plugins);
     }
@@ -1259,7 +1242,6 @@ public class PluginManagerTest {
         doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
 
         Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
-        List<Plugin> grandParentDependencies = new ArrayList<>();
 
         Plugin parent1 = new Plugin("parent1", "1.0", null, null);
         Plugin parent2 = new Plugin("replaced1", "1.0", null, null);
@@ -1275,40 +1257,17 @@ public class PluginManagerTest {
         Plugin child8 = new Plugin("replaced2", "2.3", null, null);
         Plugin child9 = new Plugin("child9", "1.0.3", null, null);
 
-        grandParentDependencies.add(parent1);
-        grandParentDependencies.add(parent2);
-        grandParentDependencies.add(parent3);
+        List<Plugin> grandParentDependencies = Arrays.asList(
+            parent1, parent2, parent3);
 
         grandParent.setDependencies(grandParentDependencies);
 
-        List<Plugin> parent1Dependencies = new ArrayList<>();
-        parent1Dependencies.add(child1);
-        parent1Dependencies.add(child2);
-        parent1Dependencies.add(child7);
-        parent1Dependencies.add(child3);
-
-        parent1.setDependencies(parent1Dependencies);
-
-        List<Plugin> parent2Dependencies = new ArrayList<>();
-        parent2Dependencies.add(child3);
-        parent2Dependencies.add(child8);
-        parent2.setDependencies(parent2Dependencies);
-
-        List<Plugin> parent3Dependencies = new ArrayList<>();
-        parent3Dependencies.add(child9);
-        parent3.setDependencies(parent3Dependencies);
-
-        List<Plugin> child9Dependencies = new ArrayList<>();
-        child9Dependencies.add(child4);
-        child9.setDependencies(child9Dependencies);
-
-        List<Plugin> child1Dependencies = new ArrayList<>();
-        child1Dependencies.add(child6);
-        child1.setDependencies(child1Dependencies);
-
-        List<Plugin> child8Dependencies = new ArrayList<>();
-        child8Dependencies.add(child5);
-        child8.setDependencies(child8Dependencies);
+        parent1.setDependencies(Arrays.asList(child1, child2, child7, child3));
+        parent2.setDependencies(Arrays.asList(child3, child8));
+        parent3.setDependencies(singletonList(child9));
+        child9.setDependencies(singletonList(child4));
+        child1.setDependencies(singletonList(child6));
+        child8.setDependencies(singletonList(child5));
 
         List<String> expectedDependencies = new ArrayList<>();
         expectedDependencies.add(grandParent.toString());
@@ -1387,8 +1346,7 @@ public class PluginManagerTest {
         HttpHost target = mock(HttpHost.class);
         when(context.getTargetHost()).thenReturn(target);
 
-        List<URI> redirectLocations = new ArrayList<>(); //Mockito.mock()
-        redirectLocations.add(new URI("downloadURI"));
+        List<URI> redirectLocations = singletonList(new URI("downloadURI"));
 
         when(context.getRedirectLocations()).thenReturn(redirectLocations);
 

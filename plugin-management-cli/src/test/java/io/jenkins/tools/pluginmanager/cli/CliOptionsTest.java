@@ -26,6 +26,7 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -54,22 +55,23 @@ public class CliOptionsTest {
         parser = new CmdLineParser(options);
 
         //corresponds to plugins in plugin.txt
-        txtRequestedPlugins = new ArrayList<>();
-        txtRequestedPlugins.add(new Plugin("google-api-client-plugin",
-                "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null));
-        txtRequestedPlugins.add(new Plugin("git", "latest", null, null));
-        txtRequestedPlugins.add(new Plugin("job-import-plugin", "2.1", null, null));
-        txtRequestedPlugins.add(new Plugin("docker", "latest", null, null));
-        txtRequestedPlugins.add(new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null, null));
-        txtRequestedPlugins.add(new Plugin("script-security", "latest",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null));
-        txtRequestedPlugins.add(new Plugin("workflow-step-api",
-                "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow"));
-        txtRequestedPlugins.add(new Plugin("matrix-project", "latest", null, null));
-        txtRequestedPlugins.add(new Plugin("junit", "experimental", null, null));
-        txtRequestedPlugins.add(new Plugin("credentials", "2.2.0",
-                "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null));
-        txtRequestedPlugins.add(new Plugin("blueocean", "latest", null, null));
+        txtRequestedPlugins = asList(
+            new Plugin("google-api-client-plugin",
+                    "latest", "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null),
+            new Plugin("git", "latest", null, null),
+            new Plugin("job-import-plugin", "2.1", null, null),
+            new Plugin("docker", "latest", null, null),
+            new Plugin("cloudbees-bitbucket-branch-source", "2.4.4", null, null),
+            new Plugin("script-security", "latest",
+                    "http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi", null),
+            new Plugin("workflow-step-api",
+                    "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow"),
+            new Plugin("matrix-project", "latest", null, null),
+            new Plugin("junit", "experimental", null, null),
+            new Plugin("credentials", "2.2.0",
+                    "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null),
+            new Plugin("blueocean", "latest", null, null)
+        );
 
         System.setOut(new PrintStream(outContent));
     }
