@@ -3,10 +3,8 @@ package io.jenkins.tools.pluginmanager.impl;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -36,7 +34,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +43,7 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
@@ -71,7 +69,6 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
-    private final PrintStream originalOut = System.out;
     private List<Plugin> directDependencyExpectedPlugins;
 
     @Before
@@ -186,7 +183,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void listPluginsNoOutputTest() throws IOException {
+    public void listPluginsNoOutputTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
@@ -195,18 +192,16 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
-        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(expectedNoOutput));
+        String output = tapSystemOutNormalized(
+                pluginManager::listPlugins);
 
-        pluginManager.listPlugins();
-
-        assertEquals("", expectedNoOutput.toString().trim());
+        assertEquals("", output);
     }
 
 
 
     @Test
-    public void listPluginsOutputTest() throws IOException {
+    public void listPluginsOutputTest() throws Exception {
          Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
@@ -284,11 +279,10 @@ public class PluginManagerTest {
                 "plugin1 1.0\n" +
                 "plugin2 2.0\n";
 
-        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(outContent));
-        pluginManager.listPlugins();
+        String output = tapSystemOutNormalized(
+                pluginManager::listPlugins);
 
-        assertEquals(expectedOutput.trim(), outContent.toString().replaceAll("\\r\\n?", "\n").trim());
+        assertEquals(expectedOutput, output);
     }
 
     @Test
@@ -563,7 +557,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void checkVersionCompatibilityNullTest() {
+    public void checkVersionCompatibilityNullTest() throws Exception {
         pm.setJenkinsVersion(null);
 
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
@@ -605,7 +599,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void showAvailableUpdatesNoOutputTest() throws IOException {
+    public void showAvailableUpdatesNoOutputTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
@@ -619,16 +613,14 @@ public class PluginManagerTest {
                 new Plugin("ant", "1.8", null, null),
                 new Plugin("amazon-ecs", "1.15", null, null));
 
-        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(expectedNoOutput));
+        String output = tapSystemOutNormalized(
+                () -> pluginManager.showAvailableUpdates(plugins));
 
-        pluginManager.showAvailableUpdates(plugins);
-
-        assertEquals("", expectedNoOutput.toString().trim());
+        assertEquals("", output);
     }
 
     @Test
-    public void showAvailableUpdates() throws IOException {
+    public void showAvailableUpdates() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
@@ -647,16 +639,14 @@ public class PluginManagerTest {
         doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
         doReturn(new VersionNumber("2.4")).when(pluginManagerSpy).getLatestPluginVersion("maven-invoker-plugin");
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
-
-        pluginManagerSpy.showAvailableUpdates(plugins);
+        String output = tapSystemOutNormalized(
+                () -> pluginManagerSpy.showAvailableUpdates(plugins));
 
         String expectedOutput = "\nAvailable updates:\n" +
                 "ant (1.8) has an available update: 1.9\n" +
                 "amazon-ecs (1.15) has an available update: 1.20\n";
 
-        assertEquals(expectedOutput, output.toString().replaceAll("\\r\\n?", "\n"));
+        assertEquals(expectedOutput, output);
     }
 
     @Test
@@ -762,7 +752,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void outputPluginReplacementInfoTest() throws IOException {
+    public void outputPluginReplacementInfoTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
@@ -778,14 +768,12 @@ public class PluginManagerTest {
         higherVersion.setParent(highVersionParent);
 
         String expected = "Version of plugin1 (1.0) required by plugin1parent1 (1.0.0) is lower than the version " +
-                "required (2.0) by plugin1parent2 (2.0.0), upgrading required plugin version";
+                "required (2.0) by plugin1parent2 (2.0.0), upgrading required plugin version\n";
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
+        String output = tapSystemOutNormalized(
+                () -> pluginManager.outputPluginReplacementInfo(lowerVersion, higherVersion));
 
-        pluginManager.outputPluginReplacementInfo(lowerVersion, higherVersion);
-
-        assertEquals(expected, output.toString().trim());
+        assertEquals(expected, output);
     }
 
     @Test(expected = UpdateCenterInfoRetrievalException.class)
@@ -1447,7 +1435,7 @@ public class PluginManagerTest {
         assertEquals(value, pm.getAttributeFromManifest(testJpi, "key"));
     }
 
-    public void showAllSecurityWarningsNoOutput() throws IOException {
+    public void showAllSecurityWarningsNoOutput() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
@@ -1456,16 +1444,14 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
-        ByteArrayOutputStream expectedNoOutput = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(expectedNoOutput));
+        String output = tapSystemOutNormalized(
+                pluginManager::showAllSecurityWarnings);
 
-        pluginManager.showAllSecurityWarnings();
-
-        assertEquals("", expectedNoOutput.toString().trim());
+        assertEquals("", output);
     }
 
 
-    public void showAllSecurityWarnings() throws IOException {
+    public void showAllSecurityWarnings() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(Files.createTempDirectory("plugins").toFile())
@@ -1476,19 +1462,15 @@ public class PluginManagerTest {
 
         pluginManager.setLatestUcJson(setTestUcJson());
 
-
-
-        ByteArrayOutputStream actualOutput = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(actualOutput));
-
-        pluginManager.showAllSecurityWarnings();
+        String output = tapSystemOutNormalized(
+                pluginManager::showAllSecurityWarnings);
 
         String expectedOutput = "google-login - Authentication bypass vulnerability\n" +
                 "cucumber-reports - Plugin disables Content-Security-Policy for files served by Jenkins\n" +
                 "pipeline-maven - Arbitrary files from Jenkins master available in Pipeline by using the withMaven step\n" +
                 "pipeline-maven - XML External Entity processing vulnerability\n";
 
-        assertEquals(expectedOutput.trim(), actualOutput.toString().trim());
+        assertEquals(expectedOutput, output);
     }
 
 
@@ -1744,10 +1726,5 @@ public class PluginManagerTest {
         }
         Collections.sort(stringList);
         return stringList;
-    }
-
-    @After
-    public void restoreStream() {
-        System.setOut(originalOut);
     }
 }

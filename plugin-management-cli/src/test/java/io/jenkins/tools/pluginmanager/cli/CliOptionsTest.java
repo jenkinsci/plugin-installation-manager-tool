@@ -5,17 +5,14 @@ import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,6 +23,7 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,8 +41,6 @@ public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
     List<Plugin> txtRequestedPlugins;
-    private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
-    private final PrintStream originalOut = System.out;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -72,8 +68,6 @@ public class CliOptionsTest {
                     "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null),
             new Plugin("blueocean", "latest", null, null)
         );
-
-        System.setOut(new PrintStream(outContent));
     }
 
     @Test
@@ -298,21 +292,16 @@ public class CliOptionsTest {
         whenNew(Properties.class).withNoArguments().thenReturn(properties);
         when(properties.getProperty(any(String.class))).thenReturn(version);
 
-        options.showVersion();
-        assertEquals(version, outContent.toString().trim());
-
-        ByteArrayOutputStream aliasVersionOut = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(aliasVersionOut));
+        String output = tapSystemOutNormalized(options::showVersion);
+        assertEquals("testVersion\n", output);
 
         parser.parseArgument("-v");
-        options.showVersion();
-        assertEquals(version, aliasVersionOut.toString().trim());
+        String aliasOutput = tapSystemOutNormalized(options::showVersion);
+        assertEquals("testVersion\n", aliasOutput);
     }
 
     @Test(expected = VersionNotFoundException.class)
     public void showVersionErrorTest() throws CmdLineException {
-        ByteArrayOutputStream nullPropertiesOut = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(nullPropertiesOut));
         CliOptions cliOptionsSpy = spy(options);
         parser.parseArgument("--version");
         doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
@@ -365,10 +354,5 @@ public class CliOptionsTest {
     public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
         parser.parseArgument("--latest", "--latest-specified");
         Config cfg = options.setup();
-    }
-
-    @After
-    public void restoreStream() {
-        System.setOut(originalOut);
     }
 }
