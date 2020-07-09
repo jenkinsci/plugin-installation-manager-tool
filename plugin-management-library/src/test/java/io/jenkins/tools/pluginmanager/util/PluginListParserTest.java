@@ -12,6 +12,8 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.contrib.java.lang.system.SystemOutRule;
+import org.junit.Rule;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -26,6 +28,10 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 public class PluginListParserTest {
     PluginListParser pluginList;
     List<String> expectedPluginInfo;
+    
+    @Rule
+    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog();
+
 
     @Before
     public void setup() {
@@ -115,15 +121,32 @@ public class PluginListParserTest {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/plugins.yaml").toURI());
 
         List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
-
+        systemOutRule.clearLog();
         List<String> pluginInfo = new ArrayList<>();
         for (Plugin p : pluginsFromYamlFile) {
+        	 
             System.out.println(p.toString());
             pluginInfo.add(p.toString());
         }
-
-        Collections.sort(pluginInfo);
-        assertEquals(expectedPluginInfo, pluginInfo);
+         
+        /**
+         * Checks plugins loaded correctly from 'PluginListParserTest/plugins.yaml' 
+         */
+        assertEquals("git latest\n" + 
+        		"job-import-plugin 2.1\n" + 
+        		"docker latest\n" + 
+        		"cloudbees-bitbucket-branch-source 2.4.4\n" + 
+        		"script-security latest http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi\n" + 
+        		"workflow-step-api 2.19-rc289.d09828a05a74\n" + 
+        		"matrix-project latest\n" + 
+        		"junit experimental\n" + 
+        		"credentials 2.2.0 http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi\n" + 
+        		"blueocean latest\n" + 
+        		"google-api-client-plugin latest https://updates.jenkins.io/latest/google-api-client-plugin.hpi\n" + 
+        		"build-timeout 1.20",systemOutRule.getLog().trim() );
+        
+         Collections.sort(pluginInfo);
+         assertEquals(expectedPluginInfo, pluginInfo);
     }
 
     @Test(expected = PluginInputException.class)
