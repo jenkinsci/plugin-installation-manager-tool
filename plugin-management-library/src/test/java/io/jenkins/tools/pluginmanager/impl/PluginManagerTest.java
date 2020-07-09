@@ -599,16 +599,14 @@ public class PluginManagerTest {
     public void checkVersionCompatibilityPassTest() {
         pm.setJenkinsVersion(new VersionNumber("2.121.2"));
 
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(output));
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
         Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
         plugin2.setJenkinsVersion("1.609.3");
 
-        assertEquals("", output.toString());
+        //check passes if no exception is thrown
+        pm.checkVersionCompatibility(Arrays.asList(plugin1, plugin2));
     }
 
     @Test
