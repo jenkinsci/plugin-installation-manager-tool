@@ -17,6 +17,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
@@ -126,22 +127,28 @@ public class PluginListParserTest {
         assertEquals(expectedPluginInfo, pluginInfo);
     }
 
-    @Test(expected = PluginInputException.class)
+    @Test
     public void badFormatYamlNoArtifactIdTest() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat1.yaml").toURI());
-        List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
+        assertThrows(
+                PluginInputException.class,
+                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
     }
 
-    @Test(expected = PluginInputException.class)
+    @Test
     public void badFormatYamlGroupIdNoVersion() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat2.yaml").toURI());
-        List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
+        assertThrows(
+                PluginInputException.class,
+                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
     }
 
-    @Test(expected = PluginInputException.class)
+    @Test
     public void badFormatYamlGroupIdNoVersion2() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat3.yaml").toURI());
-        List<Plugin> pluginsFromYamlFile = pluginList.parsePluginYamlFile(pluginYmlFile);
+        assertThrows(
+                PluginInputException.class,
+                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
     }
 
     @Test

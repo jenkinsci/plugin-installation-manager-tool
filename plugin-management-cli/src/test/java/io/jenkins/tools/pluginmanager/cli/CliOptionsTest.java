@@ -28,6 +28,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -196,7 +197,7 @@ public class CliOptionsTest {
         assertEquals(requestedPluginInfo, cfgPluginInfo);
     }
 
-    @Test(expected = PluginInputException.class)
+    @Test
     public void setupPluginsBadExtension() throws CmdLineException, IOException, URISyntaxException {
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.t").toURI());
 
@@ -205,7 +206,7 @@ public class CliOptionsTest {
 
         parser.parseArgument("--plugin-file", pluginFile.toString());
 
-        Config cfg = options.setup();
+        assertThrows(PluginInputException.class, options::setup);
     }
 
     @Test
@@ -309,14 +310,15 @@ public class CliOptionsTest {
         assertEquals(version, aliasVersionOut.toString().trim());
     }
 
-    @Test(expected = VersionNotFoundException.class)
+    @Test
     public void showVersionErrorTest() throws CmdLineException {
         ByteArrayOutputStream nullPropertiesOut = new ByteArrayOutputStream();
         System.setOut(new PrintStream(nullPropertiesOut));
         CliOptions cliOptionsSpy = spy(options);
         parser.parseArgument("--version");
         doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
-        cliOptionsSpy.showVersion();
+
+        assertThrows(VersionNotFoundException.class, cliOptionsSpy::showVersion);
     }
 
     @Test
@@ -361,10 +363,11 @@ public class CliOptionsTest {
         assertEquals(false, cfg.isUseLatestAll());
     }
 
-    @Test (expected = PluginDependencyStrategyException.class)
+    @Test
     public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
         parser.parseArgument("--latest", "--latest-specified");
-        Config cfg = options.setup();
+
+        assertThrows(PluginDependencyStrategyException.class, options::setup);
     }
 
     @After
