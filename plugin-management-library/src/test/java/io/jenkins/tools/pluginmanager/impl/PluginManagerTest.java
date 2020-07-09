@@ -52,6 +52,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -131,7 +132,7 @@ public class PluginManagerTest {
         pluginManagerSpy.start();
     }
 
-    @Test(expected = DirectoryCreationException.class)
+    @Test
     public void startNoDirectoryTest() throws IOException {
         File refDir = mock(File.class);
 
@@ -151,7 +152,7 @@ public class PluginManagerTest {
         mockStatic(Files.class);
         when(Files.createDirectories(refPath)).thenThrow(IOException.class);
 
-        pluginManager.start();
+        assertThrows(DirectoryCreationException.class, pluginManager::start);
     }
 
     @Test
@@ -581,8 +582,8 @@ public class PluginManagerTest {
         assertEquals("", output.toString());
     }
 
-    @Test(expected = VersionCompatibilityException.class)
-    public void checkVersionCompatibilityFailTest() throws IOException {
+    @Test
+    public void checkVersionCompatibilityFailTest() {
         pm.setJenkinsVersion(new VersionNumber("1.609.3"));
 
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
@@ -592,7 +593,10 @@ public class PluginManagerTest {
         plugin2.setJenkinsVersion("1.609.3");
 
         List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
-        pm.checkVersionCompatibility(pluginsToDownload);
+
+        assertThrows(
+                VersionCompatibilityException.class,
+                () -> pm.checkVersionCompatibility(pluginsToDownload));
     }
 
     @Test
@@ -684,7 +688,7 @@ public class PluginManagerTest {
         assertEquals(true, pluginManagerSpy.getFailedPlugins().isEmpty());
     }
 
-    @Test(expected = DownloadPluginException.class)
+    @Test
     public void downloadPluginsUnsuccessfulTest() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -699,7 +703,9 @@ public class PluginManagerTest {
         List<Plugin> plugins = singletonList(
                 new Plugin("plugin", "1.0", null, null));
 
-        pluginManagerSpy.downloadPlugins(plugins);
+        assertThrows(
+                DownloadPluginException.class,
+                () -> pluginManagerSpy.downloadPlugins(plugins));
     }
 
     @Test
@@ -793,19 +799,24 @@ public class PluginManagerTest {
         assertEquals(expected, output.toString().trim());
     }
 
-    @Test(expected = UpdateCenterInfoRetrievalException.class)
+    @Test
     public void getJsonURLExceptionTest() {
-        pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json");
+        assertThrows(
+                UpdateCenterInfoRetrievalException.class,
+                () -> pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"));
     }
 
-    @Test(expected = UpdateCenterInfoRetrievalException.class)
+    @Test
     public void getJsonURLIOTest() throws IOException{
         mockStatic(IOUtils.class);
 
         when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
 
         pm.setCm(new MockCacheManager());
-        pm.getJson(new URL("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"), "update-center");
+
+        assertThrows(
+                UpdateCenterInfoRetrievalException.class,
+                () -> pm.getJson(new URL("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"), "update-center"));
     }
 
     @Test
@@ -890,10 +901,13 @@ public class PluginManagerTest {
         assertEquals("1.10", pm.getPluginVersion(testHpi));
     }
 
-    @Test (expected = PluginNotFoundException.class)
+    @Test
     public void getLatestPluginVersionExceptionTest() {
         setTestUcJson();
-        pm.getLatestPluginVersion("git");
+
+        assertThrows(
+                PluginNotFoundException.class,
+                () -> pm.getLatestPluginVersion("git"));
     }
 
     @Test
@@ -989,7 +1003,7 @@ public class PluginManagerTest {
         assertEquals(true, pm.resolveDependenciesFromManifest(testPlugin).isEmpty());
     }
 
-    @Test(expected = DownloadPluginException.class)
+    @Test
     public void resolveDependenciesFromManifestNoDownload() throws IOException{
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -1009,7 +1023,9 @@ public class PluginManagerTest {
         when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
         when(tempPath.toFile()).thenReturn(tempFile);
 
-        assertEquals(true, pluginManager.resolveDependenciesFromManifest(testPlugin).isEmpty());
+        assertThrows(
+                DownloadPluginException.class,
+                () -> pluginManager.resolveDependenciesFromManifest(testPlugin));
     }
 
     @Test
@@ -1423,14 +1439,16 @@ public class PluginManagerTest {
         assertThat(result, is("https://jenkins-updates.cloudbees.com/download/plugins/the-plugin/1.0/the-plugin.hpi"));
     }
 
-    @Test(expected = DownloadPluginException.class)
+    @Test
     public void getAttributeFromManifestExceptionTest() throws Exception {
         URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
         File testJpi = new File(jpiURL.getFile());
 
         whenNew(JarFile.class).withArguments(testJpi).thenThrow(new IOException());
 
-        pm.getAttributeFromManifest(testJpi, "Plugin-Dependencies");
+        assertThrows(
+                DownloadPluginException.class,
+                () -> pm.getAttributeFromManifest(testJpi, "Plugin-Dependencies"));
     }
 
     public void getAttributeFromManifestTest() throws Exception {
