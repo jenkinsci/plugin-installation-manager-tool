@@ -4,26 +4,16 @@ import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({PluginListParser.class})
 public class PluginListParserTest {
     PluginListParser pluginList;
     List<String> expectedPluginInfo;
@@ -158,9 +148,7 @@ public class PluginListParserTest {
         File pluginFile = new File(this.getClass().getResource("PluginListParserTest/plugins.yaml").toURI());
         assertEquals(true, pluginList.fileExists(pluginFile));
 
-        mockStatic(Files.class);
-
-        when(Files.exists(any(Path.class))).thenReturn(false);
-        assertEquals(false, pluginList.fileExists(pluginFile));
+        File notExistingFile = new File("/file/that/does/not/exist.yaml");
+        assertEquals(false, pluginList.fileExists(notExistingFile));
     }
 }
