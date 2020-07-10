@@ -9,7 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -136,22 +136,7 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
-
-        List<String> cfgPluginInfo = new ArrayList<>();
-        List<String> requestedPluginInfo = new ArrayList<>();
-
-        for (Plugin p : cfg.getPlugins()) {
-            cfgPluginInfo.add(p.toString());
-        }
-        for (Plugin p : requestedPlugins) {
-            requestedPluginInfo.add(p.toString());
-        }
-
-        Collections.sort(cfgPluginInfo);
-        Collections.sort(requestedPluginInfo);
-
-        assertEquals(requestedPluginInfo, cfgPluginInfo);
+        assertConfigHasPlugins(cfg, requestedPlugins);
     }
 
 
@@ -172,22 +157,7 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(requestedPlugins.size(), cfg.getPlugins().size());
-
-        List<String> cfgPluginInfo = new ArrayList<>();
-        List<String> requestedPluginInfo = new ArrayList<>();
-
-        for (Plugin p : cfg.getPlugins()) {
-            cfgPluginInfo.add(p.toString());
-        }
-        for (Plugin p : requestedPlugins) {
-            requestedPluginInfo.add(p.toString());
-        }
-
-        Collections.sort(cfgPluginInfo);
-        Collections.sort(requestedPluginInfo);
-
-        assertEquals(requestedPluginInfo, cfgPluginInfo);
+        assertConfigHasPlugins(cfg, requestedPlugins);
     }
 
     @Test
@@ -356,5 +326,10 @@ public class CliOptionsTest {
         parser.parseArgument("--latest", "--latest-specified");
 
         assertThrows(PluginDependencyStrategyException.class, options::setup);
+    }
+
+    private void assertConfigHasPlugins(Config cfg, List<Plugin> requestedPlugins) {
+        List<Plugin> plugins = cfg.getPlugins();
+        assertEquals(new HashSet<>(requestedPlugins), new HashSet<>(plugins));
     }
 }
