@@ -109,7 +109,6 @@ public class PluginListParserTest {
 
         List<String> pluginInfo = new ArrayList<>();
         for (Plugin p : pluginsFromYamlFile) {
-            System.out.println(p.toString());
             pluginInfo.add(p.toString());
         }
 
