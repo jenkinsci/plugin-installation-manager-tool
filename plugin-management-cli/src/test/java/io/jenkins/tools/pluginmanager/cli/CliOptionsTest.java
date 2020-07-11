@@ -7,37 +7,31 @@ import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
+import static org.apache.commons.io.IOUtils.toInputStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.powermock.api.mockito.PowerMockito.whenNew;
-import static org.mockito.Mockito.when;
 
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({CliOptions.class})
 public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
@@ -254,19 +248,20 @@ public class CliOptionsTest {
 
     @Test
     public void showVersionTest() throws Exception {
-        parser.parseArgument("--version");
+        CliOptions optionsWithVersion = new CliOptions() {
+            @Override
+            public InputStream getPropertiesInputStream(String path) {
+                return toInputStream("project.version = testVersion\n", UTF_8);
+            }
+        };
+        CmdLineParser parserWithVersion = new CmdLineParser(optionsWithVersion);
+        parserWithVersion.parseArgument("--version");
 
-        String version = "testVersion";
-
-        Properties properties = mock(Properties.class);
-        whenNew(Properties.class).withNoArguments().thenReturn(properties);
-        when(properties.getProperty(any(String.class))).thenReturn(version);
-
-        String output = tapSystemOutNormalized(options::showVersion);
+        String output = tapSystemOutNormalized(optionsWithVersion::showVersion);
         assertEquals("testVersion\n", output);
 
-        parser.parseArgument("-v");
-        String aliasOutput = tapSystemOutNormalized(options::showVersion);
+        parserWithVersion.parseArgument("-v");
+        String aliasOutput = tapSystemOutNormalized(optionsWithVersion::showVersion);
         assertEquals("testVersion\n", aliasOutput);
     }
 
