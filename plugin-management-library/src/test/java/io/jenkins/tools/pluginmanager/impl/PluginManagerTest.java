@@ -14,8 +14,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -843,8 +845,9 @@ public class PluginManagerTest {
 
         actualPlugins = pm.findPluginsToDownload(requestedPlugins);
 
-        assertEquals(actualPlugins.size(), 1);
-        assertEquals(actualPlugins.get(0).toString(), "git 1.0.0");
+        assertEquals(
+                singletonList(new Plugin("git", "1.0.0", null, null)),
+                actualPlugins);
 
         requestedPlugins.put("credentials", new Plugin("credentials", "2.1.14", null, null));
         requestedPlugins.put("structs", new Plugin("structs", "1.18", null, null));
@@ -860,15 +863,12 @@ public class PluginManagerTest {
 
         actualPlugins = pm.findPluginsToDownload(requestedPlugins);
 
-        List<String> actual = convertPluginsToStrings(actualPlugins);
+        List<Plugin> expected = Arrays.asList(
+                new Plugin("credentials", "2.1.14", null, null),
+                new Plugin("structs", "1.18", null, null),
+                new Plugin("ssh-credentials", "1.13", null, null));
 
-        List<String> expected = new ArrayList<>();
-        expected.add("credentials 2.1.14");
-        expected.add("structs 1.18");
-        expected.add("ssh-credentials 1.13");
-        Collections.sort(expected);
-
-        assertEquals(expected, actual);
+        assertEquals(expected, actualPlugins);
     }
 
     @Test
@@ -930,14 +930,13 @@ public class PluginManagerTest {
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
                 getLatestPluginVersion(any(String.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(
+        List<Plugin> expectedPlugins = Arrays.asList(
                 new Plugin("workflow-scm-step", "2.4", null, null),
                 new Plugin("workflow-step-api", "2.20", null, null));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, actualPlugins);
         assertEquals(testPlugin.getVersion().toString(), "1.0.0");
     }
 
@@ -968,14 +967,13 @@ public class PluginManagerTest {
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
                 getLatestPluginVersion(any(String.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(
+        List<Plugin> expectedPlugins = Arrays.asList(
                 new Plugin("workflow-scm-step", "2.4", null, null),
                 new Plugin("workflow-step-api", "2.20", null, null));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1033,7 +1031,7 @@ public class PluginManagerTest {
                 "token-macro:1.12.1;resolution:=optional")
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(
+        List<Plugin> expectedPlugins = Arrays.asList(
                 new Plugin("workflow-scm-step", "2.4", null, null),
                 new Plugin("workflow-step-api", "2.13", null, null),
                 new Plugin("credentials", "2.1.14", null, null),
@@ -1043,9 +1041,8 @@ public class PluginManagerTest {
                 new Plugin("ssh-credentials", "1.13", null, null));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, actualPlugins);
         assertEquals(testPlugin.getVersion().toString(), "1.0.0");
     }
 
@@ -1056,12 +1053,9 @@ public class PluginManagerTest {
 
         doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
-
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
 
@@ -1073,13 +1067,9 @@ public class PluginManagerTest {
 
         doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
-
-
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1093,12 +1083,9 @@ public class PluginManagerTest {
 
         doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromManifest(plugin);
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
-
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
 
@@ -1110,12 +1097,9 @@ public class PluginManagerTest {
         doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromJson(nullable(Plugin.class),
                 nullable(JSONObject.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
-
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1126,12 +1110,9 @@ public class PluginManagerTest {
         doReturn(directDependencyExpectedPlugins).when(pluginManagerSpy).resolveDependenciesFromJson(nullable(Plugin.class),
                 nullable(JSONObject.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(directDependencyExpectedPlugins);
-
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDirectDependencies(plugin);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1140,9 +1121,8 @@ public class PluginManagerTest {
 
         Plugin mavenInvoker = new Plugin("maven-invoker-plugin", "2.4", null, null);
         List<Plugin> actualPlugins = pm.resolveDependenciesFromJson(mavenInvoker, json);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(convertPluginsToStrings(directDependencyExpectedPlugins), actualPluginInfo);
+        assertEquals(directDependencyExpectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1162,11 +1142,10 @@ public class PluginManagerTest {
         Plugin testWeaver = new Plugin("testweaver", "1.0.1", null, null);
         testWeaver.setLatest(true);
         List<Plugin> actualPlugins = pluginManager.resolveDependenciesFromJson(testWeaver, testJson);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
         assertEquals(
-                convertPluginsToStrings(new Plugin("structs", "1.19", null, null)),
-                actualPluginInfo);
+                singletonList(new Plugin("structs", "1.19", null, null)),
+                actualPlugins);
     }
 
     @Test
@@ -1221,16 +1200,15 @@ public class PluginManagerTest {
                 .doReturn(new VersionNumber("2.0"))
                 .when(pluginManagerSpy).getLatestPluginVersion(any(String.class));
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(
+        List<Plugin> expectedPlugins = Arrays.asList(
                 new Plugin("workflow-api", "2.44", null, null),
                 new Plugin("workflow-step-api", "2.30", null, null),
                 new Plugin("mailer", "1.18", null, null),
                 new Plugin("script-security", "2.0", null, null));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromJson(mvnInvokerPlugin, pluginJson);
-        List<String> actualPluginInfo = convertPluginsToStrings(actualPlugins);
 
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, actualPlugins);
     }
 
     @Test
@@ -1266,25 +1244,24 @@ public class PluginManagerTest {
         child1.setDependencies(singletonList(child6));
         child8.setDependencies(singletonList(child5));
 
-        List<String> expectedDependencies = new ArrayList<>();
-        expectedDependencies.add(grandParent.toString());
-        expectedDependencies.add(parent1.toString());
-        expectedDependencies.add(child4.toString());  //highest version of replaced1
-        expectedDependencies.add(parent3.toString());
-        expectedDependencies.add(child2.toString());
-        expectedDependencies.add(child3.toString());
-        expectedDependencies.add(child8.toString());
-        expectedDependencies.add(child9.toString());
-        expectedDependencies.add(child5.toString());
-        expectedDependencies.add(child6.toString());
-        Collections.sort(expectedDependencies);
+        Set<Plugin> expectedDependencies = new HashSet<>();
+        expectedDependencies.add(grandParent);
+        expectedDependencies.add(parent1);
+        expectedDependencies.add(child4);  //highest version of replaced1
+        expectedDependencies.add(parent3);
+        expectedDependencies.add(child2);
+        expectedDependencies.add(child3);
+        expectedDependencies.add(child8);
+        expectedDependencies.add(child9);
+        expectedDependencies.add(child5);
+        expectedDependencies.add(child6);
 
         //See Jira JENKINS-58775 - the ideal solution has the following dependencies: grandparent, parent1, child4,
         //parent3, child2, child8, child3, and child9
 
         Map<String, Plugin> recursiveDependencies = pluginManagerSpy.resolveRecursiveDependencies(grandParent);
 
-        List<String> actualDependencies = convertPluginsToStrings(new ArrayList<>(recursiveDependencies.values()));
+        Set<Plugin> actualDependencies = new HashSet<>(recursiveDependencies.values());
 
         assertEquals(expectedDependencies, actualDependencies);
     }
@@ -1309,15 +1286,13 @@ public class PluginManagerTest {
         String tmp1name = FilenameUtils.getBaseName(tmp1.getName());
         String tmp2name = FilenameUtils.getBaseName(tmp2.getName());
 
-        List<String> expectedPluginInfo = convertPluginsToStrings(
+        Set<Plugin> expectedPlugins = new HashSet<>(Arrays.asList(
                 new Plugin(tmp1name, "1.3.2", null, null),
-                new Plugin(tmp2name, "1.8", null, null));
+                new Plugin(tmp2name, "1.8", null, null)));
 
         Map<String, Plugin> actualPlugins = pm.installedPlugins();
 
-        List<String> actualPluginInfo = convertPluginsToStrings(new ArrayList(actualPlugins.values()));
-
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, new HashSet<>(actualPlugins.values()));
     }
 
     @Test
@@ -1516,17 +1491,14 @@ public class PluginManagerTest {
                 .build();
         PluginManager pluginManager = new PluginManager(config);
 
-        Map <String, Plugin> expectedPlugins = new HashMap<>();
-        expectedPlugins.put("credentials", new Plugin("credentials","2.1.18", null, null));
-        expectedPlugins.put("display-url-api", new Plugin("display-url-api","2.0", null, null));
-        expectedPlugins.put("github-branch-source", new Plugin("github-branch-source", "1.8", null, null));
+        Set<Plugin> expectedPlugins = new HashSet<>(Arrays.asList(
+                new Plugin("credentials","2.1.18", null, null),
+                new Plugin("display-url-api","2.0", null, null),
+                new Plugin("github-branch-source", "1.8", null, null)));
 
         Map<String, Plugin> actualPlugins = pluginManager.bundledPlugins();
 
-        List<String> actualPluginInfo = convertPluginsToStrings(new ArrayList(actualPlugins.values()));
-        List<String> expectedPluginInfo = convertPluginsToStrings(new ArrayList<>(expectedPlugins.values()));
-
-        assertEquals(expectedPluginInfo, actualPluginInfo);
+        assertEquals(expectedPlugins, new HashSet<>(actualPlugins.values()));
     }
 
     private JSONObject setTestUcJson() {
@@ -1731,18 +1703,5 @@ public class PluginManagerTest {
         pm.setLatestUcJson(latestUcJson);
         pm.setLatestUcPlugins(pluginJson);
         return latestUcJson;
-    }
-
-    private List<String> convertPluginsToStrings(Plugin... plugins) {
-        return convertPluginsToStrings(Arrays.asList(plugins));
-    }
-
-    private List<String> convertPluginsToStrings(List<Plugin> pluginList) {
-        List<String> stringList = new ArrayList<>();
-        for (Plugin p : pluginList) {
-            stringList.add(p.toString());
-        }
-        Collections.sort(stringList);
-        return stringList;
     }
 }
