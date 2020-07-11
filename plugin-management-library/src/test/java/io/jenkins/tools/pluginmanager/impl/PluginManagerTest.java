@@ -95,14 +95,14 @@ public class PluginManagerTest {
     public void startTest() throws IOException {
         File refDir = mock(File.class);
 
-        Config config = mock(Config.class);
-
-        when(config.getPluginDir()).thenReturn(refDir);
-        when(config.getJenkinsWar()).thenReturn(Settings.DEFAULT_WAR);
-        when(config.getJenkinsUc()).thenReturn(Settings.DEFAULT_UPDATE_CENTER);
-        when(config.getPlugins()).thenReturn(new ArrayList<Plugin>());
-        when(config.doDownload()).thenReturn(true);
-        when(config.getJenkinsUcExperimental()).thenReturn(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER);
+        Config config = Config.builder()
+                .withPluginDir(refDir)
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .withPlugins(new ArrayList<>())
+                .withDoDownload(true)
+                .withJenkinsUcExperimental(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER)
+                .build();
 
         PluginManager pluginManager = new PluginManager(config);
 
@@ -135,11 +135,11 @@ public class PluginManagerTest {
     public void startNoDirectoryTest() throws IOException {
         File refDir = mock(File.class);
 
-        Config config = mock(Config.class);
-
-        when(config.getPluginDir()).thenReturn(refDir);
-        when(config.getJenkinsWar()).thenReturn(Settings.DEFAULT_WAR);
-        when(config.getJenkinsUc()).thenReturn(Settings.DEFAULT_UPDATE_CENTER);
+        Config config = Config.builder()
+                .withPluginDir(refDir)
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .build();
 
         PluginManager pluginManager = new PluginManager(config);
 
