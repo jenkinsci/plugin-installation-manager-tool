@@ -9,6 +9,9 @@ import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
 import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import static java.nio.file.Files.newInputStream;
 
 public class CacheManager {
 
@@ -70,7 +73,8 @@ public class CacheManager {
                 return null;
             }
 
-            return new JSONObject(new String(Files.readAllBytes(cachedPath), StandardCharsets.UTF_8));
+            JSONTokener tokener = new JSONTokener(newInputStream(cachedPath));
+            return new JSONObject(tokener);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
