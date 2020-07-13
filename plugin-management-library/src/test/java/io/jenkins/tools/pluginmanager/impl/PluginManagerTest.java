@@ -38,7 +38,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
@@ -47,12 +49,14 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
+import static java.nio.file.Files.createDirectory;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -74,11 +78,14 @@ public class PluginManagerTest {
     private Config cfg;
     private List<Plugin> directDependencyExpectedPlugins;
 
+    @Rule
+    public final TemporaryFolder folder = new TemporaryFolder();
+
     @Before
-    public void setUp() throws IOException {
+    public void setUp() {
         cfg = Config.builder()
             .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .build();
 
         pm = new PluginManager(cfg);
@@ -92,11 +99,9 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void startTest() throws IOException {
-        File refDir = mock(File.class);
-
+    public void startTest() {
         Config config = Config.builder()
-                .withPluginDir(refDir)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
                 .withPlugins(new ArrayList<>())
@@ -105,8 +110,6 @@ public class PluginManagerTest {
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
-
-        when(refDir.exists()).thenReturn(false);
 
         PluginManager pluginManagerSpy = spy(pluginManager);
 
@@ -133,23 +136,16 @@ public class PluginManagerTest {
 
     @Test
     public void startNoDirectoryTest() throws IOException {
-        File refDir = mock(File.class);
-
+        // by using a file as the parent dir of the plugin folder we force that
+        // the plugin folder cannot be created
+        File pluginParentDir = folder.newFile();
         Config config = Config.builder()
-                .withPluginDir(refDir)
+                .withPluginDir(new File(pluginParentDir, "plugins"))
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
-
-        when(refDir.exists()).thenReturn(false);
-
-        Path refPath = mock(Path.class);
-        when(refDir.toPath()).thenReturn(refPath);
-
-        mockStatic(Files.class);
-        when(Files.createDirectories(refPath)).thenThrow(IOException.class);
 
         assertThrows(DirectoryCreationException.class, pluginManager::start);
     }
@@ -189,7 +185,7 @@ public class PluginManagerTest {
     public void listPluginsNoOutputTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowPluginsToBeDownloaded(false)
                 .build();
 
@@ -207,7 +203,7 @@ public class PluginManagerTest {
     public void listPluginsOutputTest() throws Exception {
          Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowPluginsToBeDownloaded(true)
                 .build();
 
@@ -608,7 +604,7 @@ public class PluginManagerTest {
     public void showAvailableUpdatesNoOutputTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowAvailableUpdates(false)
                 .build();
 
@@ -629,7 +625,7 @@ public class PluginManagerTest {
     public void showAvailableUpdates() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowAvailableUpdates(true)
                 .build();
 
@@ -656,10 +652,10 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadPluginsSuccessfulTest() throws IOException {
+    public void downloadPluginsSuccessfulTest() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -676,10 +672,10 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadPluginsUnsuccessfulTest() throws IOException {
+    public void downloadPluginsUnsuccessfulTest() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -707,10 +703,10 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadPluginSuccessfulFirstAttempt() throws IOException {
+    public void downloadPluginSuccessfulFirstAttempt() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -763,7 +759,7 @@ public class PluginManagerTest {
     public void outputPluginReplacementInfoTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withIsVerbose(true)
                 .build();
 
@@ -907,7 +903,7 @@ public class PluginManagerTest {
     public void resolveDependenciesFromManifestLatestSpecified() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withUseLatestSpecified(true)
                 .build();
 
@@ -944,7 +940,7 @@ public class PluginManagerTest {
     public void resolveDependenciesFromManifestLatestAll() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withUseLatestAll(true)
                 .build();
 
@@ -988,7 +984,7 @@ public class PluginManagerTest {
     public void resolveDependenciesFromManifestNoDownload() throws IOException{
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
@@ -1126,10 +1122,10 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromJsonLatestSpecifiedTest() throws IOException {
+    public void resolveDependenciesFromJsonLatestSpecifiedTest() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withUseLatestSpecified(true)
                 .build();
 
@@ -1149,10 +1145,10 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromJsonLatestAll() throws IOException {
+    public void resolveDependenciesFromJsonLatestAll() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withUseLatestAll(true)
                 .build();
 
@@ -1270,6 +1266,7 @@ public class PluginManagerTest {
     @Test
     public void installedPluginsTest() throws IOException {
         File pluginDir = cfg.getPluginDir();
+        createDirectory(pluginDir.toPath());
 
         File tmp1 = File.createTempFile("test", ".jpi", pluginDir);
         File tmp2 = File.createTempFile("test2", ".jpi", pluginDir);
@@ -1342,7 +1339,7 @@ public class PluginManagerTest {
         JarFile pluginJpi = mock(JarFile.class);
 
         whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
-        Assert.assertTrue(pm.downloadToFile("downloadURL", plugin, null));
+        assertTrue(pm.downloadToFile("downloadURL", plugin, null));
     }
 
     @Test
@@ -1384,7 +1381,7 @@ public class PluginManagerTest {
     public void getDownloadPluginUrlTestComplexUpdateCenterUrl() throws IOException {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("tmpplugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withJenkinsUc(new URL("https://jenkins-updates.cloudbees.com/update-center/envelope-cje/update-center.json?version=2.176.4.3"))
                 .build();
 
@@ -1431,7 +1428,7 @@ public class PluginManagerTest {
     public void showAllSecurityWarningsNoOutput() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowAllWarnings(false)
                 .build();
 
@@ -1447,7 +1444,7 @@ public class PluginManagerTest {
     public void showAllSecurityWarnings() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(Files.createTempDirectory("plugins").toFile())
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withShowAllWarnings(true)
                 .build();
 
