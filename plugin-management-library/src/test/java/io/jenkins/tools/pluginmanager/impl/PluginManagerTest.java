@@ -793,7 +793,7 @@ public class PluginManagerTest {
 
         when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
 
-        pm.setCm(new MockCacheManager());
+        pm.setCm(new CacheManager(folder.newFolder().toPath(), false));
 
         assertThrows(
                 UpdateCenterInfoRetrievalException.class,
