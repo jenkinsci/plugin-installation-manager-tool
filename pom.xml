@@ -58,6 +58,15 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>3.16.1</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.powermock</groupId>

@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
@@ -25,8 +24,8 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironment
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.IOUtils.toInputStream;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -76,16 +75,14 @@ public class CliOptionsTest {
             .execute(() -> {
                 Config cfg = options.setup();
 
-                assertEquals(Settings.DEFAULT_PLUGIN_DIR_LOCATION, cfg.getPluginDir().toString());
-                assertEquals(Settings.DEFAULT_WAR, cfg.getJenkinsWar());
-                assertEquals(false, cfg.isShowAllWarnings());
-                assertEquals(false, cfg.isShowWarnings());
-                assertEquals(Settings.DEFAULT_UPDATE_CENTER_LOCATION, cfg.getJenkinsUc().toString());
-                assertEquals(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
-                        cfg.getJenkinsUcExperimental().toString());
-                assertEquals(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
-                        cfg.getJenkinsIncrementalsRepoMirror().toString());
-                assertEquals(Settings.DEFAULT_PLUGIN_INFO_LOCATION, cfg.getJenkinsPluginInfo().toString());
+                assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+                assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
+                assertThat(cfg.isShowAllWarnings()).isFalse();
+                assertThat(cfg.isShowWarnings()).isFalse();
+                assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
+                assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
+                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
+                assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
             });
     }
 
@@ -107,10 +104,9 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
 
-        assertEquals(pluginDir, cfg.getPluginDir());
-        assertEquals(jenkinsWar.toString(), cfg.getJenkinsWar());
-        assertEquals(1, cfg.getPlugins().size());
-        assertEquals(displayUrlPlugin.toString(), cfg.getPlugins().get(0).toString());
+        assertThat(cfg.getPluginDir()).isEqualTo(pluginDir);
+        assertThat(cfg.getJenkinsWar()).isEqualTo(jenkinsWar.toString());
+        assertThat(cfg.getPlugins()).containsExactly(displayUrlPlugin);
     }
 
     @Test
@@ -163,7 +159,8 @@ public class CliOptionsTest {
 
         parser.parseArgument("--plugin-file", pluginFile.toString());
 
-        assertThrows(PluginInputException.class, options::setup);
+        assertThatThrownBy(options::setup)
+                .isInstanceOf(PluginInputException.class);
     }
 
     @Test
@@ -173,7 +170,7 @@ public class CliOptionsTest {
         parser.parseArgument("--war", jenkinsWar);
 
         Config cfg = options.setup();
-        assertEquals(jenkinsWar, cfg.getJenkinsWar());
+        assertThat(cfg.getJenkinsWar()).isEqualTo(jenkinsWar);
     }
 
     @Test
@@ -183,7 +180,7 @@ public class CliOptionsTest {
         parser.parseArgument("--plugin-download-directory", pluginDir);
 
         Config cfg = options.setup();
-        assertEquals(pluginDir, cfg.getPluginDir().toString());
+        assertThat(cfg.getPluginDir()).hasToString(pluginDir);
     }
 
     @Test
@@ -211,10 +208,10 @@ public class CliOptionsTest {
                 Config cfg = options.setup();
 
                 // Cli options should override environment variables
-                assertEquals(ucCli, cfg.getJenkinsUc().toString());
-                assertEquals(experiementalCli, cfg.getJenkinsUcExperimental().toString());
-                assertEquals(incrementalsCli, cfg.getJenkinsIncrementalsRepoMirror().toString());
-                assertEquals(pluginInfoCli, cfg.getJenkinsPluginInfo().toString());
+                assertThat(cfg.getJenkinsUc()).hasToString(ucCli);
+                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli);
+                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
+                assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
             });
     }
 
@@ -231,10 +228,10 @@ public class CliOptionsTest {
             .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
             .execute(() -> {
                 Config cfg = options.setup();
-                assertEquals(ucEnvVar, cfg.getJenkinsUc().toString());
-                assertEquals(experimentalUcEnvVar, cfg.getJenkinsUcExperimental().toString());
-                assertEquals(incrementalsEnvVar, cfg.getJenkinsIncrementalsRepoMirror().toString());
-                assertEquals(pluginInfoEnvVar, cfg.getJenkinsPluginInfo().toString());
+                assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar);
+                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar);
+                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
+                assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
             });
     }
 
@@ -242,8 +239,8 @@ public class CliOptionsTest {
     public void setupSecurityWarningsTest() throws CmdLineException {
         parser.parseArgument("--view-all-security-warnings", "--view-security-warnings");
         Config cfg = options.setup();
-        assertEquals(true, cfg.isShowAllWarnings());
-        assertEquals(true, cfg.isShowWarnings());
+        assertThat(cfg.isShowAllWarnings()).isTrue();
+        assertThat(cfg.isShowWarnings()).isTrue();
     }
 
     @Test
@@ -258,11 +255,11 @@ public class CliOptionsTest {
         parserWithVersion.parseArgument("--version");
 
         String output = tapSystemOutNormalized(optionsWithVersion::showVersion);
-        assertEquals("testVersion\n", output);
+        assertThat(output).isEqualTo("testVersion\n");
 
         parserWithVersion.parseArgument("-v");
         String aliasOutput = tapSystemOutNormalized(optionsWithVersion::showVersion);
-        assertEquals("testVersion\n", aliasOutput);
+        assertThat(aliasOutput).isEqualTo("testVersion\n");
     }
 
     @Test
@@ -271,60 +268,62 @@ public class CliOptionsTest {
         parser.parseArgument("--version");
         doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
 
-        assertThrows(VersionNotFoundException.class, cliOptionsSpy::showVersion);
+        assertThatThrownBy(cliOptionsSpy::showVersion)
+                .isInstanceOf(VersionNotFoundException.class);
     }
 
     @Test
     public void noDownloadTest() throws CmdLineException {
         parser.parseArgument("--no-download");
         Config cfg = options.setup();
-        assertEquals(false, cfg.doDownload());
+        assertThat(cfg.doDownload()).isFalse();
     }
 
     @Test
     public void downloadTest() throws CmdLineException {
         parser.parseArgument();
         Config cfg = options.setup();
-        assertEquals(true, cfg.doDownload());
+        assertThat(cfg.doDownload()).isTrue();
     }
 
     @Test
     public void useLatestSpecifiedTest() throws CmdLineException {
         parser.parseArgument("--latest-specified");
         Config cfg = options.setup();
-        assertEquals(true, cfg.isUseLatestSpecified());
+        assertThat(cfg.isUseLatestSpecified()).isTrue();
     }
 
     @Test
     public void useNotLatestSpecifiedTest() throws CmdLineException {
         parser.parseArgument();
         Config cfg = options.setup();
-        assertEquals(false, cfg.isUseLatestSpecified());
+        assertThat(cfg.isUseLatestSpecified()).isFalse();
     }
 
     @Test
     public void useLatestTest() throws CmdLineException {
         parser.parseArgument("--latest");
         Config cfg = options.setup();
-        assertEquals(true, cfg.isUseLatestAll());
+        assertThat(cfg.isUseLatestAll()).isTrue();
     }
 
     @Test
     public void useNotLatestTest() throws CmdLineException {
         parser.parseArgument();
         Config cfg = options.setup();
-        assertEquals(false, cfg.isUseLatestAll());
+        assertThat(cfg.isUseLatestAll()).isFalse();
     }
 
     @Test
     public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
         parser.parseArgument("--latest", "--latest-specified");
 
-        assertThrows(PluginDependencyStrategyException.class, options::setup);
+        assertThatThrownBy(options::setup)
+            .isInstanceOf(PluginDependencyStrategyException.class);
     }
 
-    private void assertConfigHasPlugins(Config cfg, List<Plugin> requestedPlugins) {
-        List<Plugin> plugins = cfg.getPlugins();
-        assertEquals(new HashSet<>(requestedPlugins), new HashSet<>(plugins));
+    private void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {
+        Plugin[] expectedPluginsAsArray = expectedPlugins.toArray(new Plugin[0]);
+        assertThat(cfg.getPlugins()).containsExactlyInAnyOrder(expectedPluginsAsArray);
     }
 }

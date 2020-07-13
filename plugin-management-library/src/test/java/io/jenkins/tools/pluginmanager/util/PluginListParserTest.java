@@ -5,24 +5,22 @@ import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class PluginListParserTest {
     PluginListParser pluginList;
-    List<String> expectedPluginInfo;
+    String[] expectedPluginInfo;
 
     @Before
     public void setup() {
         pluginList = new PluginListParser();
 
-        expectedPluginInfo = asList(
+        expectedPluginInfo = new String[]{
             new Plugin("git", "latest", null, null).toString(),
             new Plugin("job-import-plugin", "2.1", null, null).toString(),
             new Plugin("docker", "latest", null, null).toString(),
@@ -41,9 +39,7 @@ public class PluginListParserTest {
                     "https://updates.jenkins.io/latest/google-api-client-plugin.hpi", null).toString(),
             new Plugin("build-timeout", "1.20",
                     null, null).toString()
-        );
-
-        Collections.sort(expectedPluginInfo);
+        };
 
     }
 
@@ -69,20 +65,18 @@ public class PluginListParserTest {
             pluginInfo.add(p.toString());
         }
 
-        Collections.sort(pluginInfo);
-
-        assertEquals(expectedPluginInfo, pluginInfo);
+        assertThat(pluginInfo).containsExactlyInAnyOrder(expectedPluginInfo);
 
         List<Plugin> noPluginArrayList = pluginList.parsePluginsFromCliOption(null);
 
-        assertEquals(noPluginArrayList.size(), 0);
+        assertThat(noPluginArrayList).isEmpty();
 
     }
 
     @Test
     public void parsePluginTxtFileTest() throws URISyntaxException {
         List<Plugin> noFilePluginList = pluginList.parsePluginTxtFile(null);
-        assertEquals(noFilePluginList.size(), 0);
+        assertThat(noFilePluginList).isEmpty();
 
         File pluginTxtFile = new File(this.getClass().getResource("PluginListParserTest/plugins.txt").toURI());
 
@@ -93,15 +87,14 @@ public class PluginListParserTest {
             pluginInfo.add(p.toString());
         }
 
-        Collections.sort(pluginInfo);
-        assertEquals(expectedPluginInfo, pluginInfo);
+        assertThat(pluginInfo).containsExactlyInAnyOrder(expectedPluginInfo);
     }
 
 
     @Test
     public void parsePluginYamlFileTest() throws URISyntaxException {
         List<Plugin> noFilePluginList = pluginList.parsePluginYamlFile(null);
-        assertEquals(noFilePluginList.size(), 0);
+        assertThat(noFilePluginList).isEmpty();
 
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/plugins.yaml").toURI());
 
@@ -113,42 +106,38 @@ public class PluginListParserTest {
             pluginInfo.add(p.toString());
         }
 
-        Collections.sort(pluginInfo);
-        assertEquals(expectedPluginInfo, pluginInfo);
+        assertThat(pluginInfo).containsExactlyInAnyOrder(expectedPluginInfo);
     }
 
     @Test
     public void badFormatYamlNoArtifactIdTest() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat1.yaml").toURI());
-        assertThrows(
-                PluginInputException.class,
-                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
+        assertThatThrownBy(() -> pluginList.parsePluginYamlFile(pluginYmlFile))
+                .isInstanceOf(PluginInputException.class);
     }
 
     @Test
     public void badFormatYamlGroupIdNoVersion() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat2.yaml").toURI());
-        assertThrows(
-                PluginInputException.class,
-                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
+        assertThatThrownBy(() -> pluginList.parsePluginYamlFile(pluginYmlFile))
+                .isInstanceOf(PluginInputException.class);
     }
 
     @Test
     public void badFormatYamlGroupIdNoVersion2() throws URISyntaxException {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat3.yaml").toURI());
-        assertThrows(
-                PluginInputException.class,
-                () -> pluginList.parsePluginYamlFile(pluginYmlFile));
+        assertThatThrownBy(() -> pluginList.parsePluginYamlFile(pluginYmlFile))
+                .isInstanceOf(PluginInputException.class);
     }
 
     @Test
     public void fileExistsTest() throws URISyntaxException {
-        assertEquals(false, pluginList.fileExists(null));
+        assertThat(pluginList.fileExists(null)).isFalse();
 
         File pluginFile = new File(this.getClass().getResource("PluginListParserTest/plugins.yaml").toURI());
-        assertEquals(true, pluginList.fileExists(pluginFile));
+        assertThat(pluginList.fileExists(pluginFile)).isTrue();
 
         File notExistingFile = new File("/file/that/does/not/exist.yaml");
-        assertEquals(false, pluginList.fileExists(notExistingFile));
+        assertThat(pluginList.fileExists(notExistingFile)).isFalse();
     }
 }
