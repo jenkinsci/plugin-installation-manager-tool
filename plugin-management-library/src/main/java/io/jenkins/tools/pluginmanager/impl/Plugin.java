@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
-public class Plugin implements Comparable<Plugin> {
+public class Plugin {
     private String name;
     private String originalName;
     private VersionNumber version;
@@ -157,17 +157,6 @@ public class Plugin implements Comparable<Plugin> {
             return name + " " + version;
         }
         return name + " " + version + " " + url;
-    }
-
-    @Override
-    public int compareTo(Plugin p) {
-        if (this.equals(p)) {
-            return 0;
-        } else if (this.getName().equals(p.getName())) {
-            return this.getVersion().compareTo(p.getVersion());
-        } else {
-            return this.getName().compareTo(p.getName());
-        }
     }
 
     @Override

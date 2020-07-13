@@ -60,6 +60,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.insertPathPreservingFilename;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
+import static java.util.Comparator.comparing;
 
 public class PluginManager {
     private List<Plugin> failedPlugins;
@@ -261,7 +262,8 @@ public class PluginManager {
      */
     public void logPlugins(String description, List<Plugin> plugins) {
         System.out.println("\n" + description);
-        plugins.stream().sorted()
+        plugins.stream()
+                .sorted(comparing(Plugin::getName).thenComparing(Plugin::getVersion))
                 .forEach(System.out::println);
     }
 
