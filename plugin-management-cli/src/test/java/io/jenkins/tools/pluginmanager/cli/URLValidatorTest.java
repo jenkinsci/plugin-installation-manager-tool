@@ -6,7 +6,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(Parameterized.class)
 public class URLValidatorTest {
@@ -28,6 +28,6 @@ public class URLValidatorTest {
 
     @Test
     public void validURLs() {
-        assertTrue(PluginListParser.isURL(url));
+        assertThat(PluginListParser.isURL(url)).isTrue();
     }
 }

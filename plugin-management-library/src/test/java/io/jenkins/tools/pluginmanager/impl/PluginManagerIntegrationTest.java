@@ -10,8 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
@@ -22,10 +22,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Tests for {@link PluginManager} which operate with real data.
@@ -119,7 +116,7 @@ public class PluginManagerIntegrationTest {
 
         String output = tapSystemOut(
                 () -> pluginManager.start(false));
-        assertThat(output, not(containsString("uithemes")));
+        assertThat(output).doesNotContain("uithemes");
     }
 
     @Test
@@ -144,18 +141,16 @@ public class PluginManagerIntegrationTest {
         Plugin replacedSecond2 = new Plugin("replaced2", "3.2", null, null).withoutDependencies();
         plugin3.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
 
-        // Expected
-        List<Plugin> expectedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin1Dependency1, plugin1Dependency2,
-                plugin2Dependency1, plugin2, plugin2Dependency2, plugin3, plugin3Dependency1, replaced2, replacedSecond2));
-        Collections.sort(expectedPlugins);
-
         // Actual
         List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3, replaced));
         PluginManager pluginManager = initPluginManager(
             configBuilder -> configBuilder.withPlugins(requestedPlugins));
-        List<Plugin> pluginsAndDependencies = new ArrayList<>(pluginManager.findPluginsAndDependencies(requestedPlugins).values());
-        Collections.sort(pluginsAndDependencies);
+        Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
 
-        assertEquals(expectedPlugins, pluginsAndDependencies);
+        assertThat(pluginsAndDependencies.values()).containsExactlyInAnyOrder(
+                plugin1, plugin1Dependency1, plugin1Dependency2,
+                plugin2Dependency1, plugin2, plugin2Dependency2,
+                plugin3, plugin3Dependency1,
+                replaced2, replacedSecond2);
     }
 }

@@ -1,10 +1,9 @@
 package io.jenkins.tools.pluginmanager.util;
 
-import io.jenkins.tools.pluginmanager.util.URIStringBuilder;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 public class URIStringBuilderTest {
 
@@ -12,7 +11,7 @@ public class URIStringBuilderTest {
     public void constructorTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .build();
-        assertThat(result, is("http://bob.com"));
+        assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
@@ -20,21 +19,21 @@ public class URIStringBuilderTest {
         String result = new URIStringBuilder("http://")
                 .addPath("bob.com")
                 .build();
-        assertThat(result, is("http://bob.com"));
+        assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
     public void constructorWithTrailingSlashTest() {
         String result = new URIStringBuilder("http://bob.com/")
                 .build();
-        assertThat(result, is("http://bob.com"));
+        assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
     public void dontAddPathTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .build();
-        assertThat(result, is("http://bob.com"));
+        assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
@@ -43,7 +42,7 @@ public class URIStringBuilderTest {
                 .addPath("path/to")
                 .addPath("file.html")
                 .build();
-        assertThat(result, is("http://bob.com/path/to/file.html"));
+        assertThat(result).isEqualTo("http://bob.com/path/to/file.html");
     }
 
     @Test
@@ -53,7 +52,7 @@ public class URIStringBuilderTest {
                 .addPath("")
                 .addPath("file.html")
                 .build();
-        assertThat(result, is("http://bob.com/path/to/file.html"));
+        assertThat(result).isEqualTo("http://bob.com/path/to/file.html");
     }
 
     @Test
@@ -61,6 +60,6 @@ public class URIStringBuilderTest {
         String result = new URIStringBuilder("http://bob.com")
                 .addPath("file.html")
                 .build();
-        assertThat(result, is("http://bob.com/file.html"));
+        assertThat(result).isEqualTo("http://bob.com/file.html");
     }
 }
