@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -20,7 +19,6 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -64,7 +62,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, URL.class, IOUtils.class, Files.class, HttpClientBuilder.class})
+        URI.class, FileUtils.class, URL.class, Files.class, HttpClientBuilder.class})
 @PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
@@ -774,21 +772,19 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void getJsonURLExceptionTest() {
+    public void deprecatedGetJsonThrowsExceptionForMalformedURL() {
         assertThatThrownBy(() -> pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"))
-                .isInstanceOf(UpdateCenterInfoRetrievalException.class);
+                .isInstanceOf(UpdateCenterInfoRetrievalException.class)
+                .hasMessage("Malformed url for update center");
     }
 
     @Test
-    public void getJsonURLIOTest() throws IOException{
-        mockStatic(IOUtils.class);
-
-        when(IOUtils.toString(any(URL.class), any(Charset.class))).thenThrow(IOException.class);
-
+    public void getJsonThrowsExceptionWhenUrlDoesNotExists() throws IOException{
         pm.setCm(new CacheManager(folder.newFolder().toPath(), false));
 
-        assertThatThrownBy(() -> pm.getJson(new URL("http://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"), "update-center"))
-                .isInstanceOf(UpdateCenterInfoRetrievalException.class);
+        assertThatThrownBy(() -> pm.getJson(new File("does/not/exist").toURI().toURL(), "update-center"))
+                .isInstanceOf(UpdateCenterInfoRetrievalException.class)
+                .hasMessage("Error getting update center json");
     }
 
     @Test
