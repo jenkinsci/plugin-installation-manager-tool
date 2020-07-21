@@ -62,7 +62,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, URL.class, Files.class, HttpClientBuilder.class})
+        URI.class, FileUtils.class, Files.class, HttpClientBuilder.class})
 @PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
@@ -1297,7 +1297,6 @@ public class PluginManagerTest {
         when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
 
         mockStatic(FileUtils.class);
-        URL url = PowerMockito.mock(URL.class);
 
         //File pluginDir = cfg.getPluginDir();
         //File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
