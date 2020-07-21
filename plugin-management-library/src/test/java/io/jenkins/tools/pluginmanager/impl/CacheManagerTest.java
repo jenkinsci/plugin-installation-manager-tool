@@ -25,8 +25,12 @@ public class CacheManagerTest {
     @Test
     public void cacheReturnsJsonThatWasPutIntoCacheForSpecifiedKey() {
         CacheManager cacheManager = cacheManager();
-        cacheManager.addToCache("the-cache-key", "{\"value\":123}");
-        cacheManager.addToCache("another-cache-key", "{\"value\":456}");
+        cacheManager.addToCache(
+                "the-cache-key",
+                new JSONObject().put("value", 123));
+        cacheManager.addToCache(
+                "another-cache-key",
+                new JSONObject().put("value", 456));
 
         JSONObject jsonObject = cacheManager.retrieveFromCache("the-cache-key");
 
@@ -37,8 +41,12 @@ public class CacheManagerTest {
     @Test
     public void cacheReturnsLatestJsonThatWasPutIntoCacheForSpecifiedKey() {
         CacheManager cacheManager = cacheManager();
-        cacheManager.addToCache("the-cache-key", "{\"value\":123}");
-        cacheManager.addToCache("the-cache-key", "{\"value\":456}");
+        cacheManager.addToCache(
+                "the-cache-key",
+                new JSONObject().put("value", 123));
+        cacheManager.addToCache(
+                "the-cache-key",
+                new JSONObject().put("value", 456));
 
         JSONObject jsonObject = cacheManager.retrieveFromCache("the-cache-key");
 
@@ -53,7 +61,9 @@ public class CacheManagerTest {
         writeInstance.createCache();
         CacheManager readInstance = new CacheManager(cacheFolder, !VERBOSE);
 
-        writeInstance.addToCache("the-cache-key", "{\"value\":123}");
+        writeInstance.addToCache(
+                "the-cache-key",
+                new JSONObject().put("value", 123));
         JSONObject jsonObject = readInstance.retrieveFromCache("the-cache-key");
 
         assertThat(jsonObject.toMap())
@@ -71,7 +81,7 @@ public class CacheManagerTest {
     public void cacheReturnsNullWhenJsonWasPutIntoCacheMoreThanAnHourAgo() {
         CacheManager managerWithExpiredEntries = cacheManagerWithExpiredEntries();
 
-        managerWithExpiredEntries.addToCache("the-cache-key", "{\"value\":123}");
+        managerWithExpiredEntries.addToCache("the-cache-key", new JSONObject());
 
         JSONObject jsonObject = managerWithExpiredEntries.retrieveFromCache("the-cache-key");
 
@@ -91,7 +101,7 @@ public class CacheManagerTest {
     public void infoAboutAnExpiredCacheEntryIsWrittenToSystemOut() throws Exception {
         CacheManager managerWithExpiredEntries = cacheManagerWithExpiredEntries();
 
-        managerWithExpiredEntries.addToCache("the-cache-key", "{\"value\":123}");
+        managerWithExpiredEntries.addToCache("the-cache-key", new JSONObject());
 
         String out = tapSystemOutNormalized(
                 () -> managerWithExpiredEntries.retrieveFromCache("the-cache-key")

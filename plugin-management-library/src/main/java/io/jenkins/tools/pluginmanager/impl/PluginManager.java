@@ -575,8 +575,9 @@ public class PluginManager {
         try {
             String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
             String result = removePossibleWrapperText(urlText);
-            cm.addToCache(cacheKey, result);
-            return new JSONObject(result);
+            JSONObject json = new JSONObject(result);
+            cm.addToCache(cacheKey, json);
+            return json;
         } catch (IOException e) {
             throw new UpdateCenterInfoRetrievalException("Error getting update center json", e);
         }
