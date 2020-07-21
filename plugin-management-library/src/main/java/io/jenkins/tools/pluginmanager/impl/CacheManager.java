@@ -6,8 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
@@ -17,10 +17,16 @@ public class CacheManager {
 
     private Path cache;
     private boolean verbose;
+    private Clock clock;
 
     public CacheManager(Path cache, boolean verbose) {
+        this(cache, verbose, Clock.systemDefaultZone());
+    }
+
+    CacheManager(Path cache, boolean verbose, Clock clock) {
         this.cache = cache;
         this.verbose = verbose;
+        this.clock = clock;
     }
 
     void createCache() {
@@ -63,7 +69,7 @@ public class CacheManager {
 
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(cachedPath);
-            Duration between = Duration.between(lastModifiedTime.toInstant(), Instant.now());
+            Duration between = Duration.between(lastModifiedTime.toInstant(), clock.instant());
             long betweenHours = between.toHours();
 
             if (betweenHours > 0L) {
