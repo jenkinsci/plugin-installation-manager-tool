@@ -2,7 +2,7 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -11,6 +11,8 @@ import java.time.Duration;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.Files.newBufferedWriter;
 import static java.nio.file.Files.newInputStream;
 
 public class CacheManager {
@@ -43,10 +45,10 @@ public class CacheManager {
     }
 
 
-    void addToCache(String cacheKey, String value) {
-        try {
-            Path fileToCache = cache.resolve(cacheKey + ".json");
-            Files.write(fileToCache, value.getBytes(StandardCharsets.UTF_8));
+    void addToCache(String cacheKey, JSONObject value) {
+        Path fileToCache = cache.resolve(cacheKey + ".json");
+        try (Writer writer = newBufferedWriter(fileToCache, UTF_8)) {
+            value.write(writer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
