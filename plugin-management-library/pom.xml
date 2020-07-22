@@ -17,7 +17,7 @@
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>version-number</artifactId>
-            <version>1.6</version>
+            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
