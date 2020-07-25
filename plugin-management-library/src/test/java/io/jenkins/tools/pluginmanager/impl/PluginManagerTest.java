@@ -291,52 +291,22 @@ public class PluginManagerTest {
         awsCodebuild.put("buildDate", "Jun 20, 2019");
         awsCodebuild.put("version", "0.42");
         awsCodebuild.put("requiredCore", "1.642,3");
-        JSONArray awsCodebuildDependencies = new JSONArray();
 
-        JSONObject workflowStepApiDependency = new JSONObject();
-        workflowStepApiDependency.put("name", "workflow-step-api");
-        workflowStepApiDependency.put("optional", "false");
-        workflowStepApiDependency.put("version", "2.5");
-
-        JSONObject cloudBeesFolderDependency = new JSONObject();
-        cloudBeesFolderDependency.put("name", "cloudbees-folder");
-        cloudBeesFolderDependency.put("optional", "false");
-        cloudBeesFolderDependency.put("version", "6.1.0");
-
-        JSONObject credentialsFolderDependency = new JSONObject();
-        credentialsFolderDependency.put("name", "credentials");
-        credentialsFolderDependency.put("optional", "false");
-        credentialsFolderDependency.put("version", "2.1.14");
-
-        JSONObject scriptSecurityDependency = new JSONObject();
-        scriptSecurityDependency.put("name", "script-security");
-        scriptSecurityDependency.put("optional", "false");
-        scriptSecurityDependency.put("version", "1.29");
-
+        JSONArray awsCodebuildDependencies = array(
+                dependency("workflow-step-api", false, "2.5"),
+                dependency("cloudbees-folder", false, "6.1.0"),
+                dependency("credentials", false, "2.1.14"),
+                dependency("script-security", false, "1.29"));
         awsCodebuild.put("dependencies", awsCodebuildDependencies);
-
-        awsCodebuildDependencies.put(workflowStepApiDependency);
-        awsCodebuildDependencies.put(cloudBeesFolderDependency);
-        awsCodebuildDependencies.put(credentialsFolderDependency);
-        awsCodebuildDependencies.put(scriptSecurityDependency);
 
         JSONObject awsGlobalConfig = new JSONObject();
         awsGlobalConfig.put("buildDate", "Mar 27, 2019");
         awsGlobalConfig.put("version", "1.3");
         awsGlobalConfig.put("requiredCore", "2.121.1");
 
-        JSONArray awsGlobalConfigDependencies = new JSONArray();
-
-        JSONObject awsCredDependency = new JSONObject();
-        awsCredDependency.put("name", "aws-credentials");
-        awsCredDependency.put("optional", "false");
-        awsCredDependency.put("version", "1.23");
-
-        JSONObject structsDepedency = new JSONObject();
-        structsDepedency.put("name", "structs");
-        structsDepedency.put("optional", "false");
-        structsDepedency.put("version", "1.14");
-
+        JSONArray awsGlobalConfigDependencies = array(
+                dependency("aws-credentials", false, "1.23"),
+                dependency("structs", false, "1.14"));
         awsGlobalConfig.put("dependencies", awsGlobalConfigDependencies);
 
         plugins.put("aws-global-configuration", awsGlobalConfig);
@@ -367,67 +337,30 @@ public class PluginManagerTest {
         JSONObject browserStackIntegration= new JSONObject();
         JSONObject browserStack1 = new JSONObject();
         browserStack1.put("requiredCore", "1.580.1");
-        JSONArray dependencies1 = new JSONArray();
-        JSONObject credentials1 = new JSONObject();
-        credentials1.put("name", "credentials");
-        credentials1.put("optional", "false");
-        credentials1.put("version", "1.8");
-        JSONObject junit1 = new JSONObject();
-        junit1.put("name", "junit");
-        junit1.put("optional", "false");
-        junit1.put("version", "1.10");
 
-        dependencies1.put(credentials1);
-        dependencies1.put(junit1);
+        JSONArray dependencies1 = array(
+                dependency("credentials", false, "1.8"),
+                dependency("junit", false, "1.10"));
         browserStack1.put("dependencies", dependencies1);
         browserStackIntegration.put("1.0.0", browserStack1);
 
         JSONObject browserStack111 = new JSONObject();
         browserStack111.put("requiredCore", "1.580.1");
-        JSONArray dependencies111 = new JSONArray();
-        JSONObject credentials111 = new JSONObject();
-        credentials111.put("name", "credentials");
-        credentials111.put("optional", "false");
-        credentials111.put("version", "1.8");
-        JSONObject junit111 = new JSONObject();
-        junit111.put("name", "junit");
-        junit111.put("optional", "false");
-        junit111.put("version", "1.10");
 
-        dependencies111.put(credentials111);
-        dependencies111.put(junit111);
+        JSONArray dependencies111 = array(
+                dependency("credentials", false, "1.8"),
+                dependency("junit", false, "1.10"));
         browserStack111.put("dependencies", dependencies111);
         browserStackIntegration.put("1.1.1", browserStack111);
 
         JSONObject browserStack112 = new JSONObject();
         browserStack112.put("requiredCore", "1.653");
-        JSONArray dependencies112 = new JSONArray();
-        JSONObject credentials112 = new JSONObject();
-        credentials112.put("name", "credentials");
-        credentials112.put("optional", "false");
-        credentials112.put("version", "2.1.17");
-        JSONObject junit112 = new JSONObject();
-        junit112.put("name", "junit");
-        junit112.put("optional", "false");
-        junit112.put("version", "1.10");
-        JSONObject workflowApi112 = new JSONObject();
-        workflowApi112.put("name", "workflow-api");
-        workflowApi112.put("optional", "false");
-        workflowApi112.put("version", "2.6");
-        JSONObject workflowBasicSteps112 = new JSONObject();
-        workflowBasicSteps112.put("name", "workflow-basic-steps");
-        workflowBasicSteps112.put("optional", false);
-        workflowBasicSteps112.put("version", "2.6");
-        JSONObject workflowCps112 = new JSONObject();
-        workflowCps112.put("name", "workflow-cps");
-        workflowCps112.put("optional", "false");
-        workflowCps112.put("version", "2.39");
-
-        dependencies112.put(credentials112);
-        dependencies112.put(junit112);
-        dependencies112.put(workflowApi112);
-        dependencies112.put(workflowBasicSteps112);
-        dependencies112.put(workflowCps112);
+        JSONArray dependencies112 = array(
+                dependency("credentials", false, "2.1.17"),
+                dependency("junit", false, "1.10"),
+                dependency("workflow-api", false, "2.6"),
+                dependency("workflow-basic-steps", false, "2.6"),
+                dependency("workflow-cps", false, "2.39"));
         browserStack112.put("dependencies", dependencies112);
         browserStackIntegration.put("1.1.2", browserStack112);
 
@@ -1137,38 +1070,12 @@ public class PluginManagerTest {
         JSONObject pluginJson = setTestUcJson();
         Plugin mvnInvokerPlugin = new Plugin("maven-invoker-plugin", "2.4", null, null);
 
-        JSONArray mavenInvokerDependencies = new JSONArray();
-
-        JSONObject workflowApiDependency = new JSONObject();
-        workflowApiDependency.put("name", "workflow-api");
-        workflowApiDependency.put("optional", "false");
-        workflowApiDependency.put("version", "2.22");
-
-        JSONObject workflowStepApi = new JSONObject();
-        workflowStepApi.put("name", "workflow-step-api");
-        workflowStepApi.put("optional", "false");
-        workflowStepApi.put("version", "2.12");
-
-        JSONObject mailer = new JSONObject();
-        mailer.put("name", "mailer");
-        mailer.put("optional", "false");
-        mailer.put("version", "1.18");
-
-        JSONObject scriptSecurity = new JSONObject();
-        scriptSecurity.put("name", "script-security");
-        scriptSecurity.put("optional", "false");
-        scriptSecurity.put("version", "1.30");
-
-        JSONObject structs = new JSONObject();
-        structs.put("name", "structs");
-        structs.put("optional", "true");
-        structs.put("version", "1.7");
-
-        mavenInvokerDependencies.put(workflowApiDependency);
-        mavenInvokerDependencies.put(workflowStepApi);
-        mavenInvokerDependencies.put(mailer);
-        mavenInvokerDependencies.put(scriptSecurity);
-        mavenInvokerDependencies.put(structs);
+        JSONArray mavenInvokerDependencies = array(
+                dependency("workflow-api", false, "2.22"),
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("mailer", false, "1.18"),
+                dependency("script-security", false, "1.30"),
+                dependency("structs", true, "1.7"));
 
         doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
         doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
@@ -1470,101 +1377,51 @@ public class PluginManagerTest {
         latestUcJson.put("plugins", pluginJson);
 
         JSONObject structsPlugin = new JSONObject();
-        JSONArray structsDependencies = new JSONArray();
 
-        JSONObject credentials = new JSONObject();
-        credentials.put("name", "scm-api");
-        credentials.put("optional", "false");
-        credentials.put("version", "2.2.6");
+        JSONObject credentials = dependency("scm-api", false, "2.2.6");
 
-        structsDependencies.put(credentials);
-        structsPlugin.put("dependencies", structsDependencies);
+        structsPlugin.put("dependencies", array(credentials));
         structsPlugin.put("version", "1.19");
         structsPlugin.put("requiredCore", "2.60.3");
         pluginJson.put("structs", structsPlugin);
 
         JSONObject testWeaverPlugin = new JSONObject();
-        JSONArray testWeaverDependencies = new JSONArray();
 
-        JSONObject structsDependency = new JSONObject();
-        structsDependency.put("name", "structs");
-        structsDependency.put("optional", "false");
-        structsDependency.put("version", "1.7");
+        JSONObject structsDependency = dependency("structs", false, "1.7");
 
-        testWeaverDependencies.put(structsDependency);
-        testWeaverPlugin.put("dependencies", testWeaverDependencies);
+        testWeaverPlugin.put("dependencies", array(structsDependency));
         testWeaverPlugin.put("version", "1.0.1");
         testWeaverPlugin.put("requiredCore", "2.7.3");
         pluginJson.put("testweaver", testWeaverPlugin);
 
         JSONObject mavenInvokerPlugin = new JSONObject();
 
-        JSONArray mavenInvokerDependencies = new JSONArray();
-
-        JSONObject workflowApiDependency = new JSONObject();
-        workflowApiDependency.put("name", "workflow-api");
-        workflowApiDependency.put("optional", "false");
-        workflowApiDependency.put("version", "2.22");
-
-        JSONObject workflowStepApi = new JSONObject();
-        workflowStepApi.put("name", "workflow-step-api");
-        workflowStepApi.put("optional", "false");
-        workflowStepApi.put("version", "2.12");
-
-        JSONObject mailer = new JSONObject();
-        mailer.put("name", "mailer");
-        mailer.put("optional", "false");
-        mailer.put("version", "1.18");
-
-        JSONObject scriptSecurity = new JSONObject();
-        scriptSecurity.put("name", "script-security");
-        scriptSecurity.put("optional", "false");
-        scriptSecurity.put("version", "1.30");
-
-        JSONObject structs = new JSONObject();
-        structs.put("name", "structs");
-        structs.put("optional", "true");
-        structs.put("version", "1.7");
-
-        mavenInvokerDependencies.put(workflowApiDependency);
-        mavenInvokerDependencies.put(workflowStepApi);
-        mavenInvokerDependencies.put(mailer);
-        mavenInvokerDependencies.put(scriptSecurity);
-        mavenInvokerDependencies.put(structs);
-        mavenInvokerPlugin.put("dependencies", mavenInvokerDependencies);
+        mavenInvokerPlugin.put("dependencies", array(
+                dependency("workflow-api", false, "2.22"),
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("mailer", false, "1.18"),
+                dependency("script-security", false, "1.30"),
+                dependency("structs", true, "1.7")));
         mavenInvokerPlugin.put("version", "2.4");
         mavenInvokerPlugin.put("requiredCore", "2.89.4");
 
         pluginJson.put("maven-invoker-plugin", mavenInvokerPlugin);
 
         JSONObject amazonEcsPlugin = new JSONObject();
-        JSONArray amazonEcsPluginDependencies = new JSONArray();
 
-        JSONObject apacheHttpComponentsClientApi = new JSONObject();
-        apacheHttpComponentsClientApi.put("name", "workflow-step-api");
-        apacheHttpComponentsClientApi.put("optional", false);
-        apacheHttpComponentsClientApi.put("version", "4.5.5-3.0");
-
-        JSONObject awsCredentials = new JSONObject();
-        awsCredentials.put("name", "aws-credentials");
-        awsCredentials.put("optional", false);
-        awsCredentials.put("version", "1.23");
-
-        amazonEcsPluginDependencies.put(workflowStepApi);
-        amazonEcsPluginDependencies.put(apacheHttpComponentsClientApi);
-        amazonEcsPluginDependencies.put(awsCredentials);
-
-        amazonEcsPlugin.put("dependencies", amazonEcsPluginDependencies);
+        amazonEcsPlugin.put("dependencies", array(
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("workflow-step-api", false, "4.5.5-3.0"),
+                dependency("aws-credentials", false, "1.23")
+        ));
         amazonEcsPlugin.put("version", "1.20");
         amazonEcsPlugin.put("requiredCore", "2.107.3");
 
         pluginJson.put("amazon-ecs", amazonEcsPlugin);
 
         JSONObject antPlugin = new JSONObject();
-        JSONArray antPluginDependencies = new JSONArray();
-        antPluginDependencies.put(structs);
 
-        antPlugin.put("dependencies", antPluginDependencies);
+        antPlugin.put("dependencies", array(dependency("structs", true, "1.7")));
         antPlugin.put("version", "1.9");
         antPlugin.put("requiredCore", "2.121.2");
 
@@ -1575,23 +1432,16 @@ public class PluginManagerTest {
 
         latestUcJson.put("updateCenterVersion", "1");
 
-        JSONArray warningArray = new JSONArray();
-
         JSONObject security208 = new JSONObject();
         security208.put("id", "SECURITY-208");
         security208.put("message", "Authentication bypass vulnerability");
         security208.put("name", "google-login");
         security208.put("type", "plugin");
         security208.put("url", "https://jenkins.io/security/advisory/2015-10-12/");
-        JSONArray versionArray208 = new JSONArray();
         JSONObject version208 = new JSONObject();
         version208.put("lastVersion", "1.1");
         version208.put("pattern", "1[.][01](|[.-].*)");
-        versionArray208.put(version208);
-        security208.put("versions", versionArray208);
-        versionArray208.put(version208);
-
-        warningArray.put(security208);
+        security208.put("versions", array(version208, version208));
 
         JSONObject security309 = new JSONObject();
         security309.put("id", "SECURITY-309");
@@ -1600,15 +1450,11 @@ public class PluginManagerTest {
         security309.put("type", "plugin");
         security309.put("url", "https://jenkins.io/security/advisory/2016-07-27/");
 
-        JSONArray versionArray309 = new JSONArray();
         JSONObject version309 = new JSONObject();
         version309.put("firstVersion", "1.3.0");
         version309.put("lastVersion", "2.5.1");
         version309.put("pattern", "(1[.][34]|2[.][012345])(|[.-].*)");
-        versionArray309.put(version309);
-        security309.put("versions", versionArray309);
-
-        warningArray.put(security309);
+        security309.put("versions", array(version309));
 
         JSONObject core = new JSONObject();
         core.put("id", "core-2_44");
@@ -1617,14 +1463,10 @@ public class PluginManagerTest {
         core.put("type", "core");
         core.put("url", "https://jenkins.io/security/advisory/2017-02-01/");
 
-        JSONArray coreVersionArray = new JSONArray();
         JSONObject coreVersion = new JSONObject();
         coreVersion.put("lastVersion", "2.43");
         coreVersion.put("pattern", "(1[.].*|2[.]\\d|2[.][123]\\d|2[.]4[0123])(|[-].*)");
-        coreVersionArray.put(coreVersion);
-        core.put("versions", coreVersionArray);
-
-        warningArray.put(core);
+        core.put("versions", array(coreVersion));
 
         JSONObject security441 = new JSONObject();
         security441.put("id", "SECURITY-441");
@@ -1632,18 +1474,13 @@ public class PluginManagerTest {
         security441.put("name", "pipeline-maven");
         security441.put("type", "plugin");
         security441.put("url", "https://jenkins.io/security/advisory/2017-03-09/");
-        JSONArray versionArray441 = new JSONArray();
         JSONObject firstVersions441 = new JSONObject();
         firstVersions441.put("lastVersion", "0.6");
         firstVersions441.put("pattern", "0[.][123456](|[.-].*)");
         JSONObject laterVersions441 = new JSONObject();
         laterVersions441.put("lastVersion", "2.0-beta-5");
         laterVersions441.put("pattern", "2[.]0[-]beta[-][345](|[.-].*)");
-        versionArray441.put(firstVersions441);
-        versionArray441.put(laterVersions441);
-        security441.put("versions", versionArray441);
-
-        warningArray.put(security441);
+        security441.put("versions", array(firstVersions441, laterVersions441));
 
         JSONObject security1409 = new JSONObject();
         security1409.put("id", "SECURITY-1409");
@@ -1652,18 +1489,31 @@ public class PluginManagerTest {
         security1409.put("type", "plugin");
         security1409.put("url", "https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1409");
 
-        JSONArray versionArray1409 = new JSONArray();
         JSONObject version1409 = new JSONObject();
         version1409.put("lastVersion", "3.7.0");
         version1409.put("pattern", "([0-2]|3[.][0-6]|3[.]7[.]0)(|[.-].*)");
-        versionArray1409.put(version1409);
-        security1409.put("versions", versionArray1409);
-        warningArray.put(security1409);
+        security1409.put("versions", array(version1409));
 
-        latestUcJson.put("warnings", warningArray);
+        latestUcJson.put("warnings", array(
+                security208, security309, core, security441, security1409));
 
         pm.setLatestUcJson(latestUcJson);
         pm.setLatestUcPlugins(pluginJson);
         return latestUcJson;
+    }
+
+    private JSONArray array(
+            JSONObject... objects) {
+        return new JSONArray(objects);
+    }
+
+    private JSONObject dependency(
+            String name,
+            boolean optional,
+            String version) {
+        return new JSONObject()
+                .put("name", name)
+                .put("optional", optional)
+                .put("version", version);
     }
 }
