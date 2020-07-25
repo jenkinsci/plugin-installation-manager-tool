@@ -14,7 +14,6 @@
         <java.level>8</java.level>
         <!-- Version of Maven Components -->
         <maven.version>3.5.0</maven.version>
-        <powermock.version>2.0.7</powermock.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -67,29 +66,20 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    
     <dependencies>
         <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock.version}</version>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
-            <version>${powermock.version}</version>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>3.4.4</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>
-                        org.objenesis
-                    </groupId>
-                    <artifactId>objenesis</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
-
 
     <build>
         <pluginManagement>

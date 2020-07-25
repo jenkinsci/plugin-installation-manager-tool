@@ -1,0 +1,23 @@
+{
+  "id" : "fed8de84-95ac-4fe6-b710-29dd607ccf05",
+  "name" : "plugins_mailer_132_mailerhpi",
+  "request" : {
+    "url" : "/plugins/mailer/1.32/mailer.hpi",
+    "method" : "HEAD"
+  },
+  "response" : {
+    "status" : 200,
+    "headers" : {
+      "Date" : "Sat, 25 Jul 2020 20:07:15 GMT",
+      "Server" : "Apache/2.4.29 (Ubuntu)",
+      "Upgrade" : "h2,h2c",
+      "Last-Modified" : "Thu, 09 Apr 2020 10:51:31 GMT",
+      "ETag" : "\"1eda1-5a2d9664b503c\"",
+      "Accept-Ranges" : "bytes",
+      "Keep-Alive" : "timeout=3, max=100"
+    }
+  },
+  "uuid" : "fed8de84-95ac-4fe6-b710-29dd607ccf05",
+  "persistent" : true,
+  "insertionIndex" : 1
+}

@@ -5,30 +5,15 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.utils.URIUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -36,11 +21,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
@@ -54,16 +34,10 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.whenNew;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, Files.class, HttpClientBuilder.class})
-@PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -467,7 +441,6 @@ public class PluginManagerTest {
         Plugin lockableResource2 = new Plugin("lockable-resources", "2.3.0", null, null);
         Plugin cucumberReports1 = new Plugin("cucumber-reports", "1.2.1", null, null);
         Plugin cucumberReports2 = new Plugin("cucumber-reports", "1.4.1", null, null);
-        Plugin cucumberReports3 = new Plugin("cucumber-reports", "2.5.3", null, null);
         Plugin sshAgents1 = new Plugin("ssh-slaves", "0.9", null, null);
         Plugin sshAgents2 = new Plugin("ssh-slaves", "9.2", null, null);
 
@@ -483,7 +456,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void checkVersionCompatibilityNullTest() throws Exception {
+    public void checkVersionCompatibilityNullTest() {
         pm.setJenkinsVersion(null);
 
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
@@ -654,33 +627,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void checkVersionSpecificUpdateCenterTest() throws Exception {
-        //Test where version specific update center exists
-        pm.setJenkinsVersion(new VersionNumber("2.176"));
-
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        when(HttpClients.createSystem()).thenReturn(httpclient);
-        HttpHead httphead = mock(HttpHead.class);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead)).thenReturn(response);
-
-        StatusLine statusLine = mock(StatusLine.class);
-        when(response.getStatusLine()).thenReturn(statusLine);
-
-        int statusCode = HttpStatus.SC_OK;
-        when(statusLine.getStatusCode()).thenReturn(statusCode);
-
-        pm.checkAndSetLatestUpdateCenter();
-
-        String expected = dirName(cfg.getJenkinsUc()) + pm.getJenkinsVersion() + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
-        assertThat(pm.getJenkinsUCLatest()).isEqualTo(expected);
-    }
-
-    @Test
     public void outputPluginReplacementInfoTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -718,31 +664,6 @@ public class PluginManagerTest {
         assertThatThrownBy(() -> pm.getJson(new File("does/not/exist").toURI().toURL(), "update-center"))
                 .isInstanceOf(UpdateCenterInfoRetrievalException.class)
                 .hasMessage("Error getting update center json");
-    }
-
-    @Test
-    public void checkVersionSpecificUpdateCenterBadRequestTest() throws Exception {
-        pm.setJenkinsVersion(new VersionNumber("2.176"));
-
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        when(HttpClients.createSystem()).thenReturn(httpclient);
-        HttpHead httphead = mock(HttpHead.class);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead)).thenReturn(response);
-
-        StatusLine statusLine = mock(StatusLine.class);
-        when(response.getStatusLine()).thenReturn(statusLine);
-
-        int statusCode = HttpStatus.SC_BAD_REQUEST;
-        when(statusLine.getStatusCode()).thenReturn(statusCode);
-
-        pm.checkAndSetLatestUpdateCenter();
-        String expected = cfg.getJenkinsUc().toString();
-        assertThat(pm.getJenkinsUCLatest()).isEqualTo(expected);
     }
 
     @Test
@@ -817,7 +738,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatestSpecified() throws IOException {
+    public void resolveDependenciesFromManifestLatestSpecified() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
@@ -830,11 +751,9 @@ public class PluginManagerTest {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
 
-        mockStatic(Files.class);
         Path tempPath = mock(Path.class);
         File tempFile = mock(File.class);
 
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
         when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
@@ -853,7 +772,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatestAll() throws IOException {
+    public void resolveDependenciesFromManifestLatestAll() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
@@ -865,13 +784,6 @@ public class PluginManagerTest {
 
         Plugin testPlugin = new Plugin("test", "1.1", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        mockStatic(Files.class);
-        Path tempPath = mock(Path.class);
-        File tempFile = mock(File.class);
-
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
-        when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
@@ -888,49 +800,21 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestExceptionTest() throws IOException {
-        mockStatic(Files.class);
-        when(Files.createTempFile(any(String.class), any(String.class))).thenThrow(IOException.class);
+    public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
     }
-
+    
     @Test
-    public void resolveDependenciesFromManifestNoDownload() throws IOException{
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Plugin testPlugin = new Plugin("test", "latest", null, null);
-        doReturn(false).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        mockStatic(Files.class);
-        Path tempPath = mock(Path.class);
-        File tempFile = mock(File.class);
-
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
-        when(tempPath.toFile()).thenReturn(tempFile);
-
-        assertThatThrownBy(() -> pluginManager.resolveDependenciesFromManifest(testPlugin))
-                .isInstanceOf(DownloadPluginException.class);
-    }
-
-    @Test
-    public void resolveDependenciesFromManifestDownload() throws IOException {
+    public void resolveDependenciesFromManifestDownload() {
         PluginManager pluginManagerSpy = spy(pm);
 
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
 
-        mockStatic(Files.class);
         Path tempPath = mock(Path.class);
         File tempFile = mock(File.class);
 
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
         when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13," +
@@ -1026,7 +910,7 @@ public class PluginManagerTest {
 
     @Test
     public void resolveDependenciesFromJsonTest() {
-        JSONObject json = (JSONObject) setTestUcJson();
+        JSONObject json = setTestUcJson();
 
         Plugin mavenInvoker = new Plugin("maven-invoker-plugin", "2.4", null, null);
         List<Plugin> actualPlugins = pm.resolveDependenciesFromJson(mavenInvoker, json);
@@ -1168,55 +1052,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadToFileTest() throws Exception {
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        HttpClientBuilder builder = mock(HttpClientBuilder.class);
-        when(HttpClients.custom()).thenReturn(builder);
-        when(builder.build()).thenReturn(httpclient);
-
-        HttpHead httphead = mock(HttpHead.class);
-
-        mockStatic(HttpClientContext.class);
-
-        HttpClientContext context = mock(HttpClientContext.class);
-        when(HttpClientContext.create()).thenReturn(context);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead, context)).thenReturn(response);
-
-        HttpHost target = mock(HttpHost.class);
-        when(context.getTargetHost()).thenReturn(target);
-
-        List<URI> redirectLocations = singletonList(new URI("downloadURI"));
-
-        when(context.getRedirectLocations()).thenReturn(redirectLocations);
-
-        mockStatic(URIUtils.class);
-
-        URI downloadLocation = PowerMockito.mock(URI.class);
-
-        URI requestedLocation = PowerMockito.mock(URI.class);
-        when(httphead.getURI()).thenReturn(requestedLocation);
-
-        when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
-
-        mockStatic(FileUtils.class);
-
-        //File pluginDir = cfg.getPluginDir();
-        //File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
-
-        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
-
-        JarFile pluginJpi = mock(JarFile.class);
-
-        whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
-        assertThat(pm.downloadToFile("downloadURL", plugin, null)).isTrue();
-    }
-
-    @Test
     public void getPluginDownloadUrlTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
 
@@ -1227,7 +1062,6 @@ public class PluginManagerTest {
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
         String latestUcUrl = "https://updates.jenkins.io/2.176";
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
-        VersionNumber latestVersion = new VersionNumber("latest");
         String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
@@ -1269,75 +1103,13 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void getAttributeFromManifestExceptionTest() throws Exception {
-        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
-        File testJpi = new File(jpiURL.getFile());
-
-        whenNew(JarFile.class).withArguments(testJpi).thenThrow(new IOException());
-
-        assertThatThrownBy(() -> pm.getAttributeFromManifest(testJpi, "Plugin-Dependencies"))
+    public void getAttributeFromManifestExceptionTest() {
+        assertThatThrownBy(() -> pm.getAttributeFromManifest(new File("non-existing-file.txt"), "Plugin-Dependencies"))
                 .isInstanceOf(DownloadPluginException.class);
     }
 
-    public void getAttributeFromManifestTest() throws Exception {
-        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
-        File testJpi = new File(jpiURL.getFile());
-
-        String key = "key";
-        String value = "value";
-
-        JarFile jarFile = mock(JarFile.class);
-        Manifest manifest = mock(Manifest.class);
-        Attributes attributes = mock(Attributes.class);
-
-        whenNew(JarFile.class).withArguments(testJpi).thenReturn(jarFile);
-        when(jarFile.getManifest()).thenReturn(manifest);
-        when(manifest.getMainAttributes()).thenReturn(attributes);
-        when(attributes.getValue(key)).thenReturn(value);
-
-        assertThat(pm.getAttributeFromManifest(testJpi, "key")).isEqualTo(value);
-    }
-
-    public void showAllSecurityWarningsNoOutput() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAllWarnings(false)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-        String output = tapSystemOutNormalized(
-                pluginManager::showAllSecurityWarnings);
-
-        assertThat(output).isEmpty();
-    }
-
-
-    public void showAllSecurityWarnings() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAllWarnings(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-        pluginManager.setLatestUcJson(setTestUcJson());
-
-        String output = tapSystemOutNormalized(
-                pluginManager::showAllSecurityWarnings);
-
-        assertThat(output).isEqualTo(
-                "google-login - Authentication bypass vulnerability\n" +
-                        "cucumber-reports - Plugin disables Content-Security-Policy for files served by Jenkins\n" +
-                        "pipeline-maven - Arbitrary files from Jenkins master available in Pipeline by using the withMaven step\n" +
-                        "pipeline-maven - XML External Entity processing vulnerability\n");
-    }
-
-
     @Test
-    public void getJenkinsVersionFromWarTest() throws Exception {
+    public void getJenkinsVersionFromWarTest() {
         URL warURL = this.getClass().getResource("/jenkinsversiontest.war");
         File testWar = new File(warURL.getFile());
 
@@ -1351,7 +1123,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    @PrepareForTest({HttpClients.class, HttpClientContext.class, HttpHost.class})
     public void bundledPluginsTest() {
         URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());

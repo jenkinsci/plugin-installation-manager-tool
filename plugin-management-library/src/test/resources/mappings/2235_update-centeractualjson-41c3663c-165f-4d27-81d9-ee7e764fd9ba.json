@@ -1,0 +1,23 @@
+{
+  "id" : "41c3663c-165f-4d27-81d9-ee7e764fd9ba",
+  "name" : "2235_update-centeractualjson",
+  "request" : {
+    "url" : "/2.235/update-center.actual.json",
+    "method" : "HEAD"
+  },
+  "response" : {
+    "status" : 200,
+    "headers" : {
+      "Date" : "Sat, 25 Jul 2020 20:19:24 GMT",
+      "Server" : "Apache/2.4.29 (Ubuntu)",
+      "Last-Modified" : "Sat, 25 Jul 2020 20:16:14 GMT",
+      "ETag" : "\"1e1beb-5ab49c2e564ea\"",
+      "Accept-Ranges" : "bytes",
+      "Keep-Alive" : "timeout=5, max=100",
+      "Content-Type" : "application/json"
+    }
+  },
+  "uuid" : "41c3663c-165f-4d27-81d9-ee7e764fd9ba",
+  "persistent" : true,
+  "insertionIndex" : 3
+}
