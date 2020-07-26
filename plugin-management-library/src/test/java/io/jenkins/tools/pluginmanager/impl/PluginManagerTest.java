@@ -804,7 +804,7 @@ public class PluginManagerTest {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
     }
-    
+
     @Test
     public void resolveDependenciesFromManifestDownload() {
         PluginManager pluginManagerSpy = spy(pm);

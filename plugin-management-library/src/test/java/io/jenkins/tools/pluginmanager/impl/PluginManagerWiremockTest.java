@@ -2,7 +2,6 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.recording.SnapshotRecordResult;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -23,10 +22,10 @@ public class PluginManagerWiremockTest {
 
     private PluginManager pm;
     private Config cfg;
-    
+
     private WireMockServer archives;
     private WireMockServer updateCenter;
-    
+
     private final boolean record = Boolean.parseBoolean(System.getProperty("pluginmanager.record", "false"));
 
     @Rule
@@ -46,7 +45,7 @@ public class PluginManagerWiremockTest {
                 .build();
 
         pm = new PluginManager(cfg);
-        
+
         if (record) {
             archives.stubFor(proxyAllTo("http://archives.jenkins-ci.org").atPriority(1));
             updateCenter.stubFor(proxyAllTo("https://updates.jenkins.io").atPriority(1));
