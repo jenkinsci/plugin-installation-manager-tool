@@ -61,6 +61,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.insertPathP
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 import static java.util.Comparator.comparing;
+import static java.util.Comparator.reverseOrder;
 
 public class PluginManager {
     private List<Plugin> failedPlugins;
@@ -366,6 +367,50 @@ public class PluginManager {
                 }
             }
         }
+    }
+
+    /**
+     * Takes a list of plugins and returns the latest version
+     * Returns existing version if no update
+     * @param plugins updated list of plugins
+     * @return latest plugin versions
+     */
+    public List<Plugin> getLatestVersionsOfPlugins(List<Plugin> plugins) {
+        return plugins.stream()
+                .peek(plugin -> {
+                    if (plugin.getUrl() != null || plugin.getGroupId() != null) {
+                        return;
+                    }
+                    JSONObject pluginsKey = (JSONObject) pluginInfoJson.get("plugins");
+                    if (pluginsKey.has(plugin.getName())) {
+                        JSONObject pluginInfo = (JSONObject) pluginsKey.get(plugin.getName());
+                        List<VersionNumber> sortedVersions = pluginInfo.toMap()
+                                .keySet().stream()
+                                .filter(version -> nonBetaPluginsDoNotOfferBeta(plugin.getVersion().toString(), version))
+                                .map(VersionNumber::new)
+                                .sorted(reverseOrder())
+                                .collect(Collectors.toList());
+
+                        plugin.setVersion(sortedVersions.get(0));
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * If the plugin isn't a beta version then don't offer beta versions
+     */
+    private boolean nonBetaPluginsDoNotOfferBeta(String pluginVersion, String version) {
+        boolean offeredVersionNonBeta = isNonBeta(version);
+        if (offeredVersionNonBeta) {
+            return true;
+        }
+
+        return !isNonBeta(pluginVersion);
+    }
+
+    private boolean isNonBeta(String version) {
+        return StringUtils.indexOfAny(version, "alpha", "beta") == -1;
     }
 
     /**
