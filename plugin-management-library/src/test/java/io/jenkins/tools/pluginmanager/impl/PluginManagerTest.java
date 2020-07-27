@@ -139,8 +139,79 @@ public class PluginManagerTest {
         PluginManager pluginManager = new PluginManager(config);
 
         assertThatThrownBy(pluginManager::start)
-                .isInstanceOf(DirectoryCreationException.class);
+                .isInstanceOf(DirectoryCreationException.class)
+                .hasMessage("Unable to create plugin directory 'plugins'");
     }
+    
+    /**
+     * checks for null File as refDir
+     */
+	@Test
+	public void startNullDirectoryTest() {
+		Config config = Config.builder().withPluginDir(null).withJenkinsWar(Settings.DEFAULT_WAR)
+				.withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER).withPlugins(new ArrayList<>()).withDoDownload(true)
+				.withJenkinsUcExperimental(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER).build();
+
+		PluginManager pluginManager = new PluginManager(config);
+
+		PluginManager pluginManagerSpy = spy(pluginManager);
+		try {
+			pluginManagerSpy.createRefDir();
+		} catch (Exception e) {
+			assertThat(e).isInstanceOf(DirectoryCreationException.class)
+			.hasMessage("Plugin directory is required");
+			
+		}
+	}   
+	
+	/**
+	 * Check for empty string as directory name
+	 */
+	@Test
+	public void startBlankDirectoryTest() {
+		File nofolder = new File("");
+		Config config = Config.builder().withPluginDir(nofolder).withJenkinsWar(Settings.DEFAULT_WAR)
+				.withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER).withPlugins(new ArrayList<>()).withDoDownload(true)
+				.withJenkinsUcExperimental(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER).build();
+
+		PluginManager pluginManager = new PluginManager(config);
+
+		PluginManager pluginManagerSpy = spy(pluginManager);
+		try {
+			pluginManagerSpy.createRefDir();
+		} catch (Exception e) {
+			assertThat(e).isInstanceOf(DirectoryCreationException.class)
+			.hasMessage("Plugin directory is required");
+			
+		}
+		
+	} 
+
+	@Test
+	public void createRefDirFailedToCreateTest() {
+		Config config = Config.builder().withPluginDir(new File(folder.getRoot(), "plugins"))
+				.withJenkinsWar(Settings.DEFAULT_WAR).withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+				.withPlugins(new ArrayList<>()).withDoDownload(true)
+				.withJenkinsUcExperimental(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER).build();
+
+		PluginManager pluginManager = new PluginManager(config);
+
+		PluginManager pluginManagerSpy = spy(pluginManager);
+
+		mockStatic(Files.class);
+
+		Path path = mock(Path.class);
+
+		try {
+			when(Files.createDirectories(path))
+					.thenThrow(new DirectoryCreationException("Unable to create plugin directory 'plugins'"));
+			pluginManagerSpy.createRefDir();
+		} catch (Exception e) {
+			assertThat(e).isInstanceOf(DirectoryCreationException.class).hasMessage("Unable to create plugin directory 'plugins'");
+
+		}
+
+	}
 
     @Test
     public void findEffectivePluginsTest() {
@@ -1516,4 +1587,6 @@ public class PluginManagerTest {
                 .put("optional", optional)
                 .put("version", version);
     }
+    
+
 }

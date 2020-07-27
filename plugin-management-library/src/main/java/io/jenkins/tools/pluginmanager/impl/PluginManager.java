@@ -161,11 +161,20 @@ public class PluginManager {
         System.out.println("Done");
     }
 
+    /**
+     * Create plugin directory
+     */
     void createRefDir() {
+
+        if ((refDir == null) ||
+                (refDir.getName().equals(""))) {
+            throw new DirectoryCreationException("Plugin directory is required");
+        }       
         try {
             Files.createDirectories(refDir.toPath());
         } catch (IOException e) {
-            throw new DirectoryCreationException("Unable to create plugin directory", e);
+            String directoryName = refDir.getName();
+            throw new DirectoryCreationException("Unable to create plugin directory " + "'" + directoryName + "'", e);
         }
     }
 
