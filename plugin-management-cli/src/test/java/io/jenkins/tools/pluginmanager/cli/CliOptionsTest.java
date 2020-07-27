@@ -57,7 +57,7 @@ public class CliOptionsTest {
                     "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow"),
             new Plugin("matrix-project", "latest", null, null),
             new Plugin("junit", "experimental", null, null),
-            new Plugin("credentials", "2.2.0",
+            new Plugin("credentials", "latest",
                     "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null),
             new Plugin("blueocean", "latest", null, null)
         );

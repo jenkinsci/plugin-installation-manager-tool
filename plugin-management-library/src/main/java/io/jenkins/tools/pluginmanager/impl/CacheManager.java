@@ -34,6 +34,10 @@ public class CacheManager {
     void createCache() {
         if (!Files.exists(cache)) {
             try {
+                Path parent = cache.getParent();
+                if (parent != null && !Files.exists(parent)) {
+                    Files.createDirectory(parent);
+                }
                 Files.createDirectory(cache);
                 if (verbose) {
                     System.out.println("Created cache at: " + cache);

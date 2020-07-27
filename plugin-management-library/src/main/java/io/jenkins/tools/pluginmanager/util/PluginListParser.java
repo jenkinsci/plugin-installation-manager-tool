@@ -1,5 +1,10 @@
 package io.jenkins.tools.pluginmanager.util;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
@@ -14,13 +19,20 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-import org.yaml.snakeyaml.representer.Representer;
 
 import static java.util.stream.Collectors.toList;
 
 public class PluginListParser {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory().disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL)
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final boolean verbose;
+
+    public PluginListParser(boolean verbose) {
+        this.verbose = verbose;
+    }
 
     public List<Plugin> parsePluginsFromCliOption(String[] plugins) {
         if (plugins == null) {
@@ -69,11 +81,8 @@ public class PluginListParser {
     public List<Plugin> parsePluginYamlFile(File pluginYamlFile) {
         List<Plugin> pluginsFromYaml = new ArrayList<>();
         if (fileExists(pluginYamlFile)) {
-            Representer representer = new Representer();
-            representer.getPropertyUtils().setSkipMissingProperties(true);
-            Yaml yaml = new Yaml(new Constructor(Plugins.class), representer);
             try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
-                Plugins plugins = yaml.load(inputStream);
+                Plugins plugins = MAPPER.readValue(inputStream, Plugins.class);
                 for (PluginInfo pluginInfo : plugins.getPlugins()) {
                     String name = pluginInfo.getArtifactId();
                     if (StringUtils.isEmpty(name)) {
@@ -81,7 +90,6 @@ public class PluginListParser {
                     }
                     String groupId = pluginInfo.getGroupId();
                     Source pluginSource = pluginInfo.getSource();
-                    String incrementalsVersion = null;
                     Plugin plugin;
                     if (pluginSource == null && StringUtils.isNotEmpty(groupId)) {
                         throw new PluginInputException("Version must be input for " + name);
@@ -105,6 +113,7 @@ public class PluginListParser {
                 }
             } catch (IOException e) {
                 System.out.println("Unable to open " + pluginsFromYaml);
+                e.printStackTrace();
             }
         }
         return pluginsFromYaml;
@@ -121,7 +130,9 @@ public class PluginListParser {
             return false;
         }
         if (Files.exists(pluginFile.toPath())) {
-            System.out.println("Reading in plugins from " + pluginFile + "\n");
+            if (verbose) {
+                System.out.println("Reading in plugins from " + pluginFile + "\n");
+            }
             return true;
         }
         System.out.println(pluginFile + " file does not exist");

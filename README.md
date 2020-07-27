@@ -32,6 +32,7 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 * `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--available-updates`: (optional) Set to true to show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
+* `--output {json,stdout,yaml}`: (optional) Format to output plugin updates file in, stdout is the default.
 * `--latest false`: (optional) Set to false to download the minimum required version of all dependencies.
 * `--latest-specified`: (optional) (advanced) Set to true to download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
 * `--jenkins-update-center`: (optional) Sets the main update center filename, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/update-center.actual.json
@@ -91,6 +92,36 @@ tool:
 
 Any root object other than `plugins` will be ignored by the plugin installation manager tool. As with the plugins.txt file, version and url are optional, and if no version is entered, the latest version is the default. If a groupId is entered, the tool will try to download the plugin from the incrementals repository.
 
+#### Updating plugins
+
+The CLI can output a new file with all plugins updated.
+
+Text format:
+
+```command
+$ java -jar jenkins-plugin-manager-*.jar --available-updates --output txt --plugins mailer:1.31
+mailer:1.32
+```
+
+Yaml format:
+```command
+java -jar jenkins-plugin-manager-*.jar --available-updates --output txt --plugins mailer:1.31
+```
+
+```yaml
+plugins:
+- artifactId: "mailer"
+  source:
+    version: "1.32"
+```
+
+Human readable:
+
+```command
+$ java -jar jenkins-plugin-manager-*.jar --available-updates --plugins mailer:1.31
+Available updates:
+mailer (1.31) has an available update: 1.32
+```
 
 #### Examples
 If a url is included, then a placeholder should be included for the version. Examples of plugin inputs:

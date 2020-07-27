@@ -11,5 +11,5 @@ workflow-step-api:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828
 matrix-project::httttp://ftp-chi.osuosl.org/pub/jenkins/plugins/matrix-project/1.7.1/matrix-project.hpi
 
  junit:experimental
-credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
+credentials:latest:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
 blueocean #comment
