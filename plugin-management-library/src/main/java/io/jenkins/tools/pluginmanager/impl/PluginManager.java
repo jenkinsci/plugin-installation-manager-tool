@@ -717,6 +717,9 @@ public class PluginManager {
             return dependentPlugins;
         } catch (IOException e) {
             System.out.println(String.format("Unable to resolve dependencies for %s", plugin.getName()));
+            if (verbose) {
+                e.printStackTrace();
+            }
             return dependentPlugins;
         }
     }
