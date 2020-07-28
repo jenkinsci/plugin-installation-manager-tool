@@ -79,9 +79,9 @@ public class PluginManagerTest {
         PluginManager pluginManagerSpy = spy(pluginManager);
 
         doNothing().when(pluginManagerSpy).createRefDir();
-        doReturn(new VersionNumber("2.182")).when(pluginManagerSpy).getJenkinsVersionFromWar();
-        doNothing().when(pluginManagerSpy).checkAndSetLatestUpdateCenter();
-        doNothing().when(pluginManagerSpy).getUCJson();
+        VersionNumber versionNumber = new VersionNumber("2.182");
+        doReturn(versionNumber).when(pluginManagerSpy).getJenkinsVersionFromWar();
+        doNothing().when(pluginManagerSpy).getUCJson(versionNumber);
         doReturn(new HashMap<>()).when(pluginManagerSpy).getSecurityWarnings();
         doNothing().when(pluginManagerSpy).showAllSecurityWarnings();
 
@@ -93,7 +93,7 @@ public class PluginManagerTest {
         doNothing().when(pluginManagerSpy).listPlugins();
         doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
         doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
-        doNothing().when(pluginManagerSpy).checkVersionCompatibility(anyList());
+        doNothing().when(pluginManagerSpy).checkVersionCompatibility(any(), anyList());
         doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
 
         pluginManagerSpy.start();
@@ -457,8 +457,6 @@ public class PluginManagerTest {
 
     @Test
     public void checkVersionCompatibilityNullTest() {
-        pm.setJenkinsVersion(null);
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -466,13 +464,11 @@ public class PluginManagerTest {
         plugin2.setJenkinsVersion("1.609.3");
 
         //check passes if no exception is thrown
-        pm.checkVersionCompatibility(Arrays.asList(plugin1, plugin2));
+        pm.checkVersionCompatibility(null, Arrays.asList(plugin1, plugin2));
     }
 
     @Test
     public void checkVersionCompatibilityFailTest() {
-        pm.setJenkinsVersion(new VersionNumber("1.609.3"));
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -481,14 +477,12 @@ public class PluginManagerTest {
 
         List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
 
-        assertThatThrownBy(() -> pm.checkVersionCompatibility(pluginsToDownload))
+        assertThatThrownBy(() -> pm.checkVersionCompatibility(new VersionNumber("1.609.3"), pluginsToDownload))
                 .isInstanceOf(VersionCompatibilityException.class);
     }
 
     @Test
     public void checkVersionCompatibilityPassTest() {
-        pm.setJenkinsVersion(new VersionNumber("2.121.2"));
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -496,7 +490,7 @@ public class PluginManagerTest {
         plugin2.setJenkinsVersion("1.609.3");
 
         //check passes if no exception is thrown
-        pm.checkVersionCompatibility(Arrays.asList(plugin1, plugin2));
+        pm.checkVersionCompatibility(new VersionNumber("2.121.2"), Arrays.asList(plugin1, plugin2));
     }
 
     @Test
@@ -651,6 +645,7 @@ public class PluginManagerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void deprecatedGetJsonThrowsExceptionForMalformedURL() {
         assertThatThrownBy(() -> pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"))
                 .isInstanceOf(UpdateCenterInfoRetrievalException.class)
@@ -802,6 +797,7 @@ public class PluginManagerTest {
     @Test
     public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
+        setTestUcJson();
         assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
     }
 
@@ -1063,6 +1059,7 @@ public class PluginManagerTest {
         String latestUcUrl = "https://updates.jenkins.io/2.176";
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
         String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
+        setTestUcJson();
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
         Plugin pluginNoVersion = new Plugin("pluginName", null, null, null);
@@ -1270,6 +1267,7 @@ public class PluginManagerTest {
 
         pm.setLatestUcJson(latestUcJson);
         pm.setLatestUcPlugins(pluginJson);
+        pm.setExperimentalUcJson(latestUcJson);
         return latestUcJson;
     }
 
