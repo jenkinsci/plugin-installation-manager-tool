@@ -4,7 +4,6 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -288,7 +287,7 @@ public class CliOptionsTest {
 
     @Test
     public void useLatestSpecifiedTest() throws CmdLineException {
-        parser.parseArgument("--latest-specified");
+        parser.parseArgument("--latest", "false", "--latest-specified");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestSpecified()).isTrue();
     }
@@ -309,7 +308,7 @@ public class CliOptionsTest {
 
     @Test
     public void useNotLatestTest() throws CmdLineException {
-        parser.parseArgument();
+        parser.parseArgument("--latest", "false");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestAll()).isFalse();
     }
@@ -318,8 +317,12 @@ public class CliOptionsTest {
     public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
         parser.parseArgument("--latest", "--latest-specified");
 
-        assertThatThrownBy(options::setup)
-            .isInstanceOf(PluginDependencyStrategyException.class);
+        Config cfg = options.setup();
+        assertThat(cfg.isUseLatestSpecified())
+            .isTrue();
+
+        assertThat(cfg.isUseLatestAll())
+                .isFalse();
     }
 
     private void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {
