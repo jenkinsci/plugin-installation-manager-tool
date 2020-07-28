@@ -29,11 +29,6 @@
             <version>3.0.2</version>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>1.26</version>
-        </dependency>
-        <dependency>
             <groupId>com.github.stefanbirkner</groupId>
             <artifactId>system-lambda</artifactId>
             <version>1.0.0</version>
