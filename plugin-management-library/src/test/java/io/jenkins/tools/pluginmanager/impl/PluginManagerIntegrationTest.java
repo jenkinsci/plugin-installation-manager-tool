@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import java.io.File;
 import java.io.FileInputStream;
@@ -56,7 +55,6 @@ public class PluginManagerIntegrationTest {
 
         PluginManager pluginManager = new PluginManager(config);
         pluginManager.setCm(new CacheManager(cacheDir.toPath(), true));
-        pluginManager.setJenkinsVersion(new VersionNumber("2.222.1"));
         pluginManager.setLatestUcJson(latestUcJson);
         pluginManager.setLatestUcPlugins(latestUcJson.getJSONObject("plugins"));
         pluginManager.setPluginInfoJson(pluginManager.getJson(pluginVersionsFile.toURI().toURL(), "plugin-versions"));

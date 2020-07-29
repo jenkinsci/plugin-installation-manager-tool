@@ -9,14 +9,14 @@ public class Settings {
     public static final String DEFAULT_PLUGIN_DIR_LOCATION;
     public static final String DEFAULT_WAR;
     public static final URL DEFAULT_UPDATE_CENTER;
-    public static final String DEFAULT_UPDATE_CENTER_FILENAME = "/update-center.actual.json";
+    public static final String DEFAULT_UPDATE_CENTER_FILENAME = "/update-center.json";
     public static final String DEFAULT_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io" + DEFAULT_UPDATE_CENTER_FILENAME;
     public static final URL DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
     public static final String DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION = "https://updates.jenkins.io/experimental" + DEFAULT_UPDATE_CENTER_FILENAME;
     public static final URL DEFAULT_INCREMENTALS_REPO_MIRROR;
     public static final String DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION = "https://repo.jenkins-ci.org/incrementals";
     public static final URL DEFAULT_PLUGIN_INFO;
-    public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/current/plugin-versions.json";
+    public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/plugin-versions.json";
     public static final Path DEFAULT_CACHE_PATH;
 
     static {

@@ -42,7 +42,7 @@ public class Main {
             PluginManager pm = new PluginManager(cfg);
 
             if (options.isShowAvailableUpdates()) {
-                pm.getUCJson();
+                pm.getUCJson(pm.getJenkinsVersionFromWar());
                 List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
                 OutputFormat outputFormat = options.getOutputFormat() == null ? OutputFormat.STDOUT : options.getOutputFormat();
                 String output;

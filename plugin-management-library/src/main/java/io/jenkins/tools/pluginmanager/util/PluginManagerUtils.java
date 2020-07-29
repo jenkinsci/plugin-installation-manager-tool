@@ -135,39 +135,4 @@ public final class PluginManagerUtils {
         return urlString;
     }
 
-    /**
-     * Convert object arguments to strings and pass through to the String-ish method to insert the path into the url
-     * before the last section of the url (probably the filename part)
-     *
-     * @param urlString    an Object which will have toString() called to create a String containing a complete URL with
-     *                     domain name, path and filename, in that order. This could be, for example, a URL object.
-     * @param pathToInsert another section of path to be inserted before the filename part of the URL
-     * @return the supplied URL string with the same domain name and port and the same filename but with the path
-     * made longer to include the supplied pathToInsert just before the filename
-     * @see #insertPathPreservingFilename(String, String)
-     */
-    public static String insertPathPreservingFilename(Object urlString, Object pathToInsert) {
-        requireNonNull(urlString);
-        requireNonNull(pathToInsert);
-        return insertPathPreservingFilename(urlString.toString(), pathToInsert.toString());
-    }
-
-    /**
-     * Insert the supplied pathToInsert into the URL preceeding the file name part (last part) of the URL. The parts, as
-     * is usual for a URL, are separated by slashes.
-     *
-     * @param urlString    a complete URL string with domain name, path and filename, in that order.
-     * @param pathToInsert another section of path to be inserted before the filename part of the URL
-     * @return the supplied URL string with the same domain name and port and the same filename but with the path
-     * made longer to include the supplied pathToInsert just before the filename
-     */
-    public static String insertPathPreservingFilename(String urlString, String pathToInsert) {
-        int lastSlashCol = urlString.lastIndexOf('/');
-        if (lastSlashCol >= 0) {
-            return appendPathOntoUrl(urlString.substring(0, lastSlashCol + 1), pathToInsert, urlString.substring(lastSlashCol + 1));
-        } else {
-            return appendPathOntoUrl(pathToInsert, urlString);
-        }
-    }
-
 }

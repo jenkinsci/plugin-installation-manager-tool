@@ -230,32 +230,4 @@ public class PluginManagerUtilsTest {
         assertThat(result).isEqualTo("http://bob.com");
     }
 
-    @Test
-    public void insertPathPreservingFilenameObjectTest() throws MalformedURLException {
-        String result = PluginManagerUtils.insertPathPreservingFilename(new URL("http://bob.com/update-center.json"), new StringBuilder("2.190"));
-
-        assertThat(result).isEqualTo("http://bob.com/2.190/update-center.json");
-    }
-
-    @Test
-    public void insertPathPreservingFilenameTest() {
-        String result = PluginManagerUtils.insertPathPreservingFilename("http://bob.com/update-center.json", "2.190");
-
-        assertThat(result).isEqualTo("http://bob.com/2.190/update-center.json");
-    }
-
-    @Test
-    public void insertPathPreservingFilenameLongTest() {
-        String result = PluginManagerUtils.insertPathPreservingFilename("http://bob.com/updates/plugins/update-center.json", "2.190");
-
-        assertThat(result).isEqualTo("http://bob.com/updates/plugins/2.190/update-center.json");
-    }
-
-    @Test
-    public void insertPathPreservingFilenameNoSlashes() {
-        String result = PluginManagerUtils.insertPathPreservingFilename("path", "2.190");
-
-        assertThat(result).isEqualTo("2.190/path");
-    }
-
 }
