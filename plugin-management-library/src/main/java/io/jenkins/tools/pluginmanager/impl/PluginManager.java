@@ -44,10 +44,10 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
@@ -57,7 +57,6 @@ import org.json.JSONObject;
 
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathOntoUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
-import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.insertPathPreservingFilename;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 import static java.util.Comparator.comparing;
@@ -67,7 +66,6 @@ public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
     private String jenkinsUcLatest;
-    private VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
     private Map<String, Plugin> bundledPluginVersions;
@@ -137,10 +135,9 @@ public class PluginManager {
                     "at a time");
         }
 
+        VersionNumber jenkinsVersion = getJenkinsVersionFromWar();
         if (downloadUc) {
-            jenkinsVersion = getJenkinsVersionFromWar();
-            checkAndSetLatestUpdateCenter();
-            getUCJson();
+            getUCJson(jenkinsVersion);
         }
         getSecurityWarnings();
         showAllSecurityWarnings();
@@ -154,7 +151,7 @@ public class PluginManager {
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         showAvailableUpdates(pluginsToBeDownloaded);
-        checkVersionCompatibility(pluginsToBeDownloaded);
+        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded);
 
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
@@ -443,7 +440,7 @@ public class PluginManager {
      *
      * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
-    public void checkVersionCompatibility(List<Plugin> pluginsToBeDownloaded) {
+    public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
                 if (p.getJenkinsVersion() != null) {
@@ -454,39 +451,6 @@ public class PluginManager {
                                         jenkinsVersion.toString(), jenkinsWarFile.toString()));
                     }
                 }
-            }
-        }
-    }
-
-    /**
-     * Determines if there is an update center for the version of Jenkins in the war file. If so, sets jenkins update
-     * center url String to include Jenkins Version. Otherwise, sets update center url to match the update center in
-     * the configuration class
-     *
-     * Rules:
-     * jenkins version  | use if readable (http HEAD verb)          | use prior value anyway
-     *      YES         | http://update-center.jenkins.io/(version) | http://update-center.jenkins.io
-     *      NO          |                                           | http://update-center.jenkins.io
-     */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    public void checkAndSetLatestUpdateCenter() {
-        //check if version specific update center
-        if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
-            String jenkinsVersionUcLatest = insertPathPreservingFilename(cfg.getJenkinsUc(), jenkinsVersion);
-            try (CloseableHttpClient httpclient = HttpClients.createSystem()) {
-                HttpHead httphead = new HttpHead(jenkinsVersionUcLatest);
-                try (CloseableHttpResponse response = httpclient.execute(httphead)) {
-                    if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                        System.out.println(
-                                "Using version specific update center for latest plugins: " + jenkinsVersionUcLatest);
-                        jenkinsUcLatest = jenkinsVersionUcLatest;
-                    }
-                } catch (IOException e) {
-                    System.out.println("No version specific update center for Jenkins version " + jenkinsVersion);
-                }
-            } catch (IOException e) {
-                System.out.println(
-                        "Unable to check if version specific update center for Jenkins version " + jenkinsVersion);
             }
         }
     }
@@ -630,15 +594,25 @@ public class PluginManager {
 
     /**
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
+     * @param jenkinsVersion the version of Jenkins to use
      */
-    public void getUCJson() {
+    public void getUCJson(VersionNumber jenkinsVersion) {
         logVerbose("\nRetrieving update center information");
         cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
         cm.createCache();
 
-        latestUcJson = getJson(stringToUrlQuietly(jenkinsUcLatest), "update-center");
+        String cacheSuffix = jenkinsVersion != null ? "-" + jenkinsVersion.toString(): "";
+        try {
+            URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
+            if (jenkinsVersion != null) {
+                uriBuilder.addParameter("version", jenkinsVersion.toString()).build();
+            }
+            latestUcJson = getJson(uriBuilder.build().toURL(), "update-center" + cacheSuffix);
+        } catch (MalformedURLException | URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center");
+        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center" + cacheSuffix);
         pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
     }
 
@@ -949,7 +923,7 @@ public class PluginManager {
         String pluginVersion = plugin.getVersion().toString();
         String pluginUrl = plugin.getUrl();
 
-        String urlString = "";
+        String urlString;
 
         if (StringUtils.isEmpty(pluginVersion)) {
             pluginVersion = "latest";
@@ -959,9 +933,21 @@ public class PluginManager {
             logVerbose(String.format("Will use url: %s to download %s plugin", pluginUrl, plugin.getName()));
             urlString = pluginUrl;
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
-            urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
+            JSONObject plugins = latestUcJson.getJSONObject("plugins");
+            if (plugins.has(plugin.getName())) {
+                JSONObject pluginJson = plugins.getJSONObject(plugin.getName());
+                urlString = pluginJson.getString("url");
+            } else {
+                urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
+            }
         } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
-            urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUcExperimental()), "/latest", pluginName + ".hpi");
+            JSONObject plugins = experimentalUcJson.getJSONObject("plugins");
+            if (plugins.has(plugin.getName())) {
+                JSONObject pluginJson = plugins.getJSONObject(plugin.getName());
+                urlString = pluginJson.getString("url");
+            } else {
+                urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUcExperimental()), "/latest", pluginName + ".hpi");
+            }
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
@@ -1043,7 +1029,7 @@ public class PluginManager {
 
             // Check integrity of plugin file
             if (success) {
-                try (JarFile pluginJpi = new JarFile(pluginFile)) {
+                try (JarFile ignored = new JarFile(pluginFile)) {
                     plugin.setFile(pluginFile);
                 } catch (IOException e) {
                     System.out.println("Downloaded file for " + plugin.getName() + " is not a valid ZIP");
@@ -1157,7 +1143,7 @@ public class PluginManager {
             }
 
             // Walk through war contents and find bundled plugins
-            try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.<String, Object>emptyMap())) {
+            try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.emptyMap())) {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
                 Stream<Path> walk = Files.walk(warPath);
@@ -1189,24 +1175,6 @@ public class PluginManager {
             System.out.println("War not found, installing all plugins: " + jenkinsWarFile.toString());
         }
         return bundledPlugins;
-    }
-
-    /**
-     * Sets Jenkins Version. Jenkins version also set based on Jenkins war manifest
-     *
-     * @param jenkinsVersion version of Jenkins, used for checking/setting version specific update center
-     */
-    public void setJenkinsVersion(VersionNumber jenkinsVersion) {
-        this.jenkinsVersion = jenkinsVersion;
-    }
-
-    /**
-     * Gets the Jenkins version
-     *
-     * @return the Jenkins version
-     */
-    public VersionNumber getJenkinsVersion() {
-        return jenkinsVersion;
     }
 
     /**
@@ -1302,6 +1270,14 @@ public class PluginManager {
      */
     public void setLatestUcPlugins(JSONObject latestPlugins) {
         this.latestPlugins = latestPlugins;
+    }
+
+    /**
+     * Sets the json object containing latest experimental plugin information
+     * @param experimentalUcJson JSONObject containing info for latest and experimental plugins
+     */
+    public void setExperimentalUcJson(JSONObject experimentalUcJson) {
+        this.experimentalUcJson = experimentalUcJson;
     }
 
     /**

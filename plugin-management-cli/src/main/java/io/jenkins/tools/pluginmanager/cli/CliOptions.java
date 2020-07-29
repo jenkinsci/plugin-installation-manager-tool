@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
@@ -277,23 +278,32 @@ class CliOptions {
      */
     private URL getUpdateCenter() {
         URL jenkinsUpdateCenter;
-
-        if (jenkinsUc != null) {
-            jenkinsUpdateCenter = jenkinsUc;
-            System.out.println("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
-        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC"))) {
-            try {
-                jenkinsUpdateCenter = new URL(System.getenv("JENKINS_UC"));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+        try {
+            if (jenkinsUc != null) {
+                jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUc.toString()));
+                System.out.println("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
+            } else {
+                String jenkinsUcFromEnv = System.getenv("JENKINS_UC");
+                if (!StringUtils.isEmpty(jenkinsUcFromEnv)) {
+                    jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcFromEnv));
+                    System.out.println("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
+                } else {
+                    jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER;
+                    System.out.println("No CLI option or environment variable set for update center, using default of " +
+                            jenkinsUpdateCenter);
+                }
             }
-            System.out.println("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
-        } else {
-            jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER;
-            System.out.println("No CLI option or environment variable set for update center, using default of " +
-                    jenkinsUpdateCenter);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
         return jenkinsUpdateCenter;
+    }
+
+    public String appendFilePathIfNotPresent(@NonNull String updateCenter) {
+        if (updateCenter.endsWith("json")) {
+            return updateCenter;
+        }
+        return updateCenter + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
     }
 
     /**
@@ -304,23 +314,23 @@ class CliOptions {
      */
     private URL getExperimentalUpdateCenter() {
         URL experimentalUpdateCenter;
-        if (jenkinsUcExperimental != null) {
-            experimentalUpdateCenter = jenkinsUcExperimental;
-            System.out.println(
-                    "Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
-        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_EXPERIMENTAL"))) {
-            try {
-                experimentalUpdateCenter = new URL(System.getenv("JENKINS_UC_EXPERIMENTAL"));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+        try {
+            if (jenkinsUcExperimental != null) {
+                experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcExperimental.toString()));
+                System.out.println(
+                        "Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
+            } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_EXPERIMENTAL"))) {
+                experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(System.getenv("JENKINS_UC_EXPERIMENTAL")));
+                System.out.println("Using experimental update center " + experimentalUpdateCenter +
+                        " from JENKINS_UC_EXPERIMENTAL environment variable");
+            } else {
+                experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
+                System.out.println(
+                        "No CLI option or environment variable set for experimental update center, using default of " +
+                                experimentalUpdateCenter);
             }
-            System.out.println("Using experimental update center " + experimentalUpdateCenter +
-                    " from JENKINS_UC_EXPERIMENTAL environment variable");
-        } else {
-            experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
-            System.out.println(
-                    "No CLI option or environment variable set for experimental update center, using default of " +
-                            experimentalUpdateCenter);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
         return experimentalUpdateCenter;
     }
@@ -437,6 +447,7 @@ class CliOptions {
     /**
      * Returns the boolean corresponding to if the user wants all dependencies to be the latest version, even the
      * dependencies of a plugin that had a requested version that was not the latest
+     *
      * @return true if the user wants all transitive dependencies to be the latest version
      */
     public boolean isUseLatestAll() {

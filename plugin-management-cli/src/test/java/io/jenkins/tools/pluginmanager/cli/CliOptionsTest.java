@@ -207,8 +207,8 @@ public class CliOptionsTest {
                 Config cfg = options.setup();
 
                 // Cli options should override environment variables
-                assertThat(cfg.getJenkinsUc()).hasToString(ucCli);
-                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli);
+                assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
+                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
                 assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
                 assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
             });
@@ -227,8 +227,8 @@ public class CliOptionsTest {
             .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
             .execute(() -> {
                 Config cfg = options.setup();
-                assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar);
-                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar);
+                assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar + "/update-center.json");
+                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar + "/update-center.json");
                 assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
                 assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
             });
