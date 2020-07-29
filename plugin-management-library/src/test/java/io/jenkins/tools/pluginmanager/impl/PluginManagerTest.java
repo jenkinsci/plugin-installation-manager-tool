@@ -92,7 +92,6 @@ public class PluginManagerTest {
         doReturn(new HashMap<>()).when(pluginManagerSpy).findEffectivePlugins(anyList());
         doNothing().when(pluginManagerSpy).listPlugins();
         doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
-        doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
         doNothing().when(pluginManagerSpy).checkVersionCompatibility(any(), anyList());
         doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
 
@@ -491,56 +490,6 @@ public class PluginManagerTest {
 
         //check passes if no exception is thrown
         pm.checkVersionCompatibility(new VersionNumber("2.121.2"), Arrays.asList(plugin1, plugin2));
-    }
-
-    @Test
-    public void showAvailableUpdatesNoOutputTest() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAvailableUpdates(false)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-
-        List<Plugin> plugins = Arrays.asList(
-                new Plugin("ant", "1.8", null, null),
-                new Plugin("amazon-ecs", "1.15", null, null));
-
-        String output = tapSystemOutNormalized(
-                () -> pluginManager.showAvailableUpdates(plugins));
-
-        assertThat(output).isEmpty();
-    }
-
-    @Test
-    public void showAvailableUpdates() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAvailableUpdates(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        List<Plugin> plugins = Arrays.asList(
-                new Plugin("ant", "1.8", null, null),
-                new Plugin("amazon-ecs", "1.15", null, null),
-                new Plugin("maven-invoker-plugin", "2.4", null, null ));
-
-        doReturn(new VersionNumber("1.9")).when(pluginManagerSpy).getLatestPluginVersion("ant");
-        doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
-        doReturn(new VersionNumber("2.4")).when(pluginManagerSpy).getLatestPluginVersion("maven-invoker-plugin");
-
-        String output = tapSystemOutNormalized(
-                () -> pluginManagerSpy.showAvailableUpdates(plugins));
-
-        assertThat(output).isEqualTo(
-                "\nAvailable updates:\n"
-                        + "ant (1.8) has an available update: 1.9\n"
-                        + "amazon-ecs (1.15) has an available update: 1.20\n");
     }
 
     @Test

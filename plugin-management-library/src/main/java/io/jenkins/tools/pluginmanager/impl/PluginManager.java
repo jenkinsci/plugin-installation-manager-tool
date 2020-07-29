@@ -150,7 +150,6 @@ public class PluginManager {
 
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
-        showAvailableUpdates(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded);
 
         if (cfg.doDownload()) {
@@ -347,25 +346,6 @@ public class PluginManager {
         }
     }
 
-
-    /**
-     * Prints out if any plugins of a given list have available updates in the latest update center
-     *
-     * @param plugins List of plugins to check versions against latest versions in update center
-     */
-    public void showAvailableUpdates(List<Plugin> plugins) {
-        if (cfg.isShowAvailableUpdates()) {
-            System.out.println("\nAvailable updates:");
-            for (Plugin plugin : plugins) {
-                VersionNumber latestVersion = getLatestPluginVersion(plugin.getName());
-                if (plugin.getVersion().isOlderThan(latestVersion)) {
-                    System.out.println(String.format("%s (%s) has an available update: %s", plugin.getName(),
-                            plugin.getVersion(), latestVersion));
-                }
-            }
-        }
-    }
-
     /**
      * Takes a list of plugins and returns the latest version
      * Returns existing version if no update
@@ -374,9 +354,9 @@ public class PluginManager {
      */
     public List<Plugin> getLatestVersionsOfPlugins(List<Plugin> plugins) {
         return plugins.stream()
-                .peek(plugin -> {
+                .map(plugin -> {
                     if (plugin.getUrl() != null || plugin.getGroupId() != null) {
-                        return;
+                        return plugin;
                     }
                     JSONObject pluginsKey = (JSONObject) pluginInfoJson.get("plugins");
                     if (pluginsKey.has(plugin.getName())) {
@@ -388,8 +368,9 @@ public class PluginManager {
                                 .sorted(reverseOrder())
                                 .collect(Collectors.toList());
 
-                        plugin.setVersion(sortedVersions.get(0));
+                        return new Plugin(plugin.getName(), sortedVersions.get(0).toString(), null, null);
                     }
+                    return plugin;
                 })
                 .collect(Collectors.toList());
     }

@@ -18,7 +18,7 @@ public class PluginListParserTest {
 
     @Before
     public void setup() {
-        pluginList = new PluginListParser();
+        pluginList = new PluginListParser(true);
 
         expectedPluginInfo = new String[]{
             new Plugin("git", "latest", null, null).toString(),
@@ -32,7 +32,7 @@ public class PluginListParserTest {
                     "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.workflow").toString(),
             new Plugin("matrix-project", "latest", null, null).toString(),
             new Plugin("junit", "experimental", null, null).toString(),
-            new Plugin("credentials", "2.2.0",
+            new Plugin("credentials", "latest",
                     "http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi", null).toString(),
             new Plugin("blueocean", "latest", null, null).toString(),
             new Plugin("google-api-client-plugin", "latest",
@@ -53,7 +53,7 @@ public class PluginListParserTest {
                 "workflow-step-api:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74",
                 "matrix-project:latest",
                 "junit:experimental",
-                "credentials:2.2.0:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi",
+                "credentials:latest:http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi",
                 "google-api-client-plugin::https://updates.jenkins.io/latest/google-api-client-plugin.hpi",
                 "blueocean:",
                 "build-timeout:1.20"};
@@ -106,7 +106,7 @@ public class PluginListParserTest {
             pluginInfo.add(p.toString());
         }
 
-        assertThat(pluginInfo).containsExactlyInAnyOrder(expectedPluginInfo);
+        assertThat(pluginInfo).containsExactly(expectedPluginInfo);
     }
 
     @Test
