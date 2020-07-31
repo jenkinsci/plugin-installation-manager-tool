@@ -1,0 +1,15 @@
+jenkins:
+  systemMessage: "Testing"
+plugins:
+  - artifactId: git
+    source:
+      version: latest
+  - artifactId: workflow-step-api
+    groupId: org.jenkins-ci.plugins.workflow
+    source:
+      version:
+tool:
+  git:
+    installations:
+    - home: "git"
+      name: "Default"

@@ -1,0 +1,44 @@
+jenkins:
+  systemMessage: "Testing"
+plugins:
+  - artifactId: git
+    source:
+      version: latest
+  - artifactId: job-import-plugin
+    source:
+      version: 2.1
+  - artifactId: docker
+  - artifactId: cloudbees-bitbucket-branch-source
+    source:
+      version: 2.4.4
+  - artifactId: script-security
+    source:
+      url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi
+  - artifactId: workflow-step-api
+    groupId: org.jenkins-ci.plugins.workflow
+    source:
+      version: 2.19-rc289.d09828a05a74
+  - artifactId: matrix-project
+    source:
+      url: httttp://ftp-chi.osuosl.org/pub/jenkins/plugins/matrix-project/1.7.1/matrix-project.hpi
+  - artifactId: junit
+    source:
+      version: experimental
+  #comment should be ignored
+  - artifactId: credentials
+    source:
+      version: latest
+      url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
+  - artifactId: blueocean #comment
+  - artifactId: google-api-client-plugin
+    source:
+       version:
+       url: https://updates.jenkins.io/latest/google-api-client-plugin.hpi
+  - artifactId: build-timeout
+    source:
+      version: 1.20
+tool:
+  git:
+    installations:
+    - home: "git"
+      name: "Default"

@@ -1,0 +1,7 @@
+plugins:
+  - artifactId: job-import-plugin
+    source:
+      version: 2.1
+  - artifactId:
+    source:
+      version: latest

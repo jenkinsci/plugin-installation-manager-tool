@@ -2,19 +2,21 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>io.jenkins.plugin-management</groupId>
-        <artifactId>jenkins-plugin-management-parent-pom</artifactId>
+        <artifactId>plugin-management-parent-pom</artifactId>
         <version>${revision}${changelist}</version>
+        <relativePath>..</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>plugin-management-cli</artifactId>
+    <version>${revision}${changelist}</version>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>io.jenkins.plugin-management</groupId>
             <artifactId>plugin-management-library</artifactId>
-            <version>${revision}${changelist}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>args4j</groupId>
@@ -25,6 +27,17 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-lambda</artifactId>
+            <version>1.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -40,6 +53,8 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <finalName>jenkins-plugin-manager-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
@@ -52,8 +67,20 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                </configuration>
+            </plugin>
         </plugins>
+        <resources>
+            <resource>
+                <directory>src/main/resources-filtered</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
-
 
 </project>
