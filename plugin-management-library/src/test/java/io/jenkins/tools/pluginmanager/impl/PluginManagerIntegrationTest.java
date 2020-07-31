@@ -22,6 +22,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for {@link PluginManager} which operate with real data.
@@ -71,12 +72,12 @@ public class PluginManagerIntegrationTest {
             Files.copy(archive, archivePath.toPath());
         }
 
-        try (ZipFile zip = new ZipFile(archivePath)){
+        try (ZipFile zip = new ZipFile(archivePath)) {
             ZipEntry entry = zip.getEntry(fileName);
             if (entry == null) {
                 throw new IOException(String.format("Cannot find file %s within ZIP resource %s/%s", fileName, clazz.getName(), resourceName));
             }
-            try(InputStream archive = zip.getInputStream(entry)) {
+            try (InputStream archive = zip.getInputStream(entry)) {
                 Files.copy(archive, target.toPath());
             }
         }
@@ -95,7 +96,7 @@ public class PluginManagerIntegrationTest {
 
         //TODO: Use real 2.222.1 war instead
         jenkinsWar = new File(tmp.getRoot(), "jenkins.war");
-        try(InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
+        try (InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
             Files.copy(war, jenkinsWar.toPath());
         }
 
@@ -120,14 +121,12 @@ public class PluginManagerIntegrationTest {
     @Test
     public void findPluginsAndDependenciesTest() throws IOException {
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
-        Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
         Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
         Plugin plugin3 = new Plugin("plugin3", "3.0", null, null);
 
         Plugin plugin1Dependency1 = new Plugin("plugin1Dependency1", "1.0.1", null, null).withoutDependencies();
         Plugin plugin1Dependency2 = new Plugin("plugin1Dependency2", "1.0.2", null, null).withoutDependencies();
-        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
-        plugin1.setDependencies(Arrays.asList(plugin1Dependency1, plugin1Dependency2, replaced1));
+        plugin1.setDependencies(Arrays.asList(plugin1Dependency1, plugin1Dependency2));
 
         Plugin plugin2Dependency1 = new Plugin("plugin2Dependency1", "2.0.1", null, null).withoutDependencies();
         Plugin plugin2Dependency2 = new Plugin("plugin2Dependency2", "2.0.2", null, null).withoutDependencies();
@@ -140,9 +139,9 @@ public class PluginManagerIntegrationTest {
         plugin3.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
 
         // Actual
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3, replaced));
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3));
         PluginManager pluginManager = initPluginManager(
-            configBuilder -> configBuilder.withPlugins(requestedPlugins));
+                configBuilder -> configBuilder.withPlugins(requestedPlugins));
         Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
 
         assertThat(pluginsAndDependencies.values()).containsExactlyInAnyOrder(
@@ -150,5 +149,25 @@ public class PluginManagerIntegrationTest {
                 plugin2Dependency1, plugin2, plugin2Dependency2,
                 plugin3, plugin3Dependency1,
                 replaced2, replacedSecond2);
+    }
+
+    @Test
+    public void failsIfTopLevelDeclaresNewVersionThanRequiredDependency() throws IOException {
+        // given
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
+
+        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
+        plugin1.setDependencies(Arrays.asList(replaced1));
+
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, replaced));
+
+        // when
+        PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
+
+        // then
+        assertThatThrownBy(() -> pluginManager.findPluginsAndDependencies(requestedPlugins))
+                .hasMessage("Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
+                .isInstanceOf(PluginDependencyStrategyException.class);
     }
 }

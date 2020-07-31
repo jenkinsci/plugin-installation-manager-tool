@@ -840,9 +840,7 @@ public class PluginManager {
                     } else {
                         String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                        // TODO(oleg_nenashev): Should be an error by default, but it is not how the tests are written now
-                        // throw new PluginDependencyStrategyException(message);
-                        logVerbose(message);
+                         throw new PluginDependencyStrategyException(message);
                     }
                 }
 
