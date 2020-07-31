@@ -6,7 +6,7 @@ Plugin Installation Manager Tool
 The plugin manager downloads plugins and their dependencies into a folder so that they can easily be imported into an instance of Jenkins. The goal of this tool is to replace the [Docker install-plugins.sh script](https://github.com/jenkinsci/docker/blob/master/install-plugins.sh) and the many other implementations of plugin management that have been recreated across Jenkins. The tool also allows users to see more information about the plugins they are downloading such as available updates and security warnings. By default, plugins will be downloaded; the user can specify not to download plugins using the --no-download option.
 
 ### Usage
-
+  
 #### Getting Started
 
 Download the latest plugin-management-cli jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
