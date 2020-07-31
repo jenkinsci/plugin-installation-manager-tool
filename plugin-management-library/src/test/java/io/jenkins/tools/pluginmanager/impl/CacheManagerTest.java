@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -8,12 +9,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
+import static java.nio.file.Files.setPosixFilePermissions;
+import static java.nio.file.Files.write;
 import static java.time.Clock.systemDefaultZone;
 import static java.time.Clock.systemUTC;
 import static java.time.temporal.ChronoUnit.MINUTES;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonMap;
+import static org.apache.commons.lang3.SystemUtils.IS_OS_WINDOWS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assume.assumeFalse;
 
 public class CacheManagerTest {
 
@@ -110,6 +117,54 @@ public class CacheManagerTest {
          assertThat(out).isEqualTo("Cache entry expired\n");
     }
 
+    @Test
+    public void cacheReturnsNullWhenCachedFileIsNotJson() throws Exception {
+        CacheManager manager = cacheManagerWithNonJsonFileForKey("the-cache-key");
+
+        JSONObject jsonObject = manager.retrieveFromCache("the-cache-key");
+
+        assertThat(jsonObject).isNull();
+    }
+
+    @Test
+    public void messageAboutInvalidCacheFileIsWrittenToSystemErr() throws Exception {
+        CacheManager manager = cacheManagerWithNonJsonFileForKey("the-cache-key");
+
+        String out = tapSystemErrNormalized(
+                () -> manager.retrieveFromCache("the-cache-key"));
+
+        assertThat(out).startsWith(
+                "Cache ignored invalid file the-cache-key.json.\n"
+                        + "org.json.JSONException: A JSONObject text must begin with '{' at 3 [character 4 line 1]");
+    }
+
+    @Test
+    public void cacheReturnsNullWhenCachedFileCannotBeRead() throws Exception {
+        skipOnWindows(); // we cannot modify the read permission on Windows
+        CacheManager manager = cacheManagerWithNonReadableJsonFileForKey("the-cache-key");
+
+        JSONObject jsonObject = manager.retrieveFromCache("the-cache-key");
+
+        assertThat(jsonObject).isNull();
+    }
+
+    @Test
+    public void cacheManagerWithNonReadableJsonFileForKey() throws Exception {
+        skipOnWindows(); // we cannot modify the read permission on Windows
+        CacheManager manager = cacheManagerWithNonReadableJsonFileForKey("the-cache-key");
+
+        String out = tapSystemErrNormalized(
+                () -> manager.retrieveFromCache("the-cache-key"));
+
+        assertThat(out).startsWith(
+                "Cache ignored file the-cache-key.json because it cannot be read.\n"
+                        + "java.nio.file.AccessDeniedException:");
+    }
+
+    private void skipOnWindows() {
+        assumeFalse(IS_OS_WINDOWS);
+    }
+
     private CacheManager cacheManager() {
         return cacheManager(systemDefaultZone());
     }
@@ -123,9 +178,32 @@ public class CacheManagerTest {
     }
 
     private CacheManager cacheManager(Clock clock) {
-        Path cacheFolder = folder.getRoot().toPath().resolve("cache");
+        Path cacheFolder = cacheFolder();
         CacheManager manager = new CacheManager(cacheFolder, VERBOSE, clock);
         manager.createCache();
         return manager;
+    }
+
+    private CacheManager cacheManagerWithNonJsonFileForKey(String key) throws IOException {
+        Path cacheFolder = cacheFolder();
+        CacheManager manager = new CacheManager(
+                cacheFolder, VERBOSE, systemDefaultZone());
+        manager.createCache();
+        write(cacheFolder.resolve(key + ".json"), new byte[] { 1, 2, 3});
+        return manager;
+    }
+
+    private CacheManager cacheManagerWithNonReadableJsonFileForKey(String key) throws IOException {
+        Path cacheFolder = cacheFolder();
+        CacheManager manager = new CacheManager(
+                cacheFolder, VERBOSE, systemDefaultZone());
+        manager.createCache();
+        manager.addToCache(key, new JSONObject());
+        setPosixFilePermissions(cacheFolder.resolve(key + ".json"), emptySet());
+        return manager;
+    }
+
+    private Path cacheFolder() {
+        return folder.getRoot().toPath().resolve("cache");
     }
 }

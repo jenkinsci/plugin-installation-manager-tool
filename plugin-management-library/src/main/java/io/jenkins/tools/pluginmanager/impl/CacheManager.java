@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Clock;
@@ -68,11 +69,8 @@ public class CacheManager {
      * @return the cached json object or null
      */
     JSONObject retrieveFromCache(String cacheKey) {
-        Path cachedPath = cache.resolve(cacheKey + ".json");
-        if (!Files.exists(cachedPath)) {
-            return null;
-        }
-
+        String filename = cacheKey + ".json";
+        Path cachedPath = cache.resolve(filename);
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(cachedPath);
             Duration between = Duration.between(lastModifiedTime.toInstant(), clock.instant());
@@ -87,8 +85,22 @@ public class CacheManager {
 
             JSONTokener tokener = new JSONTokener(newInputStream(cachedPath));
             return new JSONObject(tokener);
+        } catch (NoSuchFileException e) {
+            return null;
+        } catch (RuntimeException e) {
+            if (verbose) {
+                System.err.println(
+                        "Cache ignored invalid file " + filename + ".");
+                e.printStackTrace();
+            }
+            return null;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            if (verbose) {
+                System.err.println(
+                        "Cache ignored file " + filename + " because it cannot be read.");
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }
