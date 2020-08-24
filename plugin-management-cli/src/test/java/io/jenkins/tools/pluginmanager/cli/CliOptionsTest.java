@@ -67,22 +67,20 @@ public class CliOptionsTest {
     public void setupDefaultsTest() throws Exception {
         parser.parseArgument();
 
-        withEnvironmentVariable("JENKINS_UC", "")
+        Config cfg = withEnvironmentVariable("JENKINS_UC", "")
             .and("JENKINS_UC_EXPERIMENTAL", "")
             .and("JENKINS_INCREMENTALS_REPO_MIRROR", "")
             .and("JENKINS_PLUGIN_INFO", "")
-            .execute(() -> {
-                Config cfg = options.setup();
+            .execute(options::setup);
 
-                assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
-                assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
-                assertThat(cfg.isShowAllWarnings()).isFalse();
-                assertThat(cfg.isShowWarnings()).isFalse();
-                assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
-                assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
-                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
-                assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
-            });
+        assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
+        assertThat(cfg.isShowAllWarnings()).isFalse();
+        assertThat(cfg.isShowWarnings()).isFalse();
+        assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
+        assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
+        assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
+        assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
     }
 
 
@@ -189,29 +187,27 @@ public class CliOptionsTest {
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
         String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
 
-        withEnvironmentVariable("JENKINS_UC", ucEnvVar)
+        String ucCli = "https://updates.jenkins.io/cli";
+        String experiementalCli = "https://updates.jenkins.io/experimental/cli";
+        String incrementalsCli = "https://repo.jenkins-ci.org/incrementals/cli";
+        String pluginInfoCli = "https://updates.jenkins.io/current/plugin-versions/cli";
+
+        parser.parseArgument("--jenkins-update-center", ucCli,
+                "--jenkins-experimental-update-center", experiementalCli,
+                "--jenkins-incrementals-repo-mirror", incrementalsCli,
+                "--jenkins-plugin-info", pluginInfoCli);
+
+        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
             .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
             .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
             .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(() -> {
-                String ucCli = "https://updates.jenkins.io/cli";
-                String experiementalCli = "https://updates.jenkins.io/experimental/cli";
-                String incrementalsCli = "https://repo.jenkins-ci.org/incrementals/cli";
-                String pluginInfoCli = "https://updates.jenkins.io/current/plugin-versions/cli";
+            .execute(options::setup);
 
-                parser.parseArgument("--jenkins-update-center", ucCli,
-                        "--jenkins-experimental-update-center", experiementalCli,
-                        "--jenkins-incrementals-repo-mirror", incrementalsCli,
-                        "--jenkins-plugin-info", pluginInfoCli);
-
-                Config cfg = options.setup();
-
-                // Cli options should override environment variables
-                assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
-                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
-                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
-                assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
-            });
+        // Cli options should override environment variables
+        assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
+        assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
+        assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
+        assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
     }
 
     @Test
@@ -221,17 +217,16 @@ public class CliOptionsTest {
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
         String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
 
-        withEnvironmentVariable("JENKINS_UC", ucEnvVar)
+        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
             .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
             .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
             .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(() -> {
-                Config cfg = options.setup();
-                assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar + "/update-center.json");
-                assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar + "/update-center.json");
-                assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
-                assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
-            });
+            .execute(options::setup);
+
+        assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar + "/update-center.json");
+        assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar + "/update-center.json");
+        assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
+        assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
     }
 
     @Test
