@@ -17,7 +17,7 @@
         <dependency>
             <groupId>org.jenkins-ci</groupId>
             <artifactId>version-number</artifactId>
-            <version>1.6</version>
+            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
@@ -60,12 +60,16 @@
             <artifactId>jackson-dataformat-yaml</artifactId>
             <version>2.11.2</version>
         </dependency>
-      <dependency>
-        <groupId>com.github.tomakehurst</groupId>
-        <artifactId>wiremock-jre8</artifactId>
-        <version>2.27.1</version>
-        <scope>test</scope>
-      </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>com.github.tomakehurst</groupId>
+          <artifactId>wiremock-jre8</artifactId>
+          <version>2.27.1</version>
+          <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
