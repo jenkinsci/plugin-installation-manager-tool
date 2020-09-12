@@ -1,3 +1,3 @@
 _extends: .github
 version-template: $MAJOR.$MINOR.$PATCH
-tag-template: plugin-management-parent-pom-$NEXT_PATCH_VERSION
+tag-template: $NEXT_PATCH_VERSION

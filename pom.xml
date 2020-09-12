@@ -15,6 +15,7 @@
         <!-- Version of Maven Components -->
         <maven.version>3.5.0</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <tagNameFormat>@{project.version}</tagNameFormat>
     </properties>
 
     <groupId>io.jenkins.plugin-management</groupId>
