@@ -63,6 +63,7 @@ import static java.util.Comparator.comparing;
 import static java.util.Comparator.reverseOrder;
 
 public class PluginManager {
+    private static final VersionNumber LATEST = new VersionNumber("latest");
     private List<Plugin> failedPlugins;
     private File refDir;
     private String jenkinsUcLatest;
@@ -831,7 +832,7 @@ public class PluginManager {
 
                 // See https://github.com/jenkinsci/plugin-installation-manager-tool/pull/102
                 if (pinnedPlugin != null) { // There is a top-level plugin with the same ID
-                    if (pinnedPlugin.getVersion().isNewerThanOrEqualTo(p.getVersion())) {
+                    if (pinnedPlugin.getVersion().isNewerThanOrEqualTo(p.getVersion()) || pinnedPlugin.getVersion().equals(LATEST)) {
                         if (verbose) {
                             logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
                                     p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));

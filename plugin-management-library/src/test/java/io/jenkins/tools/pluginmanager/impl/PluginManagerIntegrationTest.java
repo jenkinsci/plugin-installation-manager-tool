@@ -21,7 +21,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -158,7 +160,7 @@ public class PluginManagerIntegrationTest {
         Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
 
         Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
-        plugin1.setDependencies(Arrays.asList(replaced1));
+        plugin1.setDependencies(singletonList(replaced1));
 
         List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, replaced));
 
@@ -169,5 +171,24 @@ public class PluginManagerIntegrationTest {
         assertThatThrownBy(() -> pluginManager.findPluginsAndDependencies(requestedPlugins))
                 .hasMessage("Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
                 .isInstanceOf(PluginDependencyStrategyException.class);
+    }
+
+    @Test
+    public void allowsLatestTopLevelDependency() throws IOException {
+        // given
+        Plugin plugin1 = new Plugin("plugin1", "latest", null, null);
+        Plugin replaced = new Plugin("replaced", "latest", null, null).withoutDependencies();
+
+        Plugin replaced1 = new Plugin("replaced", "1.0", null, null).withoutDependencies();
+        plugin1.setDependencies(singletonList(replaced1));
+
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, replaced));
+
+        // when
+        PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
+
+        // then
+        pluginManager.findPluginsAndDependencies(requestedPlugins);
+        assertThatNoException();
     }
 }
