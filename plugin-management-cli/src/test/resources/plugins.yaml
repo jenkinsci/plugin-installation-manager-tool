@@ -27,7 +27,7 @@ plugins:
   #comment should be ignored
   - artifactId: credentials
     source:
-      version: 2.2.0
+      version: latest
       url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/credentials/2.2.0/credentials.hpi
   - artifactId: blueocean #comment
   - artifactId: google-api-client-plugin

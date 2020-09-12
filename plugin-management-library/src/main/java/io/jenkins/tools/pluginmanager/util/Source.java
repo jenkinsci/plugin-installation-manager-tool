@@ -1,22 +1,23 @@
 package io.jenkins.tools.pluginmanager.util;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Source {
-    private String version;
-    private String url;
+    private final String version;
+    private final String url;
+
+    @JsonCreator
+    public Source(@JsonProperty("version") String version, @JsonProperty("url") String url) {
+        this.url = url;
+        this.version = version;
+    }
 
     public String getVersion() {
         return version;
     }
 
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
     public String getUrl() {
         return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
     }
 }

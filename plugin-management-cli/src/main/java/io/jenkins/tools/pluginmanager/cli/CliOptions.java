@@ -1,11 +1,12 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import io.jenkins.tools.pluginmanager.impl.PluginDependencyStrategyException;
 import io.jenkins.tools.pluginmanager.util.PluginListParser;
 import java.io.File;
 import java.io.IOException;
@@ -20,6 +21,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
+import org.kohsuke.args4j.spi.ExplicitBooleanOptionHandler;
 import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
@@ -54,6 +56,9 @@ class CliOptions {
     @Option(name = "--available-updates", usage = "Show available plugin updates for the requested plugins",
             handler = BooleanOptionHandler.class)
     private boolean showAvailableUpdates;
+
+    @Option(name = "--output", usage = "Output format for available updates",   aliases = "-o")
+    private OutputFormat outputFormat;
 
     @Option(name = "--view-security-warnings",
             usage = "Show if any security warnings exist for the requested plugins",
@@ -106,11 +111,12 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean useLatestSpecified;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(name = "--latest", usage = "Set to true to download the latest version of all dependencies, even " +
             "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
             "will be determined by the update center metadata or plugin MANIFEST.MF",
-            handler = BooleanOptionHandler.class)
-    private boolean useLatestAll;
+            handler = ExplicitBooleanOptionHandler.class)
+    private boolean useLatestAll = true;
 
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
@@ -138,12 +144,17 @@ class CliOptions {
                 .withShowAllWarnings(isShowAllWarnings())
                 .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
                 .withShowAvailableUpdates(isShowAvailableUpdates())
+                .withOutputFormat(getOutputFormat())
                 .withIsVerbose(isVerbose())
                 .withDoDownload(!isNoDownload())
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
                 .build();
+    }
+
+    public OutputFormat getOutputFormat() {
+        return outputFormat;
     }
 
     /**
@@ -154,10 +165,14 @@ class CliOptions {
      */
     private File getPluginFile() {
         if (pluginFile == null) {
-            System.out.println("No .txt or .yaml file containing list of plugins to be downloaded entered.");
+            if (verbose) {
+                System.out.println("No .txt or .yaml file containing list of plugins to be downloaded entered.");
+            }
         } else {
             if (Files.exists(pluginFile.toPath())) {
-                System.out.println("File containing list of plugins to be downloaded: " + pluginFile);
+                if (verbose) {
+                    System.out.println("File containing list of plugins to be downloaded: " + pluginFile);
+                }
             } else {
                 throw new PluginInputException("File containing list of plugins does not exist " + pluginFile.toPath());
             }
@@ -171,15 +186,21 @@ class CliOptions {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     private File getPluginDir() {
         if (pluginDir != null) {
-            System.out.println("Plugin download location: " + pluginDir);
+            if (verbose) {
+                System.out.println("Plugin download location: " + pluginDir);
+            }
             return pluginDir;
         } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR"))) {
-            System.out.println("No directory to download plugins entered. " +
-                    "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
+            if (verbose) {
+                System.out.println("No directory to download plugins entered. " +
+                        "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
+            }
             return new File(System.getenv("PLUGIN_DIR"));
         }
-        System.out.println("No directory to download plugins entered. " +
-                "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        if (verbose) {
+            System.out.println("No directory to download plugins entered. " +
+                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+        }
         return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
     }
 
@@ -188,10 +209,14 @@ class CliOptions {
      */
     private String getJenkinsWar() {
         if (jenkinsWarFile == null) {
-            System.out.println("No war entered. Will use default of " + Settings.DEFAULT_WAR);
+            if (verbose) {
+                System.out.println("No war entered. Will use default of " + Settings.DEFAULT_WAR);
+            }
             return Settings.DEFAULT_WAR;
         } else {
-            System.out.println("Will use war file: " + jenkinsWarFile);
+            if (verbose) {
+                System.out.println("Will use war file: " + jenkinsWarFile);
+            }
             return jenkinsWarFile;
         }
     }
@@ -203,9 +228,8 @@ class CliOptions {
      * @return list of plugins representing user-specified input
      */
     private List<Plugin> getPlugins() {
-        List<Plugin> requestedPlugins = new ArrayList<>();
-        PluginListParser pluginParser = new PluginListParser();
-        requestedPlugins.addAll(pluginParser.parsePluginsFromCliOption(plugins));
+        PluginListParser pluginParser = new PluginListParser(verbose);
+        List<Plugin> requestedPlugins = new ArrayList<>(pluginParser.parsePluginsFromCliOption(plugins));
 
         File pluginFile = getPluginFile();
         if (pluginFile != null) {
@@ -260,7 +284,7 @@ class CliOptions {
         return showPluginsToBeDownloaded;
     }
 
-    private boolean isShowAvailableUpdates() {
+    public boolean isShowAvailableUpdates() {
         return showAvailableUpdates;
     }
 
@@ -276,23 +300,38 @@ class CliOptions {
      */
     private URL getUpdateCenter() {
         URL jenkinsUpdateCenter;
-
-        if (jenkinsUc != null) {
-            jenkinsUpdateCenter = jenkinsUc;
-            System.out.println("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
-        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC"))) {
-            try {
-                jenkinsUpdateCenter = new URL(System.getenv("JENKINS_UC"));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+        try {
+            if (jenkinsUc != null) {
+                jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUc.toString()));
+                if (verbose) {
+                    System.out.println("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
+                }
+            } else {
+                String jenkinsUcFromEnv = System.getenv("JENKINS_UC");
+                if (!StringUtils.isEmpty(jenkinsUcFromEnv)) {
+                    jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcFromEnv));
+                    if (verbose) {
+                        System.out.println("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
+                    }
+                } else {
+                    jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER;
+                    if (verbose) {
+                        System.out.println("No CLI option or environment variable set for update center, using default of " +
+                                jenkinsUpdateCenter);
+                    }
+                }
             }
-            System.out.println("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
-        } else {
-            jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER;
-            System.out.println("No CLI option or environment variable set for update center, using default of " +
-                    jenkinsUpdateCenter);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
         return jenkinsUpdateCenter;
+    }
+
+    public String appendFilePathIfNotPresent(@NonNull String updateCenter) {
+        if (updateCenter.endsWith("json")) {
+            return updateCenter;
+        }
+        return updateCenter + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
     }
 
     /**
@@ -303,23 +342,29 @@ class CliOptions {
      */
     private URL getExperimentalUpdateCenter() {
         URL experimentalUpdateCenter;
-        if (jenkinsUcExperimental != null) {
-            experimentalUpdateCenter = jenkinsUcExperimental;
-            System.out.println(
-                    "Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
-        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_EXPERIMENTAL"))) {
-            try {
-                experimentalUpdateCenter = new URL(System.getenv("JENKINS_UC_EXPERIMENTAL"));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
+        try {
+            if (jenkinsUcExperimental != null) {
+                experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcExperimental.toString()));
+                if (verbose) {
+                    System.out.println(
+                            "Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
+                }
+            } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_EXPERIMENTAL"))) {
+                experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(System.getenv("JENKINS_UC_EXPERIMENTAL")));
+                if (verbose) {
+                    System.out.println("Using experimental update center " + experimentalUpdateCenter +
+                            " from JENKINS_UC_EXPERIMENTAL environment variable");
+                }
+            } else {
+                experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
+                if (verbose) {
+                    System.out.println(
+                            "No CLI option or environment variable set for experimental update center, using default of " +
+                                    experimentalUpdateCenter);
+                }
             }
-            System.out.println("Using experimental update center " + experimentalUpdateCenter +
-                    " from JENKINS_UC_EXPERIMENTAL environment variable");
-        } else {
-            experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
-            System.out.println(
-                    "No CLI option or environment variable set for experimental update center, using default of " +
-                            experimentalUpdateCenter);
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
         return experimentalUpdateCenter;
     }
@@ -334,19 +379,25 @@ class CliOptions {
         URL jenkinsIncrementalsRepo;
         if (jenkinsIncrementalsRepoMirror != null) {
             jenkinsIncrementalsRepo = jenkinsIncrementalsRepoMirror;
-            System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo + " specified with CLI option");
+            if (verbose) {
+                System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo + " specified with CLI option");
+            }
         } else if (!StringUtils.isEmpty(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"))) {
             try {
                 jenkinsIncrementalsRepo = new URL(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
-            System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo +
-                    " from JENKINS_INCREMENTALS_REPO_MIRROR environment variable");
+            if (verbose) {
+                System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo +
+                        " from JENKINS_INCREMENTALS_REPO_MIRROR environment variable");
+            }
         } else {
             jenkinsIncrementalsRepo = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
-            System.out.println("No CLI option or environment variable set for incrementals mirror, using default of " +
-                    jenkinsIncrementalsRepo);
+            if (verbose) {
+                System.out.println("No CLI option or environment variable set for incrementals mirror, using default of " +
+                        jenkinsIncrementalsRepo);
+            }
         }
         return jenkinsIncrementalsRepo;
     }
@@ -361,19 +412,25 @@ class CliOptions {
         URL pluginInfo;
         if (jenkinsPluginInfo != null) {
             pluginInfo = jenkinsPluginInfo;
-            System.out.println("Using plugin info " + jenkinsPluginInfo + " specified with CLI option");
+            if (verbose) {
+                System.out.println("Using plugin info " + jenkinsPluginInfo + " specified with CLI option");
+            }
         } else if (!StringUtils.isEmpty(System.getenv("JENKINS_PLUGIN_INFO"))) {
             try {
                 pluginInfo = new URL(System.getenv("JENKINS_PLUGIN_INFO"));
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e);
             }
-            System.out.println("Using plugin info " + pluginInfo +
-                    " from JENKINS_PLUGIN_INFO environment variable");
+            if (verbose) {
+                System.out.println("Using plugin info " + pluginInfo +
+                        " from JENKINS_PLUGIN_INFO environment variable");
+            }
         } else {
             pluginInfo = Settings.DEFAULT_PLUGIN_INFO;
-            System.out.println("No CLI option or environment variable set for plugin info, using default of " +
-                    pluginInfo);
+            if (verbose) {
+                System.out.println("No CLI option or environment variable set for plugin info, using default of " +
+                        pluginInfo);
+            }
         }
         return pluginInfo;
     }
@@ -420,10 +477,6 @@ class CliOptions {
      * @return true if user wants transitive dependencies of latest version plugins to also have the latest version
      */
     public boolean isUseLatestSpecified() {
-        if (useLatestSpecified && useLatestAll) {
-            throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
-                    "at a time");
-        }
         return useLatestSpecified;
     }
 
@@ -440,12 +493,12 @@ class CliOptions {
     /**
      * Returns the boolean corresponding to if the user wants all dependencies to be the latest version, even the
      * dependencies of a plugin that had a requested version that was not the latest
+     *
      * @return true if the user wants all transitive dependencies to be the latest version
      */
     public boolean isUseLatestAll() {
-        if (useLatestSpecified && useLatestAll) {
-            throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
-                    "at a time");
+        if (useLatestSpecified) {
+            return false;
         }
         return useLatestAll;
     }

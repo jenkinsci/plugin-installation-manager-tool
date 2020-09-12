@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Clock;
@@ -34,6 +35,10 @@ public class CacheManager {
     void createCache() {
         if (!Files.exists(cache)) {
             try {
+                Path parent = cache.getParent();
+                if (parent != null && !Files.exists(parent)) {
+                    Files.createDirectory(parent);
+                }
                 Files.createDirectory(cache);
                 if (verbose) {
                     System.out.println("Created cache at: " + cache);
@@ -64,11 +69,8 @@ public class CacheManager {
      * @return the cached json object or null
      */
     JSONObject retrieveFromCache(String cacheKey) {
-        Path cachedPath = cache.resolve(cacheKey + ".json");
-        if (!Files.exists(cachedPath)) {
-            return null;
-        }
-
+        String filename = cacheKey + ".json";
+        Path cachedPath = cache.resolve(filename);
         try {
             FileTime lastModifiedTime = Files.getLastModifiedTime(cachedPath);
             Duration between = Duration.between(lastModifiedTime.toInstant(), clock.instant());
@@ -83,8 +85,22 @@ public class CacheManager {
 
             JSONTokener tokener = new JSONTokener(newInputStream(cachedPath));
             return new JSONObject(tokener);
+        } catch (NoSuchFileException e) {
+            return null;
+        } catch (RuntimeException e) {
+            if (verbose) {
+                System.err.println(
+                        "Cache ignored invalid file " + filename + ".");
+                e.printStackTrace();
+            }
+            return null;
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            if (verbose) {
+                System.err.println(
+                        "Cache ignored file " + filename + " because it cannot be read.");
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }

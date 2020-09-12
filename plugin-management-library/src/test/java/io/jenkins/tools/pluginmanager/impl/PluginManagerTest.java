@@ -5,30 +5,15 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.client.utils.URIUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
@@ -36,11 +21,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
@@ -54,16 +34,10 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.whenNew;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({HttpClients.class, PluginManager.class, HttpClientContext.class, URIUtils.class, HttpHost.class,
-        URI.class, FileUtils.class, Files.class, HttpClientBuilder.class})
-@PowerMockIgnore({"javax.net.ssl.*","javax.security.*", "javax.net.*"})
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -105,9 +79,9 @@ public class PluginManagerTest {
         PluginManager pluginManagerSpy = spy(pluginManager);
 
         doNothing().when(pluginManagerSpy).createRefDir();
-        doReturn(new VersionNumber("2.182")).when(pluginManagerSpy).getJenkinsVersionFromWar();
-        doNothing().when(pluginManagerSpy).checkAndSetLatestUpdateCenter();
-        doNothing().when(pluginManagerSpy).getUCJson();
+        VersionNumber versionNumber = new VersionNumber("2.182");
+        doReturn(versionNumber).when(pluginManagerSpy).getJenkinsVersionFromWar();
+        doNothing().when(pluginManagerSpy).getUCJson(versionNumber);
         doReturn(new HashMap<>()).when(pluginManagerSpy).getSecurityWarnings();
         doNothing().when(pluginManagerSpy).showAllSecurityWarnings();
 
@@ -118,8 +92,7 @@ public class PluginManagerTest {
         doReturn(new HashMap<>()).when(pluginManagerSpy).findEffectivePlugins(anyList());
         doNothing().when(pluginManagerSpy).listPlugins();
         doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
-        doNothing().when(pluginManagerSpy).showAvailableUpdates(anyList());
-        doNothing().when(pluginManagerSpy).checkVersionCompatibility(anyList());
+        doNothing().when(pluginManagerSpy).checkVersionCompatibility(any(), anyList());
         doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
 
         pluginManagerSpy.start();
@@ -291,52 +264,22 @@ public class PluginManagerTest {
         awsCodebuild.put("buildDate", "Jun 20, 2019");
         awsCodebuild.put("version", "0.42");
         awsCodebuild.put("requiredCore", "1.642,3");
-        JSONArray awsCodebuildDependencies = new JSONArray();
 
-        JSONObject workflowStepApiDependency = new JSONObject();
-        workflowStepApiDependency.put("name", "workflow-step-api");
-        workflowStepApiDependency.put("optional", "false");
-        workflowStepApiDependency.put("version", "2.5");
-
-        JSONObject cloudBeesFolderDependency = new JSONObject();
-        cloudBeesFolderDependency.put("name", "cloudbees-folder");
-        cloudBeesFolderDependency.put("optional", "false");
-        cloudBeesFolderDependency.put("version", "6.1.0");
-
-        JSONObject credentialsFolderDependency = new JSONObject();
-        credentialsFolderDependency.put("name", "credentials");
-        credentialsFolderDependency.put("optional", "false");
-        credentialsFolderDependency.put("version", "2.1.14");
-
-        JSONObject scriptSecurityDependency = new JSONObject();
-        scriptSecurityDependency.put("name", "script-security");
-        scriptSecurityDependency.put("optional", "false");
-        scriptSecurityDependency.put("version", "1.29");
-
+        JSONArray awsCodebuildDependencies = array(
+                dependency("workflow-step-api", false, "2.5"),
+                dependency("cloudbees-folder", false, "6.1.0"),
+                dependency("credentials", false, "2.1.14"),
+                dependency("script-security", false, "1.29"));
         awsCodebuild.put("dependencies", awsCodebuildDependencies);
-
-        awsCodebuildDependencies.put(workflowStepApiDependency);
-        awsCodebuildDependencies.put(cloudBeesFolderDependency);
-        awsCodebuildDependencies.put(credentialsFolderDependency);
-        awsCodebuildDependencies.put(scriptSecurityDependency);
 
         JSONObject awsGlobalConfig = new JSONObject();
         awsGlobalConfig.put("buildDate", "Mar 27, 2019");
         awsGlobalConfig.put("version", "1.3");
         awsGlobalConfig.put("requiredCore", "2.121.1");
 
-        JSONArray awsGlobalConfigDependencies = new JSONArray();
-
-        JSONObject awsCredDependency = new JSONObject();
-        awsCredDependency.put("name", "aws-credentials");
-        awsCredDependency.put("optional", "false");
-        awsCredDependency.put("version", "1.23");
-
-        JSONObject structsDepedency = new JSONObject();
-        structsDepedency.put("name", "structs");
-        structsDepedency.put("optional", "false");
-        structsDepedency.put("version", "1.14");
-
+        JSONArray awsGlobalConfigDependencies = array(
+                dependency("aws-credentials", false, "1.23"),
+                dependency("structs", false, "1.14"));
         awsGlobalConfig.put("dependencies", awsGlobalConfigDependencies);
 
         plugins.put("aws-global-configuration", awsGlobalConfig);
@@ -367,67 +310,30 @@ public class PluginManagerTest {
         JSONObject browserStackIntegration= new JSONObject();
         JSONObject browserStack1 = new JSONObject();
         browserStack1.put("requiredCore", "1.580.1");
-        JSONArray dependencies1 = new JSONArray();
-        JSONObject credentials1 = new JSONObject();
-        credentials1.put("name", "credentials");
-        credentials1.put("optional", "false");
-        credentials1.put("version", "1.8");
-        JSONObject junit1 = new JSONObject();
-        junit1.put("name", "junit");
-        junit1.put("optional", "false");
-        junit1.put("version", "1.10");
 
-        dependencies1.put(credentials1);
-        dependencies1.put(junit1);
+        JSONArray dependencies1 = array(
+                dependency("credentials", false, "1.8"),
+                dependency("junit", false, "1.10"));
         browserStack1.put("dependencies", dependencies1);
         browserStackIntegration.put("1.0.0", browserStack1);
 
         JSONObject browserStack111 = new JSONObject();
         browserStack111.put("requiredCore", "1.580.1");
-        JSONArray dependencies111 = new JSONArray();
-        JSONObject credentials111 = new JSONObject();
-        credentials111.put("name", "credentials");
-        credentials111.put("optional", "false");
-        credentials111.put("version", "1.8");
-        JSONObject junit111 = new JSONObject();
-        junit111.put("name", "junit");
-        junit111.put("optional", "false");
-        junit111.put("version", "1.10");
 
-        dependencies111.put(credentials111);
-        dependencies111.put(junit111);
+        JSONArray dependencies111 = array(
+                dependency("credentials", false, "1.8"),
+                dependency("junit", false, "1.10"));
         browserStack111.put("dependencies", dependencies111);
         browserStackIntegration.put("1.1.1", browserStack111);
 
         JSONObject browserStack112 = new JSONObject();
         browserStack112.put("requiredCore", "1.653");
-        JSONArray dependencies112 = new JSONArray();
-        JSONObject credentials112 = new JSONObject();
-        credentials112.put("name", "credentials");
-        credentials112.put("optional", "false");
-        credentials112.put("version", "2.1.17");
-        JSONObject junit112 = new JSONObject();
-        junit112.put("name", "junit");
-        junit112.put("optional", "false");
-        junit112.put("version", "1.10");
-        JSONObject workflowApi112 = new JSONObject();
-        workflowApi112.put("name", "workflow-api");
-        workflowApi112.put("optional", "false");
-        workflowApi112.put("version", "2.6");
-        JSONObject workflowBasicSteps112 = new JSONObject();
-        workflowBasicSteps112.put("name", "workflow-basic-steps");
-        workflowBasicSteps112.put("optional", false);
-        workflowBasicSteps112.put("version", "2.6");
-        JSONObject workflowCps112 = new JSONObject();
-        workflowCps112.put("name", "workflow-cps");
-        workflowCps112.put("optional", "false");
-        workflowCps112.put("version", "2.39");
-
-        dependencies112.put(credentials112);
-        dependencies112.put(junit112);
-        dependencies112.put(workflowApi112);
-        dependencies112.put(workflowBasicSteps112);
-        dependencies112.put(workflowCps112);
+        JSONArray dependencies112 = array(
+                dependency("credentials", false, "2.1.17"),
+                dependency("junit", false, "1.10"),
+                dependency("workflow-api", false, "2.6"),
+                dependency("workflow-basic-steps", false, "2.6"),
+                dependency("workflow-cps", false, "2.39"));
         browserStack112.put("dependencies", dependencies112);
         browserStackIntegration.put("1.1.2", browserStack112);
 
@@ -534,7 +440,6 @@ public class PluginManagerTest {
         Plugin lockableResource2 = new Plugin("lockable-resources", "2.3.0", null, null);
         Plugin cucumberReports1 = new Plugin("cucumber-reports", "1.2.1", null, null);
         Plugin cucumberReports2 = new Plugin("cucumber-reports", "1.4.1", null, null);
-        Plugin cucumberReports3 = new Plugin("cucumber-reports", "2.5.3", null, null);
         Plugin sshAgents1 = new Plugin("ssh-slaves", "0.9", null, null);
         Plugin sshAgents2 = new Plugin("ssh-slaves", "9.2", null, null);
 
@@ -550,9 +455,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void checkVersionCompatibilityNullTest() throws Exception {
-        pm.setJenkinsVersion(null);
-
+    public void checkVersionCompatibilityNullTest() {
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -560,13 +463,11 @@ public class PluginManagerTest {
         plugin2.setJenkinsVersion("1.609.3");
 
         //check passes if no exception is thrown
-        pm.checkVersionCompatibility(Arrays.asList(plugin1, plugin2));
+        pm.checkVersionCompatibility(null, Arrays.asList(plugin1, plugin2));
     }
 
     @Test
     public void checkVersionCompatibilityFailTest() {
-        pm.setJenkinsVersion(new VersionNumber("1.609.3"));
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -575,14 +476,12 @@ public class PluginManagerTest {
 
         List<Plugin> pluginsToDownload = new ArrayList<>(Arrays.asList(plugin1, plugin2));
 
-        assertThatThrownBy(() -> pm.checkVersionCompatibility(pluginsToDownload))
+        assertThatThrownBy(() -> pm.checkVersionCompatibility(new VersionNumber("1.609.3"), pluginsToDownload))
                 .isInstanceOf(VersionCompatibilityException.class);
     }
 
     @Test
     public void checkVersionCompatibilityPassTest() {
-        pm.setJenkinsVersion(new VersionNumber("2.121.2"));
-
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         plugin1.setJenkinsVersion("2.121.2");
 
@@ -590,57 +489,7 @@ public class PluginManagerTest {
         plugin2.setJenkinsVersion("1.609.3");
 
         //check passes if no exception is thrown
-        pm.checkVersionCompatibility(Arrays.asList(plugin1, plugin2));
-    }
-
-    @Test
-    public void showAvailableUpdatesNoOutputTest() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAvailableUpdates(false)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-
-        List<Plugin> plugins = Arrays.asList(
-                new Plugin("ant", "1.8", null, null),
-                new Plugin("amazon-ecs", "1.15", null, null));
-
-        String output = tapSystemOutNormalized(
-                () -> pluginManager.showAvailableUpdates(plugins));
-
-        assertThat(output).isEmpty();
-    }
-
-    @Test
-    public void showAvailableUpdates() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAvailableUpdates(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        List<Plugin> plugins = Arrays.asList(
-                new Plugin("ant", "1.8", null, null),
-                new Plugin("amazon-ecs", "1.15", null, null),
-                new Plugin("maven-invoker-plugin", "2.4", null, null ));
-
-        doReturn(new VersionNumber("1.9")).when(pluginManagerSpy).getLatestPluginVersion("ant");
-        doReturn(new VersionNumber("1.20")).when(pluginManagerSpy).getLatestPluginVersion("amazon-ecs");
-        doReturn(new VersionNumber("2.4")).when(pluginManagerSpy).getLatestPluginVersion("maven-invoker-plugin");
-
-        String output = tapSystemOutNormalized(
-                () -> pluginManagerSpy.showAvailableUpdates(plugins));
-
-        assertThat(output).isEqualTo(
-                "\nAvailable updates:\n"
-                        + "ant (1.8) has an available update: 1.9\n"
-                        + "amazon-ecs (1.15) has an available update: 1.20\n");
+        pm.checkVersionCompatibility(new VersionNumber("2.121.2"), Arrays.asList(plugin1, plugin2));
     }
 
     @Test
@@ -721,33 +570,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void checkVersionSpecificUpdateCenterTest() throws Exception {
-        //Test where version specific update center exists
-        pm.setJenkinsVersion(new VersionNumber("2.176"));
-
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        when(HttpClients.createSystem()).thenReturn(httpclient);
-        HttpHead httphead = mock(HttpHead.class);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead)).thenReturn(response);
-
-        StatusLine statusLine = mock(StatusLine.class);
-        when(response.getStatusLine()).thenReturn(statusLine);
-
-        int statusCode = HttpStatus.SC_OK;
-        when(statusLine.getStatusCode()).thenReturn(statusCode);
-
-        pm.checkAndSetLatestUpdateCenter();
-
-        String expected = dirName(cfg.getJenkinsUc()) + pm.getJenkinsVersion() + Settings.DEFAULT_UPDATE_CENTER_FILENAME;
-        assertThat(pm.getJenkinsUCLatest()).isEqualTo(expected);
-    }
-
-    @Test
     public void outputPluginReplacementInfoTest() throws Exception {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -772,6 +594,7 @@ public class PluginManagerTest {
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void deprecatedGetJsonThrowsExceptionForMalformedURL() {
         assertThatThrownBy(() -> pm.getJson("htttp://ftp-chi.osuosl.org/pub/jenkins/updates/current/update-center.json"))
                 .isInstanceOf(UpdateCenterInfoRetrievalException.class)
@@ -785,31 +608,6 @@ public class PluginManagerTest {
         assertThatThrownBy(() -> pm.getJson(new File("does/not/exist").toURI().toURL(), "update-center"))
                 .isInstanceOf(UpdateCenterInfoRetrievalException.class)
                 .hasMessage("Error getting update center json");
-    }
-
-    @Test
-    public void checkVersionSpecificUpdateCenterBadRequestTest() throws Exception {
-        pm.setJenkinsVersion(new VersionNumber("2.176"));
-
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        when(HttpClients.createSystem()).thenReturn(httpclient);
-        HttpHead httphead = mock(HttpHead.class);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead)).thenReturn(response);
-
-        StatusLine statusLine = mock(StatusLine.class);
-        when(response.getStatusLine()).thenReturn(statusLine);
-
-        int statusCode = HttpStatus.SC_BAD_REQUEST;
-        when(statusLine.getStatusCode()).thenReturn(statusCode);
-
-        pm.checkAndSetLatestUpdateCenter();
-        String expected = cfg.getJenkinsUc().toString();
-        assertThat(pm.getJenkinsUCLatest()).isEqualTo(expected);
     }
 
     @Test
@@ -884,7 +682,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatestSpecified() throws IOException {
+    public void resolveDependenciesFromManifestLatestSpecified() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
@@ -897,11 +695,9 @@ public class PluginManagerTest {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
 
-        mockStatic(Files.class);
         Path tempPath = mock(Path.class);
         File tempFile = mock(File.class);
 
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
         when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
@@ -920,7 +716,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatestAll() throws IOException {
+    public void resolveDependenciesFromManifestLatestAll() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
@@ -932,13 +728,6 @@ public class PluginManagerTest {
 
         Plugin testPlugin = new Plugin("test", "1.1", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        mockStatic(Files.class);
-        Path tempPath = mock(Path.class);
-        File tempFile = mock(File.class);
-
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
-        when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
@@ -955,49 +744,22 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestExceptionTest() throws IOException {
-        mockStatic(Files.class);
-        when(Files.createTempFile(any(String.class), any(String.class))).thenThrow(IOException.class);
+    public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
+        setTestUcJson();
         assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
     }
 
     @Test
-    public void resolveDependenciesFromManifestNoDownload() throws IOException{
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Plugin testPlugin = new Plugin("test", "latest", null, null);
-        doReturn(false).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        mockStatic(Files.class);
-        Path tempPath = mock(Path.class);
-        File tempFile = mock(File.class);
-
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
-        when(tempPath.toFile()).thenReturn(tempFile);
-
-        assertThatThrownBy(() -> pluginManager.resolveDependenciesFromManifest(testPlugin))
-                .isInstanceOf(DownloadPluginException.class);
-    }
-
-    @Test
-    public void resolveDependenciesFromManifestDownload() throws IOException {
+    public void resolveDependenciesFromManifestDownload() {
         PluginManager pluginManagerSpy = spy(pm);
 
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
 
-        mockStatic(Files.class);
         Path tempPath = mock(Path.class);
         File tempFile = mock(File.class);
 
-        when(Files.createTempFile(any(String.class), any(String.class))).thenReturn(tempPath);
         when(tempPath.toFile()).thenReturn(tempFile);
 
         doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13," +
@@ -1093,7 +855,7 @@ public class PluginManagerTest {
 
     @Test
     public void resolveDependenciesFromJsonTest() {
-        JSONObject json = (JSONObject) setTestUcJson();
+        JSONObject json = setTestUcJson();
 
         Plugin mavenInvoker = new Plugin("maven-invoker-plugin", "2.4", null, null);
         List<Plugin> actualPlugins = pm.resolveDependenciesFromJson(mavenInvoker, json);
@@ -1137,38 +899,12 @@ public class PluginManagerTest {
         JSONObject pluginJson = setTestUcJson();
         Plugin mvnInvokerPlugin = new Plugin("maven-invoker-plugin", "2.4", null, null);
 
-        JSONArray mavenInvokerDependencies = new JSONArray();
-
-        JSONObject workflowApiDependency = new JSONObject();
-        workflowApiDependency.put("name", "workflow-api");
-        workflowApiDependency.put("optional", "false");
-        workflowApiDependency.put("version", "2.22");
-
-        JSONObject workflowStepApi = new JSONObject();
-        workflowStepApi.put("name", "workflow-step-api");
-        workflowStepApi.put("optional", "false");
-        workflowStepApi.put("version", "2.12");
-
-        JSONObject mailer = new JSONObject();
-        mailer.put("name", "mailer");
-        mailer.put("optional", "false");
-        mailer.put("version", "1.18");
-
-        JSONObject scriptSecurity = new JSONObject();
-        scriptSecurity.put("name", "script-security");
-        scriptSecurity.put("optional", "false");
-        scriptSecurity.put("version", "1.30");
-
-        JSONObject structs = new JSONObject();
-        structs.put("name", "structs");
-        structs.put("optional", "true");
-        structs.put("version", "1.7");
-
-        mavenInvokerDependencies.put(workflowApiDependency);
-        mavenInvokerDependencies.put(workflowStepApi);
-        mavenInvokerDependencies.put(mailer);
-        mavenInvokerDependencies.put(scriptSecurity);
-        mavenInvokerDependencies.put(structs);
+        JSONArray mavenInvokerDependencies = array(
+                dependency("workflow-api", false, "2.22"),
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("mailer", false, "1.18"),
+                dependency("script-security", false, "1.30"),
+                dependency("structs", true, "1.7"));
 
         doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
         doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
@@ -1261,55 +997,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadToFileTest() throws Exception {
-        mockStatic(HttpClients.class);
-        CloseableHttpClient httpclient = mock(CloseableHttpClient.class);
-
-        HttpClientBuilder builder = mock(HttpClientBuilder.class);
-        when(HttpClients.custom()).thenReturn(builder);
-        when(builder.build()).thenReturn(httpclient);
-
-        HttpHead httphead = mock(HttpHead.class);
-
-        mockStatic(HttpClientContext.class);
-
-        HttpClientContext context = mock(HttpClientContext.class);
-        when(HttpClientContext.create()).thenReturn(context);
-
-        whenNew(HttpHead.class).withAnyArguments().thenReturn(httphead);
-        CloseableHttpResponse response = mock(CloseableHttpResponse.class);
-        when(httpclient.execute(httphead, context)).thenReturn(response);
-
-        HttpHost target = mock(HttpHost.class);
-        when(context.getTargetHost()).thenReturn(target);
-
-        List<URI> redirectLocations = singletonList(new URI("downloadURI"));
-
-        when(context.getRedirectLocations()).thenReturn(redirectLocations);
-
-        mockStatic(URIUtils.class);
-
-        URI downloadLocation = PowerMockito.mock(URI.class);
-
-        URI requestedLocation = PowerMockito.mock(URI.class);
-        when(httphead.getURI()).thenReturn(requestedLocation);
-
-        when(URIUtils.resolve(requestedLocation, target, redirectLocations)).thenReturn(downloadLocation);
-
-        mockStatic(FileUtils.class);
-
-        //File pluginDir = cfg.getPluginDir();
-        //File tmp3 = File.createTempFile("test", ".jpi", pluginDir);
-
-        Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
-
-        JarFile pluginJpi = mock(JarFile.class);
-
-        whenNew(JarFile.class).withAnyArguments().thenReturn(pluginJpi);
-        assertThat(pm.downloadToFile("downloadURL", plugin, null)).isTrue();
-    }
-
-    @Test
     public void getPluginDownloadUrlTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
 
@@ -1320,8 +1007,8 @@ public class PluginManagerTest {
         Plugin pluginNoUrl = new Plugin("pluginName", "latest", null, null);
         String latestUcUrl = "https://updates.jenkins.io/2.176";
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
-        VersionNumber latestVersion = new VersionNumber("latest");
         String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
+        setTestUcJson();
         Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
         Plugin pluginNoVersion = new Plugin("pluginName", null, null, null);
@@ -1362,75 +1049,13 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void getAttributeFromManifestExceptionTest() throws Exception {
-        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
-        File testJpi = new File(jpiURL.getFile());
-
-        whenNew(JarFile.class).withArguments(testJpi).thenThrow(new IOException());
-
-        assertThatThrownBy(() -> pm.getAttributeFromManifest(testJpi, "Plugin-Dependencies"))
+    public void getAttributeFromManifestExceptionTest() {
+        assertThatThrownBy(() -> pm.getAttributeFromManifest(new File("non-existing-file.txt"), "Plugin-Dependencies"))
                 .isInstanceOf(DownloadPluginException.class);
     }
 
-    public void getAttributeFromManifestTest() throws Exception {
-        URL jpiURL = this.getClass().getResource("/delivery-pipeline-plugin.jpi");
-        File testJpi = new File(jpiURL.getFile());
-
-        String key = "key";
-        String value = "value";
-
-        JarFile jarFile = mock(JarFile.class);
-        Manifest manifest = mock(Manifest.class);
-        Attributes attributes = mock(Attributes.class);
-
-        whenNew(JarFile.class).withArguments(testJpi).thenReturn(jarFile);
-        when(jarFile.getManifest()).thenReturn(manifest);
-        when(manifest.getMainAttributes()).thenReturn(attributes);
-        when(attributes.getValue(key)).thenReturn(value);
-
-        assertThat(pm.getAttributeFromManifest(testJpi, "key")).isEqualTo(value);
-    }
-
-    public void showAllSecurityWarningsNoOutput() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAllWarnings(false)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-        String output = tapSystemOutNormalized(
-                pluginManager::showAllSecurityWarnings);
-
-        assertThat(output).isEmpty();
-    }
-
-
-    public void showAllSecurityWarnings() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withShowAllWarnings(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-        pluginManager.setLatestUcJson(setTestUcJson());
-
-        String output = tapSystemOutNormalized(
-                pluginManager::showAllSecurityWarnings);
-
-        assertThat(output).isEqualTo(
-                "google-login - Authentication bypass vulnerability\n" +
-                        "cucumber-reports - Plugin disables Content-Security-Policy for files served by Jenkins\n" +
-                        "pipeline-maven - Arbitrary files from Jenkins master available in Pipeline by using the withMaven step\n" +
-                        "pipeline-maven - XML External Entity processing vulnerability\n");
-    }
-
-
     @Test
-    public void getJenkinsVersionFromWarTest() throws Exception {
+    public void getJenkinsVersionFromWarTest() {
         URL warURL = this.getClass().getResource("/jenkinsversiontest.war");
         File testWar = new File(warURL.getFile());
 
@@ -1444,7 +1069,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    @PrepareForTest({HttpClients.class, HttpClientContext.class, HttpHost.class})
     public void bundledPluginsTest() {
         URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());
@@ -1470,101 +1094,51 @@ public class PluginManagerTest {
         latestUcJson.put("plugins", pluginJson);
 
         JSONObject structsPlugin = new JSONObject();
-        JSONArray structsDependencies = new JSONArray();
 
-        JSONObject credentials = new JSONObject();
-        credentials.put("name", "scm-api");
-        credentials.put("optional", "false");
-        credentials.put("version", "2.2.6");
+        JSONObject credentials = dependency("scm-api", false, "2.2.6");
 
-        structsDependencies.put(credentials);
-        structsPlugin.put("dependencies", structsDependencies);
+        structsPlugin.put("dependencies", array(credentials));
         structsPlugin.put("version", "1.19");
         structsPlugin.put("requiredCore", "2.60.3");
         pluginJson.put("structs", structsPlugin);
 
         JSONObject testWeaverPlugin = new JSONObject();
-        JSONArray testWeaverDependencies = new JSONArray();
 
-        JSONObject structsDependency = new JSONObject();
-        structsDependency.put("name", "structs");
-        structsDependency.put("optional", "false");
-        structsDependency.put("version", "1.7");
+        JSONObject structsDependency = dependency("structs", false, "1.7");
 
-        testWeaverDependencies.put(structsDependency);
-        testWeaverPlugin.put("dependencies", testWeaverDependencies);
+        testWeaverPlugin.put("dependencies", array(structsDependency));
         testWeaverPlugin.put("version", "1.0.1");
         testWeaverPlugin.put("requiredCore", "2.7.3");
         pluginJson.put("testweaver", testWeaverPlugin);
 
         JSONObject mavenInvokerPlugin = new JSONObject();
 
-        JSONArray mavenInvokerDependencies = new JSONArray();
-
-        JSONObject workflowApiDependency = new JSONObject();
-        workflowApiDependency.put("name", "workflow-api");
-        workflowApiDependency.put("optional", "false");
-        workflowApiDependency.put("version", "2.22");
-
-        JSONObject workflowStepApi = new JSONObject();
-        workflowStepApi.put("name", "workflow-step-api");
-        workflowStepApi.put("optional", "false");
-        workflowStepApi.put("version", "2.12");
-
-        JSONObject mailer = new JSONObject();
-        mailer.put("name", "mailer");
-        mailer.put("optional", "false");
-        mailer.put("version", "1.18");
-
-        JSONObject scriptSecurity = new JSONObject();
-        scriptSecurity.put("name", "script-security");
-        scriptSecurity.put("optional", "false");
-        scriptSecurity.put("version", "1.30");
-
-        JSONObject structs = new JSONObject();
-        structs.put("name", "structs");
-        structs.put("optional", "true");
-        structs.put("version", "1.7");
-
-        mavenInvokerDependencies.put(workflowApiDependency);
-        mavenInvokerDependencies.put(workflowStepApi);
-        mavenInvokerDependencies.put(mailer);
-        mavenInvokerDependencies.put(scriptSecurity);
-        mavenInvokerDependencies.put(structs);
-        mavenInvokerPlugin.put("dependencies", mavenInvokerDependencies);
+        mavenInvokerPlugin.put("dependencies", array(
+                dependency("workflow-api", false, "2.22"),
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("mailer", false, "1.18"),
+                dependency("script-security", false, "1.30"),
+                dependency("structs", true, "1.7")));
         mavenInvokerPlugin.put("version", "2.4");
         mavenInvokerPlugin.put("requiredCore", "2.89.4");
 
         pluginJson.put("maven-invoker-plugin", mavenInvokerPlugin);
 
         JSONObject amazonEcsPlugin = new JSONObject();
-        JSONArray amazonEcsPluginDependencies = new JSONArray();
 
-        JSONObject apacheHttpComponentsClientApi = new JSONObject();
-        apacheHttpComponentsClientApi.put("name", "workflow-step-api");
-        apacheHttpComponentsClientApi.put("optional", false);
-        apacheHttpComponentsClientApi.put("version", "4.5.5-3.0");
-
-        JSONObject awsCredentials = new JSONObject();
-        awsCredentials.put("name", "aws-credentials");
-        awsCredentials.put("optional", false);
-        awsCredentials.put("version", "1.23");
-
-        amazonEcsPluginDependencies.put(workflowStepApi);
-        amazonEcsPluginDependencies.put(apacheHttpComponentsClientApi);
-        amazonEcsPluginDependencies.put(awsCredentials);
-
-        amazonEcsPlugin.put("dependencies", amazonEcsPluginDependencies);
+        amazonEcsPlugin.put("dependencies", array(
+                dependency("workflow-step-api", false, "2.12"),
+                dependency("workflow-step-api", false, "4.5.5-3.0"),
+                dependency("aws-credentials", false, "1.23")
+        ));
         amazonEcsPlugin.put("version", "1.20");
         amazonEcsPlugin.put("requiredCore", "2.107.3");
 
         pluginJson.put("amazon-ecs", amazonEcsPlugin);
 
         JSONObject antPlugin = new JSONObject();
-        JSONArray antPluginDependencies = new JSONArray();
-        antPluginDependencies.put(structs);
 
-        antPlugin.put("dependencies", antPluginDependencies);
+        antPlugin.put("dependencies", array(dependency("structs", true, "1.7")));
         antPlugin.put("version", "1.9");
         antPlugin.put("requiredCore", "2.121.2");
 
@@ -1575,23 +1149,16 @@ public class PluginManagerTest {
 
         latestUcJson.put("updateCenterVersion", "1");
 
-        JSONArray warningArray = new JSONArray();
-
         JSONObject security208 = new JSONObject();
         security208.put("id", "SECURITY-208");
         security208.put("message", "Authentication bypass vulnerability");
         security208.put("name", "google-login");
         security208.put("type", "plugin");
         security208.put("url", "https://jenkins.io/security/advisory/2015-10-12/");
-        JSONArray versionArray208 = new JSONArray();
         JSONObject version208 = new JSONObject();
         version208.put("lastVersion", "1.1");
         version208.put("pattern", "1[.][01](|[.-].*)");
-        versionArray208.put(version208);
-        security208.put("versions", versionArray208);
-        versionArray208.put(version208);
-
-        warningArray.put(security208);
+        security208.put("versions", array(version208, version208));
 
         JSONObject security309 = new JSONObject();
         security309.put("id", "SECURITY-309");
@@ -1600,15 +1167,11 @@ public class PluginManagerTest {
         security309.put("type", "plugin");
         security309.put("url", "https://jenkins.io/security/advisory/2016-07-27/");
 
-        JSONArray versionArray309 = new JSONArray();
         JSONObject version309 = new JSONObject();
         version309.put("firstVersion", "1.3.0");
         version309.put("lastVersion", "2.5.1");
         version309.put("pattern", "(1[.][34]|2[.][012345])(|[.-].*)");
-        versionArray309.put(version309);
-        security309.put("versions", versionArray309);
-
-        warningArray.put(security309);
+        security309.put("versions", array(version309));
 
         JSONObject core = new JSONObject();
         core.put("id", "core-2_44");
@@ -1617,14 +1180,10 @@ public class PluginManagerTest {
         core.put("type", "core");
         core.put("url", "https://jenkins.io/security/advisory/2017-02-01/");
 
-        JSONArray coreVersionArray = new JSONArray();
         JSONObject coreVersion = new JSONObject();
         coreVersion.put("lastVersion", "2.43");
         coreVersion.put("pattern", "(1[.].*|2[.]\\d|2[.][123]\\d|2[.]4[0123])(|[-].*)");
-        coreVersionArray.put(coreVersion);
-        core.put("versions", coreVersionArray);
-
-        warningArray.put(core);
+        core.put("versions", array(coreVersion));
 
         JSONObject security441 = new JSONObject();
         security441.put("id", "SECURITY-441");
@@ -1632,18 +1191,13 @@ public class PluginManagerTest {
         security441.put("name", "pipeline-maven");
         security441.put("type", "plugin");
         security441.put("url", "https://jenkins.io/security/advisory/2017-03-09/");
-        JSONArray versionArray441 = new JSONArray();
         JSONObject firstVersions441 = new JSONObject();
         firstVersions441.put("lastVersion", "0.6");
         firstVersions441.put("pattern", "0[.][123456](|[.-].*)");
         JSONObject laterVersions441 = new JSONObject();
         laterVersions441.put("lastVersion", "2.0-beta-5");
         laterVersions441.put("pattern", "2[.]0[-]beta[-][345](|[.-].*)");
-        versionArray441.put(firstVersions441);
-        versionArray441.put(laterVersions441);
-        security441.put("versions", versionArray441);
-
-        warningArray.put(security441);
+        security441.put("versions", array(firstVersions441, laterVersions441));
 
         JSONObject security1409 = new JSONObject();
         security1409.put("id", "SECURITY-1409");
@@ -1652,18 +1206,32 @@ public class PluginManagerTest {
         security1409.put("type", "plugin");
         security1409.put("url", "https://jenkins.io/security/advisory/2019-05-31/#SECURITY-1409");
 
-        JSONArray versionArray1409 = new JSONArray();
         JSONObject version1409 = new JSONObject();
         version1409.put("lastVersion", "3.7.0");
         version1409.put("pattern", "([0-2]|3[.][0-6]|3[.]7[.]0)(|[.-].*)");
-        versionArray1409.put(version1409);
-        security1409.put("versions", versionArray1409);
-        warningArray.put(security1409);
+        security1409.put("versions", array(version1409));
 
-        latestUcJson.put("warnings", warningArray);
+        latestUcJson.put("warnings", array(
+                security208, security309, core, security441, security1409));
 
         pm.setLatestUcJson(latestUcJson);
         pm.setLatestUcPlugins(pluginJson);
+        pm.setExperimentalUcJson(latestUcJson);
         return latestUcJson;
+    }
+
+    private JSONArray array(
+            JSONObject... objects) {
+        return new JSONArray(objects);
+    }
+
+    private JSONObject dependency(
+            String name,
+            boolean optional,
+            String version) {
+        return new JSONObject()
+                .put("name", name)
+                .put("optional", optional)
+                .put("version", version);
     }
 }

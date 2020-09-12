@@ -33,6 +33,7 @@ public class Config {
     private boolean useLatestSpecified;
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
+    private final OutputFormat outputFormat;
 
     private Config(
             File pluginDir,
@@ -50,8 +51,8 @@ public class Config {
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
-            boolean skipFailedPlugins
-    ) {
+            boolean skipFailedPlugins,
+            OutputFormat outputFormat) {
         this.pluginDir = pluginDir;
         this.showWarnings = showWarnings;
         this.showAllWarnings = showAllWarnings;
@@ -68,7 +69,7 @@ public class Config {
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
         this.skipFailedPlugins = skipFailedPlugins;
-
+        this.outputFormat = outputFormat;
     }
 
     public File getPluginDir() {
@@ -154,6 +155,7 @@ public class Config {
         private boolean useLatestSpecified;
         private boolean useLatestAll;
         private boolean skipFailedPlugins;
+        private OutputFormat outputFormat = OutputFormat.STDOUT;
 
         private Builder() {
         }
@@ -238,6 +240,11 @@ public class Config {
             return this;
         }
 
+        public Builder withOutputFormat(OutputFormat outputFormat) {
+            this.outputFormat = outputFormat;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -255,10 +262,9 @@ public class Config {
                     doDownload,
                     useLatestSpecified,
                     useLatestAll,
-                    skipFailedPlugins
+                    skipFailedPlugins,
+                    outputFormat
             );
         }
-
-
     }
 }
