@@ -449,7 +449,7 @@ public class PluginManager {
                 boolean successfulDownload = downloadPlugin(plugin, null);
                 if (skipFailedPlugins) {
                     System.out.println(
-                                "SKIP: Unable to download " + plugin.getName());
+                            "SKIP: Unable to download " + plugin.getName());
                 } else if (!successfulDownload) {
                     throw new DownloadPluginException("Unable to download " + plugin.getName());
                 }
@@ -841,7 +841,7 @@ public class PluginManager {
                     } else {
                         String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                         throw new PluginDependencyStrategyException(message);
+                        throw new PluginDependencyStrategyException(message);
                     }
                 }
 
@@ -909,8 +909,10 @@ public class PluginManager {
             pluginVersion = "latest";
         }
 
-        if (!StringUtils.isEmpty(pluginUrl)) {
-            logVerbose(String.format("Will use url: %s to download %s plugin", pluginUrl, plugin.getName()));
+        String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
+        if (StringUtils.isNotEmpty(jenkinsUcDownload)){
+            urlString = appendPathOntoUrl(jenkinsUcDownload, "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
+        }else if (!StringUtils.isEmpty(pluginUrl) ) {
             urlString = pluginUrl;
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             JSONObject plugins = latestUcJson.getJSONObject("plugins");
@@ -931,13 +933,12 @@ public class PluginManager {
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");
-            String incrementalsVersionPath =
-                    String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
-            urlString =
-                    appendPathOntoUrl(cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
+            String incrementalsVersionPath = String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
+            urlString = appendPathOntoUrl(cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
         } else {
             urlString = appendPathOntoUrl(removePath(cfg.getJenkinsUc()), "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         }
+        logVerbose(String.format("Will use url: %s to download %s plugin", urlString, plugin.getName()));
         return urlString;
     }
 
@@ -967,7 +968,7 @@ public class PluginManager {
      * @return true if download is successful, false otherwise
      */
     @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
-    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
+    private boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
             pluginFile = new File(refDir, plugin.getArchiveFileName());
