@@ -968,7 +968,7 @@ public class PluginManager {
      * @return true if download is successful, false otherwise
      */
     @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
-    private boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
+    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
             pluginFile = new File(refDir, plugin.getArchiveFileName());
