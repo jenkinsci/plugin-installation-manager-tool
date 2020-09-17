@@ -51,7 +51,7 @@ Jenkins in a broken state.
 * `CACHE_DIR`: used to configure the directory where the plugins update center cache is located. By default it will be in `~/.cache/jenkins-plugin-management-cli`,
 if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jenkins-plugin-management-cli`.
 
-* `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or as proxy the Jenkins plugin download site. 
+* `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or to proxy the Jenkins plugin download site. 
 If set then all plugins will be downloaded through that URL.
   
 #### Plugin Input Format
