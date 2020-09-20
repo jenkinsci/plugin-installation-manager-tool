@@ -110,7 +110,7 @@ mailer:1.32
 
 Yaml format:
 ```command
-java -jar jenkins-plugin-manager-*.jar --available-updates --output txt --plugins mailer:1.31
+$ java -jar jenkins-plugin-manager-*.jar --available-updates --output yaml --plugins mailer:1.31
 ```
 
 ```yaml
