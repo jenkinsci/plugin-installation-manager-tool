@@ -97,7 +97,7 @@ plugins:
   ...
 ```
 
-As with the plugins.txt file, version and URL are optional. If if no version is provided, the latest version is used by default. If a groupId is provided, the tool will try to download the plugin from the Jenkins incrementals repository.
+As with the plugins.txt file, version and URL are optional. If no version is provided, the latest version is used by default. If a groupId is provided, the tool will try to download the plugin from the Jenkins incrementals repository.
 
 #### Updating plugins
 
