@@ -124,7 +124,12 @@ public class PluginManager {
     public void start(boolean downloadUc) {
         if (refDir.exists()) {
             try {
-                FileUtils.deleteDirectory(refDir);
+                File[] toBeDeleted = refDir.listFiles();
+                if (toBeDeleted != null) {
+                    for (File deletableFile : toBeDeleted) {
+                        FileUtils.forceDelete(deletableFile);
+                    }
+                }
             } catch (IOException e) {
                 throw new UncheckedIOException("Unable to delete: " + refDir.getAbsolutePath(), e);
             }
