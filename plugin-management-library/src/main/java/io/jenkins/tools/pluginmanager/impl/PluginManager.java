@@ -127,11 +127,7 @@ public class PluginManager {
                 File[] toBeDeleted = refDir.listFiles();
                 if (toBeDeleted != null) {
                     for (File deletableFile : toBeDeleted) {
-                        if (deletableFile.isDirectory()) {
-                            FileUtils.deleteDirectory(deletableFile);
-                        } else {
-                            deletableFile.delete();
-                        }
+                        FileUtils.forceDelete(deletableFile);
                     }
                 }
             } catch (IOException e) {
