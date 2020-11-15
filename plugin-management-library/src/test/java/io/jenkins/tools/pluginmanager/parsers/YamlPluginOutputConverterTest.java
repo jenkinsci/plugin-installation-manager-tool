@@ -19,7 +19,7 @@ public class YamlPluginOutputConverterTest extends BaseParserTest {
                 .isEqualTo("plugins:\n" +
                         "- artifactId: \"mailer\"\n" +
                         "  source:\n" +
-                        "    version: \"1.32\"\n");
+                        "    version: \"1.32.1\"\n");
     }
 
     @Test
@@ -52,7 +52,7 @@ public class YamlPluginOutputConverterTest extends BaseParserTest {
 
     @Test
     public void convertNoUpdates() {
-        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32"));
+        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32.1"));
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(originalPlugins);
 
         String converted = new YamlPluginOutputConverter().convert(latestVersionsOfPlugins);
@@ -60,6 +60,6 @@ public class YamlPluginOutputConverterTest extends BaseParserTest {
                 .isEqualTo("plugins:\n" +
                         "- artifactId: \"mailer\"\n" +
                         "  source:\n" +
-                        "    version: \"1.32\"\n");
+                        "    version: \"1.32.1\"\n");
     }
 }

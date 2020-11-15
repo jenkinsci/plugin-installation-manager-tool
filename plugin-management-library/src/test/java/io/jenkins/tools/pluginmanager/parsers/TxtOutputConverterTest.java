@@ -16,7 +16,7 @@ public class TxtOutputConverterTest extends BaseParserTest {
 
         String converted = new TxtOutputConverter().convert(latestVersionsOfPlugins);
         assertThat(converted)
-                .isEqualTo("mailer:1.32");
+                .isEqualTo("mailer:1.32.1");
     }
 
     @Test
@@ -41,11 +41,11 @@ public class TxtOutputConverterTest extends BaseParserTest {
 
     @Test
     public void convertNoUpdated() {
-        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32"));
+        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32.1"));
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(originalPlugins);
 
         String converted = new TxtOutputConverter().convert(latestVersionsOfPlugins);
         assertThat(converted)
-                .isEqualTo("mailer:1.32");
+                .isEqualTo("mailer:1.32.1");
     }
 }

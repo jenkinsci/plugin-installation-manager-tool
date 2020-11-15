@@ -60,7 +60,6 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 import static java.util.Comparator.comparing;
-import static java.util.Comparator.reverseOrder;
 
 public class PluginManager {
     private static final VersionNumber LATEST = new VersionNumber("latest");
@@ -79,6 +78,7 @@ public class PluginManager {
     private JSONObject experimentalUcJson;
     private JSONObject pluginInfoJson;
     private JSONObject latestPlugins;
+    private JSONObject experimentalPlugins;
     private boolean verbose;
     private boolean useLatestSpecified;
     private boolean useLatestAll;
@@ -364,37 +364,34 @@ public class PluginManager {
                     if (plugin.getUrl() != null || plugin.getGroupId() != null) {
                         return plugin;
                     }
-                    JSONObject pluginsKey = (JSONObject) pluginInfoJson.get("plugins");
-                    if (pluginsKey.has(plugin.getName())) {
-                        JSONObject pluginInfo = (JSONObject) pluginsKey.get(plugin.getName());
-                        List<VersionNumber> sortedVersions = pluginInfo.toMap()
-                                .keySet().stream()
-                                .filter(version -> nonBetaPluginsDoNotOfferBeta(plugin.getVersion().toString(), version))
-                                .map(VersionNumber::new)
-                                .sorted(reverseOrder())
-                                .collect(Collectors.toList());
+                    if (latestPlugins == null) {
+                        throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
+                    }
 
-                        return new Plugin(plugin.getName(), sortedVersions.get(0).toString(), null, null);
+                    if (isBeta(plugin.getVersion().toString()) && experimentalPlugins.has(plugin.getName())) {
+                        return getUpdatedPlugin(plugin, experimentalPlugins);
+                    }
+
+                    if (latestPlugins.has(plugin.getName())) {
+                        return getUpdatedPlugin(plugin, latestPlugins);
                     }
                     return plugin;
                 })
                 .collect(Collectors.toList());
     }
 
-    /**
-     * If the plugin isn't a beta version then don't offer beta versions
-     */
-    private boolean nonBetaPluginsDoNotOfferBeta(String pluginVersion, String version) {
-        boolean offeredVersionNonBeta = isNonBeta(version);
-        if (offeredVersionNonBeta) {
-            return true;
+    private Plugin getUpdatedPlugin(Plugin plugin, JSONObject pluginsFromUpdateCenter) {
+        JSONObject pluginInfo = pluginsFromUpdateCenter.getJSONObject(plugin.getName());
+        VersionNumber versionNumber = new VersionNumber(pluginInfo.getString("version"));
+        if (versionNumber.isOlderThan(plugin.getVersion())) {
+            versionNumber = plugin.getVersion();
         }
 
-        return !isNonBeta(pluginVersion);
+        return new Plugin(plugin.getName(), versionNumber.toString(), null, null);
     }
 
-    private boolean isNonBeta(String version) {
-        return StringUtils.indexOfAny(version, "alpha", "beta") == -1;
+    private boolean isBeta(String version) {
+        return StringUtils.indexOfAny(version, "alpha", "beta") != -1;
     }
 
     /**
@@ -600,6 +597,7 @@ public class PluginManager {
         }
         latestPlugins = latestUcJson.getJSONObject("plugins");
         experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center" + cacheSuffix);
+        experimentalPlugins = experimentalUcJson.getJSONObject("plugins");
         pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
     }
 
@@ -1264,6 +1262,14 @@ public class PluginManager {
      */
     public void setExperimentalUcJson(JSONObject experimentalUcJson) {
         this.experimentalUcJson = experimentalUcJson;
+    }
+
+    /**
+     * Sets the json object containing latest experimental plugin information
+     * @param experimentalPlugins JSONObject containing info for latest experimental plugins
+     */
+    public void setExperimentalPlugins(JSONObject experimentalPlugins) {
+        this.experimentalPlugins = experimentalPlugins;
     }
 
     /**

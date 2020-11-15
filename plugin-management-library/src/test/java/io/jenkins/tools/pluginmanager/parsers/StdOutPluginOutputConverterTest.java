@@ -18,12 +18,12 @@ public class StdOutPluginOutputConverterTest extends BaseParserTest {
         String converted = new StdOutPluginOutputConverter(originalPlugins).convert(latestVersionsOfPlugins);
         assertThat(converted.trim().replaceAll("\r\n", "\n"))
                 .isEqualTo(format("Available updates:%n" +
-                        "mailer (1.31) has an available update: 1.32%n").trim().replaceAll("\r\n", "\n"));
+                        "mailer (1.31) has an available update: 1.32.1%n").trim().replaceAll("\r\n", "\n"));
     }
 
     @Test
     public void convertNoUpdated() {
-        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32"));
+        List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32.1"));
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(originalPlugins);
 
         String converted = new StdOutPluginOutputConverter(originalPlugins).convert(latestVersionsOfPlugins);
