@@ -12,12 +12,14 @@ import java.io.IOException;
 import java.util.List;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.ParserProperties;
 
 public class Main {
     @SuppressFBWarnings("DM_EXIT")
     public static void main(String[] args) throws IOException {
         CliOptions options = new CliOptions();
-        CmdLineParser parser = new CmdLineParser(options);
+        ParserProperties parserProperties = ParserProperties.defaults().withUsageWidth(150);
+        CmdLineParser parser = new CmdLineParser(options, parserProperties);
 
         try {
             parser.parseArgument(args);
@@ -25,6 +27,11 @@ public class Main {
             parser.printUsage(System.err);
             System.err.println(e.getMessage());
             throw new IOException("Failed to read command-line arguments", e);
+        }
+
+        if (args.length == 0) {
+            parser.printUsage(System.out);
+            return;
         }
 
         try {
