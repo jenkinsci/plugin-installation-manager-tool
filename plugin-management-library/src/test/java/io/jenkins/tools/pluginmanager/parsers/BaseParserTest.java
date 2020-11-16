@@ -19,7 +19,9 @@ public class BaseParserTest {
     public void before() throws IOException {
         pm = new PluginManager(Config.builder().withJenkinsWar(Settings.DEFAULT_WAR).build());
         JSONObject pluginInfoJson = loadPluginVersionsFromClassPath();
-        pm.setPluginInfoJson(pluginInfoJson);
+        pm.setLatestUcPlugins(pluginInfoJson.getJSONObject("plugins"));
+        JSONObject experimentalPlugins = loadExperimentalPluginVersionsFromClassPath();
+        pm.setExperimentalPlugins(experimentalPlugins.getJSONObject("plugins"));
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -36,7 +38,13 @@ public class BaseParserTest {
     }
 
     protected JSONObject loadPluginVersionsFromClassPath() throws IOException {
-        try (InputStream stream = getClass().getResourceAsStream("../impl/available-updates/simple-plugin-versions.json")) {
+        try (InputStream stream = getClass().getResourceAsStream("../impl/available-updates/update-center.actual.json")) {
+            return new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
+        }
+    }
+
+    private JSONObject loadExperimentalPluginVersionsFromClassPath() throws IOException {
+        try (InputStream stream = getClass().getResourceAsStream("../impl/available-updates/update-center.experimental.json")) {
             return new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
         }
     }

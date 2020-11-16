@@ -28,7 +28,10 @@ public class PluginManagerUpdatesTest {
         pm = new PluginManager(cfg);
 
         JSONObject pluginInfoJson = loadPluginVersionsFromClassPath();
-        pm.setPluginInfoJson(pluginInfoJson);
+        pm.setLatestUcPlugins(pluginInfoJson.getJSONObject("plugins"));
+
+        JSONObject experimentalPlugins = loadExperimentalPluginVersionsFromClassPath();
+        pm.setExperimentalPlugins(experimentalPlugins.getJSONObject("plugins"));
     }
 
     @Test
@@ -36,11 +39,17 @@ public class PluginManagerUpdatesTest {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(plugin("mailer", "1.31")));
 
         assertThat(latestVersionsOfPlugins)
-                .containsExactly(plugin("mailer", "1.32"));
+                .containsExactly(plugin("mailer", "1.32.1"));
     }
 
     private JSONObject loadPluginVersionsFromClassPath() throws IOException {
-        try (InputStream stream = getClass().getResourceAsStream("available-updates/simple-plugin-versions.json")) {
+        try (InputStream stream = getClass().getResourceAsStream("available-updates/update-center.actual.json")) {
+            return new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
+        }
+    }
+
+    private JSONObject loadExperimentalPluginVersionsFromClassPath() throws IOException {
+        try (InputStream stream = getClass().getResourceAsStream("available-updates/update-center.experimental.json")) {
             return new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
         }
     }
@@ -86,14 +95,13 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void pluginIsFromExperimentalUpdateCenter() {
-
+    public void pluginIsFromExperimentalUpdateCenter() throws IOException {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
-                plugin("display-url-api", "2.1.0-beta-1"))
+                plugin("help-editor", "0.1-beta-1"))
         );
 
         assertThat(latestVersionsOfPlugins)
-                .containsExactly(plugin("display-url-api", "2.2.0-beta-1"));
+                .containsExactly(plugin("help-editor", "0.1-beta-2"));
     }
 
     @Test
@@ -103,18 +111,17 @@ public class PluginManagerUpdatesTest {
         );
 
         assertThat(latestVersionsOfPlugins)
-                .containsExactly(plugin("mailer", "1.32"));
+                .containsExactly(plugin("mailer", "1.32.1"));
     }
 
     @Test
-    public void betaVersionNotOfferedToGAUsers() {
-        Plugin plugin = plugin("display-url-api", "2.1.0");
+    public void newerExperimentalIsNotDowngradedToGA() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
-                plugin)
+            plugin("mailer", "1.33-beta-1"))
         );
 
         assertThat(latestVersionsOfPlugins)
-                .containsExactly(plugin("display-url-api", "2.1.0"));
+            .containsExactly(plugin("mailer", "1.33-beta-1"));
     }
 
     private Plugin plugin(String name, String version) {
