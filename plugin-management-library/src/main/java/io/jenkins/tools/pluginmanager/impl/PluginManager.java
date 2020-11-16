@@ -361,14 +361,15 @@ public class PluginManager {
     public List<Plugin> getLatestVersionsOfPlugins(List<Plugin> plugins) {
         return plugins.stream()
                 .map(plugin -> {
-                    if (plugin.getUrl() != null || plugin.getGroupId() != null) {
+                    String pluginVersion = plugin.getVersion().toString();
+                    if (plugin.getUrl() != null || plugin.getGroupId() != null || pluginVersion.equals("latest")) {
                         return plugin;
                     }
                     if (latestPlugins == null) {
                         throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
                     }
 
-                    if (isBeta(plugin.getVersion().toString()) && experimentalPlugins.has(plugin.getName())) {
+                    if (isBeta(pluginVersion) && experimentalPlugins.has(plugin.getName())) {
                         return getUpdatedPlugin(plugin, experimentalPlugins);
                     }
 
