@@ -914,10 +914,10 @@ public class PluginManager {
         }
 
         String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
-        if (StringUtils.isNotEmpty(jenkinsUcDownload)) {
-            urlString = appendPathOntoUrl(jenkinsUcDownload, "/plugins", pluginName, pluginVersion, pluginName + ".hpi");
-        } else if (StringUtils.isNotEmpty(pluginUrl)) {
+        if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
+        } else if (StringUtils.isNotEmpty(jenkinsUcDownload)) {
+            urlString = appendPathOntoUrl(jenkinsUcDownload, "/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             JSONObject plugins = latestUcJson.getJSONObject("plugins");
             if (plugins.has(plugin.getName())) {
