@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli;
 
+import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -168,6 +169,13 @@ public class CliOptionsTest {
 
         Config cfg = options.setup();
         assertThat(cfg.getJenkinsWar()).isEqualTo(jenkinsWar);
+    }
+
+    @Test
+    public void setupJenkinsVersion() throws CmdLineException {
+        parser.parseArgument("--jenkinsVersion", "2.263.1");
+        Config cfg = options.setup();
+        assertThat(cfg.getJenkinsVersion()).isEqualTo(new VersionNumber("2.263.1"));
     }
 
     @Test
