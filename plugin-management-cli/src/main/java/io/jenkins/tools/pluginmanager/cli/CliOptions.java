@@ -43,7 +43,7 @@ class CliOptions {
             handler = StringArrayOptionHandler.class)
     private String[] plugins = new String[0];
 
-    @Option(name = "--jenkinsVersion", usage = "Jenkins version to be used. " +
+    @Option(name = "--jenkins-version", usage = "Jenkins version to be used. " +
             "If undefined, Plugin Manager will use alternative ways to retrieve the version, e.g. from WAR",
             handler = VersionNumberHandler.class)
     @CheckForNull

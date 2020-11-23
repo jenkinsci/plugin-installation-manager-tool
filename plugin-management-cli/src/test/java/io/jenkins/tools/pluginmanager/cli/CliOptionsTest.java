@@ -173,7 +173,7 @@ public class CliOptionsTest {
 
     @Test
     public void setupJenkinsVersion() throws CmdLineException {
-        parser.parseArgument("--jenkinsVersion", "2.263.1");
+        parser.parseArgument("--jenkins-version", "2.263.1");
         Config cfg = options.setup();
         assertThat(cfg.getJenkinsVersion()).isEqualTo(new VersionNumber("2.263.1"));
     }
