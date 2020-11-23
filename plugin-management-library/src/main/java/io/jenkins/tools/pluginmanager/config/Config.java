@@ -2,12 +2,11 @@ package io.jenkins.tools.pluginmanager.config;
 
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-
-import javax.annotation.CheckForNull;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.CheckForNull;
 
 /**
  * Configuration for the plugin installation manager tool.
@@ -31,6 +30,10 @@ public class Config {
      */
     @CheckForNull
     private VersionNumber jenkinsVersion;
+    /**
+     * Path to the Jenkins WAR file.
+     */
+    @CheckForNull
     private String jenkinsWar;
     private List<Plugin> plugins;
     private boolean verbose;
@@ -107,6 +110,7 @@ public class Config {
         return verbose;
     }
 
+    @CheckForNull
     public String getJenkinsWar() {
         return jenkinsWar;
     }
@@ -217,7 +221,7 @@ public class Config {
             return this;
         }
 
-        public Builder withJenkinsWar(String jenkinsWar) {
+        public Builder withJenkinsWar(@CheckForNull String jenkinsWar) {
             this.jenkinsWar = jenkinsWar;
             return this;
         }

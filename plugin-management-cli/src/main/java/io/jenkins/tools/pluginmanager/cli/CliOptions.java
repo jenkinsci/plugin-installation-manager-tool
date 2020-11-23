@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import javax.annotation.CheckForNull;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.Option;
@@ -26,8 +27,6 @@ import org.kohsuke.args4j.spi.ExplicitBooleanOptionHandler;
 import org.kohsuke.args4j.spi.FileOptionHandler;
 import org.kohsuke.args4j.spi.StringArrayOptionHandler;
 import org.kohsuke.args4j.spi.URLOptionHandler;
-
-import javax.annotation.CheckForNull;
 
 class CliOptions {
     //path must include plugins.txt
@@ -51,6 +50,7 @@ class CliOptions {
     private VersionNumber jenkinsVersion;
 
     @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
+    @CheckForNull
     private String jenkinsWarFile;
 
     @Option(name = "--list", aliases = {"-l"}, usage = "Lists all plugins currently installed and if given a list of " +

@@ -1075,7 +1075,7 @@ public class PluginManagerTest {
                 .withJenkinsVersion(new VersionNumber("2.263.1"))
                 .build();
         PluginManager pluginManager = new PluginManager(config);
-        assertThat(pluginManager.getJenkinsVersionFromWar())
+        assertThat(pluginManager.getJenkinsVersion())
                 .isEqualByComparingTo(new VersionNumber("2.263.1"));
     }
 
