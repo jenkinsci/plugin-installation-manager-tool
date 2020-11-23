@@ -1069,6 +1069,17 @@ public class PluginManagerTest {
     }
 
     @Test
+    public void getJenkinsVersionFromArg() {
+        //the only time the file for a particular war string is created is in the PluginManager constructor
+        Config config = Config.builder()
+                .withJenkinsVersion(new VersionNumber("2.263.1"))
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+        assertThat(pluginManager.getJenkinsVersionFromWar())
+                .isEqualByComparingTo(new VersionNumber("2.263.1"));
+    }
+
+    @Test
     public void bundledPluginsTest() {
         URL warURL = this.getClass().getResource("/bundledplugintest.war");
         File testWar = new File(warURL.getFile());

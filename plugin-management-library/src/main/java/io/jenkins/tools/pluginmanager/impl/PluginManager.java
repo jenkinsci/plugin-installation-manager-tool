@@ -66,6 +66,7 @@ public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
     private String jenkinsUcLatest;
+    private @CheckForNull VersionNumber jenkinsVersion;
     private File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
     private Map<String, Plugin> bundledPluginVersions;
@@ -92,6 +93,7 @@ public class PluginManager {
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
+        jenkinsVersion = cfg.getJenkinsVersion();
         jenkinsWarFile = new File(cfg.getJenkinsWar());
         failedPlugins = new ArrayList<>();
         installedPluginVersions = new HashMap<>();
@@ -141,7 +143,7 @@ public class PluginManager {
                     "at a time");
         }
 
-        VersionNumber jenkinsVersion = getJenkinsVersionFromWar();
+        VersionNumber jenkinsVersion = getJenkinsVersion();
         if (downloadUc) {
             getUCJson(jenkinsVersion);
         }
@@ -1057,6 +1059,22 @@ public class PluginManager {
     }
 
     /**
+     * Gets Jenkins version using one of the available methods.
+     * @return Jenkins version or {@code null} if it cannot be determined
+     */
+    @CheckForNull
+    public VersionNumber getJenkinsVersion() {
+        if (jenkinsVersion != null) {
+            return jenkinsVersion;
+        }
+        if (jenkinsWarFile != null) {
+            return getJenkinsVersionFromWar();
+        }
+        System.out.println("Unable to determine Jenkins version");
+        return null;
+    }
+
+    /**
      * Gets the Jenkins version from the manifest in the Jenkins war specified in the Config class
      *
      * @return Jenkins version
@@ -1064,7 +1082,7 @@ public class PluginManager {
     public VersionNumber getJenkinsVersionFromWar() {
         String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
-            System.out.println("Unable to get version from war file");
+            System.out.println("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
             return null;
         }
         logVerbose("Jenkins version: " + version);
