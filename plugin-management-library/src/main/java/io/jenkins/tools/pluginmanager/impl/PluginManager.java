@@ -6,6 +6,7 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,7 +22,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -38,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -484,12 +488,14 @@ public class PluginManager {
         Map<String, Plugin> allPluginDependencies = new HashMap<>(topLevelDependencies);
 
         for (Plugin requestedPlugin : requestedPlugins) {
+            calculateChecksum(requestedPlugin);
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
             Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
                 VersionNumber dependencyVersion = dependentPlugin.getVersion();
+                calculateChecksum(requestedPlugin);
                 if (!allPluginDependencies.containsKey(dependencyName)) {
                     allPluginDependencies.put(dependencyName, dependentPlugin);
                 } else {
@@ -502,6 +508,30 @@ public class PluginManager {
             }
         }
         return allPluginDependencies;
+    }
+
+    private void calculateChecksum(Plugin requestedPlugin) {
+        if (latestPlugins.has(requestedPlugin.getName())) {
+            JSONObject pluginFromUpdateCenter = latestPlugins.getJSONObject(requestedPlugin.getName());
+
+            String versionInUpdateCenter = pluginFromUpdateCenter.getString("version");
+            if (versionInUpdateCenter.equals(requestedPlugin.getVersion().toString())) {
+
+                String sha256 = pluginFromUpdateCenter.getString("sha256");
+                if (verbose) {
+                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + sha256);
+                }
+                requestedPlugin.setSha256Checksum(sha256);
+            } else {
+                if (verbose && requestedPlugin.getSha256Checksum() == null) {
+                    System.out.println("Couldn't find checksum for " + requestedPlugin.getName() + " at version: " + requestedPlugin.getVersion().toString());
+                }
+            }
+        } else {
+            if (verbose && requestedPlugin.getSha256Checksum() == null) {
+                System.out.println("Couldn't find checksum for: " + requestedPlugin.getName());
+            }
+        }
     }
 
     /**
@@ -621,6 +651,11 @@ public class PluginManager {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
+                String checksum = specificVersionInfo.getString("sha256");
+                if (verbose) {
+                    System.out.println("Setting checksum for: " + plugin.getName() + " to " + checksum);
+                }
+                plugin.setSha256Checksum(checksum);
                 plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
@@ -1028,10 +1063,63 @@ public class PluginManager {
             }
         }
 
+        // Check integrity of plugin file
+        try (JarFile ignored = new JarFile(pluginFile)) {
+            verifyChecksum(plugin, pluginFile);
+            plugin.setFile(pluginFile);
+        } catch (IOException e) {
+            failedPlugins.add(plugin);
+            System.out.println("Downloaded file is not a valid ZIP");
+            if (verbose) {
+                e.printStackTrace();
+            }
+            return false;
+        } catch (PluginChecksumMismatchException e) {
+            failedPlugins.add(plugin);
+            System.out.println(e.getMessage());
+            return false;
+        }
+
         if (!success) {
             failedPlugins.add(plugin);
         }
         return success;
+    }
+
+    void verifyChecksum(Plugin plugin, File pluginFile) {
+        String expectedChecksum = plugin.getSha256Checksum();
+        if (expectedChecksum == null) {
+            if (verbose) {
+                System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin");
+            }
+            return;
+        }
+
+        byte[] actualChecksumDigest = calculateChecksum(pluginFile);
+        byte[] expectedCheckSumDigest;
+
+        try {
+            expectedCheckSumDigest = Base64.getDecoder().decode(expectedChecksum);
+        } catch (IllegalArgumentException e) {
+            String actual = new String(Base64.getEncoder().encode(actualChecksumDigest), StandardCharsets.UTF_8);
+            throw new PluginChecksumMismatchException(plugin, expectedChecksum, actual);
+        }
+        if (!MessageDigest.isEqual(actualChecksumDigest, expectedCheckSumDigest)) {
+            String actual = new String(Base64.getEncoder().encode(actualChecksumDigest), StandardCharsets.UTF_8);
+            throw new PluginChecksumMismatchException(plugin, expectedChecksum, actual);
+        } else {
+            if (verbose) {
+                System.out.println("Checksum valid for: " + plugin.getName());
+            }
+        }
+    }
+
+    private byte[] calculateChecksum(File pluginFile) {
+        try (FileInputStream fin = new FileInputStream(pluginFile)) {
+            return DigestUtils.sha256(fin);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /**

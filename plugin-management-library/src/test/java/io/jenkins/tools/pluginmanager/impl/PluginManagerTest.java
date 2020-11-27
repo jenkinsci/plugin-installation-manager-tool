@@ -314,6 +314,7 @@ public class PluginManagerTest {
         JSONArray dependencies1 = array(
                 dependency("credentials", false, "1.8"),
                 dependency("junit", false, "1.10"));
+        browserStack1.put("sha256", "browser stack checksum");
         browserStack1.put("dependencies", dependencies1);
         browserStackIntegration.put("1.0.0", browserStack1);
 
@@ -323,6 +324,7 @@ public class PluginManagerTest {
         JSONArray dependencies111 = array(
                 dependency("credentials", false, "1.8"),
                 dependency("junit", false, "1.10"));
+        browserStack111.put("sha256", "browser stack checksum");
         browserStack111.put("dependencies", dependencies111);
         browserStackIntegration.put("1.1.1", browserStack111);
 
@@ -334,6 +336,7 @@ public class PluginManagerTest {
                 dependency("workflow-api", false, "2.6"),
                 dependency("workflow-basic-steps", false, "2.6"),
                 dependency("workflow-cps", false, "2.39"));
+        browserStack112.put("sha256", "browser stack checksum");
         browserStack112.put("dependencies", dependencies112);
         browserStackIntegration.put("1.1.2", browserStack112);
 
@@ -349,6 +352,7 @@ public class PluginManagerTest {
         pm.setPluginInfoJson(pluginVersionJson);
 
         Plugin browserStackPlugin1 = new Plugin("browserstack-integration", "1.0.0", null, null);
+        browserStackPlugin1.setSha256Checksum("1234");
         JSONArray browserStackPluginJson1 = pm.getPluginDependencyJsonArray(browserStackPlugin1, pluginVersionJson);
         assertThat(browserStackPluginJson1)
                 .hasToString(dependencies1.toString());
@@ -566,7 +570,6 @@ public class PluginManagerTest {
 
         assertThat(pluginManagerSpy.downloadPlugin(pluginToDownload, null)).isTrue();
         assertThat(pluginToDownload.getName()).isEqualTo("plugin");
-        assertThat(pluginToDownload.getOriginalName()).isEqualTo("plugin");
     }
 
     @Test

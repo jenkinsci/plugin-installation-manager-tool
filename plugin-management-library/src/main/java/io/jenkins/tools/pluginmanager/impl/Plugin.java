@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 
 public class Plugin {
     private String name;
-    private String originalName;
     private VersionNumber version;
     private String groupId;
     private String url;
@@ -22,10 +21,10 @@ public class Plugin {
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
     private boolean experimental;
+    private String sha256Checksum;
     private VersionNumber jenkinsVersion;
 
     public Plugin(String name, String version, String url, String groupId) {
-        this.originalName = name;
         this.name = name;
         if (StringUtils.isEmpty(version)) {
             version = "latest";
@@ -72,6 +71,14 @@ public class Plugin {
         this.latest = latest;
     }
 
+    public String getSha256Checksum() {
+        return sha256Checksum;
+    }
+
+    public void setSha256Checksum(String sha256Checksum) {
+        this.sha256Checksum = sha256Checksum;
+    }
+
     public String getName() {
         return name;
     }
@@ -90,10 +97,6 @@ public class Plugin {
 
     public File getFile() {
         return file;
-    }
-
-    public String getOriginalName() {
-        return originalName;
     }
 
     public String getGroupId() {
