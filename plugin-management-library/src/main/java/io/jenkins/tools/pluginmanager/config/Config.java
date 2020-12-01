@@ -1,10 +1,12 @@
 package io.jenkins.tools.pluginmanager.config;
 
+import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.CheckForNull;
 
 /**
  * Configuration for the plugin installation manager tool.
@@ -22,6 +24,16 @@ public class Config {
     private boolean showAllWarnings;
     private boolean showAvailableUpdates;
     private boolean showPluginsToBeDownloaded;
+
+    /**
+     * Explicitly passed Jenkins version.
+     */
+    @CheckForNull
+    private VersionNumber jenkinsVersion;
+    /**
+     * Path to the Jenkins WAR file.
+     */
+    @CheckForNull
     private String jenkinsWar;
     private List<Plugin> plugins;
     private boolean verbose;
@@ -42,6 +54,7 @@ public class Config {
             boolean showAvailableUpdates,
             boolean showPluginsToBeDownloaded,
             boolean verbose,
+            VersionNumber jenkinsVersion,
             String jenkinsWar,
             List<Plugin> plugins,
             URL jenkinsUc,
@@ -59,6 +72,7 @@ public class Config {
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
         this.verbose = verbose;
+        this.jenkinsVersion = jenkinsVersion;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
         this.jenkinsUc = jenkinsUc;
@@ -96,6 +110,7 @@ public class Config {
         return verbose;
     }
 
+    @CheckForNull
     public String getJenkinsWar() {
         return jenkinsWar;
     }
@@ -118,6 +133,16 @@ public class Config {
 
     public URL getJenkinsPluginInfo() {
         return jenkinsPluginInfo;
+    }
+
+    /**
+     * Get Jenkins version to be used by the plugin manager.
+     * @return Jenkins version.
+     *         When {@code null}, instructs the plugin manager to use alternative version retrieval mechanisms.
+     */
+    @CheckForNull
+    public VersionNumber getJenkinsVersion() {
+        return jenkinsVersion;
     }
 
     public boolean doDownload() {
@@ -145,6 +170,7 @@ public class Config {
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
         private boolean verbose;
+        private VersionNumber jenkinsVersion;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
@@ -185,7 +211,17 @@ public class Config {
             return this;
         }
 
-        public Builder withJenkinsWar(String jenkinsWar) {
+        /**
+         * Sets Jenkins version to be used for retrieving compatible plugins.
+         * @param jenkinsVersion Jenkins version.
+         *        {@code null} to make undefined and to force alternative version retrieval logic.
+         */
+        public Builder withJenkinsVersion(@CheckForNull VersionNumber jenkinsVersion) {
+            this.jenkinsVersion = jenkinsVersion;
+            return this;
+        }
+
+        public Builder withJenkinsWar(@CheckForNull String jenkinsWar) {
             this.jenkinsWar = jenkinsWar;
             return this;
         }
@@ -253,6 +289,7 @@ public class Config {
                     showAvailableUpdates,
                     showPluginsToBeDownloaded,
                     verbose,
+                    jenkinsVersion,
                     jenkinsWar,
                     plugins,
                     jenkinsUc,

@@ -70,7 +70,8 @@ public class PluginManager {
     private List<Plugin> failedPlugins;
     private File refDir;
     private String jenkinsUcLatest;
-    private File jenkinsWarFile;
+    private @CheckForNull VersionNumber jenkinsVersion;
+    private @CheckForNull File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
     private Map<String, Plugin> bundledPluginVersions;
     private Map<String, List<SecurityWarning>> allSecurityWarnings;
@@ -96,7 +97,9 @@ public class PluginManager {
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         refDir = cfg.getPluginDir();
-        jenkinsWarFile = new File(cfg.getJenkinsWar());
+        jenkinsVersion = cfg.getJenkinsVersion();
+        final String warArg = cfg.getJenkinsWar();
+        jenkinsWarFile = warArg != null ? new File(warArg) : null;
         failedPlugins = new ArrayList<>();
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
@@ -145,7 +148,7 @@ public class PluginManager {
                     "at a time");
         }
 
-        VersionNumber jenkinsVersion = getJenkinsVersionFromWar();
+        VersionNumber jenkinsVersion = getJenkinsVersion();
         if (downloadUc) {
             getUCJson(jenkinsVersion);
         }
@@ -432,12 +435,13 @@ public class PluginManager {
     public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
-                if (p.getJenkinsVersion() != null) {
-                    if (p.getJenkinsVersion().isNewerThan(jenkinsVersion)) {
+                final VersionNumber pluginJenkinsVersion = p.getJenkinsVersion();
+                if (pluginJenkinsVersion!= null) {
+                    if (pluginJenkinsVersion.isNewerThan(jenkinsVersion)) {
                         throw new VersionCompatibilityException(
-                                String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s in %s",
-                                        p.getName(), p.getVersion().toString(), p.getJenkinsVersion().toString(),
-                                        jenkinsVersion.toString(), jenkinsWarFile.toString()));
+                                String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s",
+                                        p.getName(), p.getVersion().toString(), pluginJenkinsVersion.toString(),
+                                        jenkinsVersion.toString()));
                     }
                 }
             }
@@ -1145,14 +1149,35 @@ public class PluginManager {
     }
 
     /**
+     * Gets Jenkins version using one of the available methods.
+     * @return Jenkins version or {@code null} if it cannot be determined
+     */
+    @CheckForNull
+    public VersionNumber getJenkinsVersion() {
+        if (jenkinsVersion != null) {
+            return jenkinsVersion;
+        }
+        if (jenkinsWarFile != null) {
+            return getJenkinsVersionFromWar();
+        }
+        System.out.println("Unable to determine Jenkins version");
+        return null;
+    }
+
+    /**
      * Gets the Jenkins version from the manifest in the Jenkins war specified in the Config class
      *
-     * @return Jenkins version
+     * @return Jenkins version or {@code null} if the version cannot be determined
      */
+    @CheckForNull
     public VersionNumber getJenkinsVersionFromWar() {
+        if (jenkinsWarFile == null) {
+            System.out.println("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
+            return null;
+        }
         String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
-            System.out.println("Unable to get version from war file");
+            System.out.println("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
             return null;
         }
         logVerbose("Jenkins version: " + version);
@@ -1205,6 +1230,11 @@ public class PluginManager {
     @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
+
+        if (jenkinsWarFile == null) {
+            System.out.println("WAR file is not defined, cannot retrieve the bundled plugins");
+            return bundledPlugins;
+        }
 
         if (jenkinsWarFile.exists()) {
             Path path = Paths.get(jenkinsWarFile.toString());

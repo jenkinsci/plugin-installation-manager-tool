@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import javax.annotation.CheckForNull;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.Option;
@@ -41,7 +43,14 @@ class CliOptions {
             handler = StringArrayOptionHandler.class)
     private String[] plugins = new String[0];
 
+    @Option(name = "--jenkins-version", usage = "Jenkins version to be used. " +
+            "If undefined, Plugin Manager will use alternative ways to retrieve the version, e.g. from WAR",
+            handler = VersionNumberHandler.class)
+    @CheckForNull
+    private VersionNumber jenkinsVersion;
+
     @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
+    @CheckForNull
     private String jenkinsWarFile;
 
     @Option(name = "--list", aliases = {"-l"}, usage = "Lists all plugins currently installed and if given a list of " +
@@ -139,6 +148,7 @@ class CliOptions {
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
                 .withJenkinsPluginInfo(getPluginInfo())
+                .withJenkinsVersion(getJenkinsVersion())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
@@ -202,6 +212,24 @@ class CliOptions {
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         }
         return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+    }
+
+    @CheckForNull
+    private VersionNumber getJenkinsVersion() {
+        if (jenkinsVersion != null) {
+            return jenkinsVersion;
+        }
+
+        String fromEnv = System.getenv("JENKINS_VERSION");
+        if (StringUtils.isNotBlank(fromEnv)) {
+            try {
+                return new VersionNumber(fromEnv);
+            } catch (Exception ex) {
+                throw new VersionNotFoundException("Failed to parse the version from JENKINS_VERSION=" + fromEnv, ex);
+            }
+        }
+
+        return null;
     }
 
     /**
