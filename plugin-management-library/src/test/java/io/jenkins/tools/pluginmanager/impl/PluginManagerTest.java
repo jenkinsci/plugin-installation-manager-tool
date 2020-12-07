@@ -29,10 +29,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -76,26 +73,7 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        doNothing().when(pluginManagerSpy).createRefDir();
-        VersionNumber versionNumber = new VersionNumber("2.182");
-        doReturn(versionNumber).when(pluginManagerSpy).getJenkinsVersionFromWar();
-        doNothing().when(pluginManagerSpy).getUCJson(versionNumber);
-        doReturn(new HashMap<>()).when(pluginManagerSpy).getSecurityWarnings();
-        doNothing().when(pluginManagerSpy).showAllSecurityWarnings();
-
-        doReturn(new HashMap<>()).when(pluginManagerSpy).bundledPlugins();
-        doReturn(new HashMap<>()).when(pluginManagerSpy).installedPlugins();
-        doReturn(new HashMap<>()).when(pluginManagerSpy).findPluginsAndDependencies(anyList());
-        doReturn(new ArrayList<>()).when(pluginManagerSpy).findPluginsToDownload(anyMap());
-        doReturn(new HashMap<>()).when(pluginManagerSpy).findEffectivePlugins(anyList());
-        doNothing().when(pluginManagerSpy).listPlugins();
-        doNothing().when(pluginManagerSpy).showSpecificSecurityWarnings(anyList());
-        doNothing().when(pluginManagerSpy).checkVersionCompatibility(any(), anyList());
-        doNothing().when(pluginManagerSpy).downloadPlugins(anyList());
-
-        pluginManagerSpy.start();
+        pluginManager.start();
     }
 
     @Test
