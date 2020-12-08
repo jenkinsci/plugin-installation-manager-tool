@@ -762,13 +762,13 @@ public class PluginManager {
 
             if (plugin.getVersion().toString().equals("latest") ||
                     plugin.getVersion().toString().equals("experimental")) {
-                String version = ManifestTools.getAttributeFromManifest(tempFile, "Plugin-Version");
+                String version = getAttributeFromManifest(tempFile, "Plugin-Version");
                 if (!StringUtils.isEmpty(version)) {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
 
-            String dependencyString = ManifestTools.getAttributeFromManifest(tempFile, "Plugin-Dependencies");
+            String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
             //not all plugin Manifests contain the Plugin-Dependencies field
             if (StringUtils.isEmpty(dependencyString)) {
@@ -800,7 +800,7 @@ public class PluginManager {
                                     .map(p -> p.getName() + " " + p.getVersion())
                                     .collect(Collectors.joining("\n")));
 
-            plugin.setJenkinsVersion(ManifestTools.getAttributeFromManifest(tempFile, "Jenkins-Version"));
+            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
@@ -1197,7 +1197,7 @@ public class PluginManager {
             System.out.println("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
             return null;
         }
-        String version = ManifestTools.getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
+        String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
             return null;
@@ -1213,7 +1213,7 @@ public class PluginManager {
      * @return plugin version
      */
     public String getPluginVersion(File file) {
-        String version = ManifestTools.getAttributeFromManifest(file, "Plugin-Version");
+        String version = getAttributeFromManifest(file, "Plugin-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get plugin version from " + file);
             return "";
@@ -1226,7 +1226,7 @@ public class PluginManager {
      */
     @Deprecated
     public String getAttributeFromManifest(File file, String key) {
-        return ManifestTools.getAttributeFromManifest(file, key);
+        return getAttributeFromManifest(file, key);
     }
 
     /**
