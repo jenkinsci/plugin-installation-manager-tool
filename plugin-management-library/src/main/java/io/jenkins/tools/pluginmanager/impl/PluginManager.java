@@ -511,9 +511,9 @@ public class PluginManager {
                 Files.move(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 if (skipFailedPlugins) {
-                    System.out.println("SKIP: Unable to copy " + plugin.getName() + " to the plugin directory");
+                    System.out.println("SKIP: Unable to move" + plugin.getName() + " to the plugin directory");
                 } else {
-                    throw new DownloadPluginException("Unable to copy " + plugin.getName()  + " to the plugin directory", ex);
+                    throw new DownloadPluginException("Unable to move" + plugin.getName()  + " to the plugin directory", ex);
                 }
             }
         }
