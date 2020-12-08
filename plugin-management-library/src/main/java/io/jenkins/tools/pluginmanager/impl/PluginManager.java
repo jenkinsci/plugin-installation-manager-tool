@@ -16,22 +16,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.jar.Attributes;
@@ -41,6 +28,8 @@ import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
+
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -220,6 +209,8 @@ public class PluginManager {
                         installedPluginVersions.get(pluginName).getVersion();
             }
             if (installedVersion == null) {
+                logVerbose(String.format(
+                        "Will install new plugin %s %s", pluginName, plugin.getVersion()));
                 pluginsToDownload.add(plugin);
             } else if (installedVersion.isOlderThan(plugin.getVersion())) {
                 logVerbose(String.format(
@@ -469,10 +460,18 @@ public class PluginManager {
      * @param plugins list of plugins to download
      */
     public void downloadPlugins(List<Plugin> plugins) {
+        final File downloadsTmpDir;
+        try {
+            downloadsTmpDir = Files.createTempDirectory("plugin-installation-manager-downloads").toFile();
+        } catch (IOException ex) {
+            throw new DownloadPluginException("Cannot create a temporary directory for downloads", ex);
+        }
+
+        // Download to a temporary dir
         ForkJoinPool ioThreadPool = new ForkJoinPool(64);
         try {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
-                boolean successfulDownload = downloadPlugin(plugin, null);
+                boolean successfulDownload = downloadPlugin(plugin, new File(downloadsTmpDir, plugin.getArchiveFileName()));
                 if (skipFailedPlugins) {
                     System.out.println(
                             "SKIP: Unable to download " + plugin.getName());
@@ -487,6 +486,35 @@ public class PluginManager {
                 throw (DownloadPluginException) e.getCause();
             } else {
                 e.printStackTrace();
+            }
+        }
+
+        // Filter out failed plugins
+        final List<Plugin> failedPlugins = getFailedPlugins();
+        if (!skipFailedPlugins && failedPlugins.size() > 0) {
+            throw new DownloadPluginException("Some plugin downloads failed: " +
+                    failedPlugins.stream().map(Plugin::getName).collect(Collectors.joining(",")));
+        }
+        Set<String> failedPluginNames = new HashSet<>(failedPlugins.size());
+        failedPlugins.forEach(plugin -> failedPluginNames.add(plugin.getName()));
+
+        // Copy files over to the destination directory
+        for (Plugin plugin : plugins) {
+            String archiveName = plugin.getArchiveFileName();
+            File downloadedPlugin = new File(downloadsTmpDir, archiveName);
+            try {
+                if (failedPluginNames.contains(plugin.getName())) {
+                    System.out.println("Will skip the failed plugin download: " + plugin.getName());
+                    Files.deleteIfExists(downloadedPlugin.toPath());
+                }
+                // We do not double-check overrides here, because findPluginsToDownload() has already done it
+                Files.copy(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                if (skipFailedPlugins) {
+                    System.out.println("SKIP: Unable to copy " + plugin.getName() + " to the plugin directory");
+                } else {
+                    throw new DownloadPluginException("Unable to copy " + plugin.getName()  + " to the plugin directory", ex);
+                }
             }
         }
     }
@@ -720,6 +748,7 @@ public class PluginManager {
      * @return list of dependencies that were parsed from the plugin's manifest file
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
+        // TODO(oleg_nenashev): refactor to use ManifestTools. This logic not only resolves dependencies, but also modifies the plugin's metadata
         List<Plugin> dependentPlugins = new ArrayList<>();
         try {
             File tempFile = Files.createTempFile(FilenameUtils.getName(plugin.getName()), ".jpi").toFile();
@@ -733,13 +762,13 @@ public class PluginManager {
 
             if (plugin.getVersion().toString().equals("latest") ||
                     plugin.getVersion().toString().equals("experimental")) {
-                String version = getAttributeFromManifest(tempFile, "Plugin-Version");
+                String version = ManifestTools.getAttributeFromManifest(tempFile, "Plugin-Version");
                 if (!StringUtils.isEmpty(version)) {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
 
-            String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
+            String dependencyString = ManifestTools.getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
             //not all plugin Manifests contain the Plugin-Dependencies field
             if (StringUtils.isEmpty(dependencyString)) {
@@ -771,7 +800,7 @@ public class PluginManager {
                                     .map(p -> p.getName() + " " + p.getVersion())
                                     .collect(Collectors.joining("\n")));
 
-            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
+            plugin.setJenkinsVersion(ManifestTools.getAttributeFromManifest(tempFile, "Jenkins-Version"));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
@@ -1142,28 +1171,6 @@ public class PluginManager {
     }
 
     /**
-     * Given a jar file and a key to retrieve from the jar's MANIFEST.MF file, confirms that the file is a jar returns
-     * the value matching the key
-     *
-     * @param file jar file to get manifest from
-     * @param key  key matching value to retrieve
-     * @return value matching the key in the jar file
-     */
-    public String getAttributeFromManifest(File file, String key) {
-        try (JarFile jarFile = new JarFile(file)) {
-            Manifest manifest = jarFile.getManifest();
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue(key);
-        } catch (IOException e) {
-            System.out.println("Unable to open " + file);
-            if (key.equals("Plugin-Dependencies")) {
-                throw new DownloadPluginException("Unable to determine plugin dependencies", e);
-            }
-        }
-        return null;
-    }
-
-    /**
      * Gets Jenkins version using one of the available methods.
      * @return Jenkins version or {@code null} if it cannot be determined
      */
@@ -1190,7 +1197,7 @@ public class PluginManager {
             System.out.println("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
             return null;
         }
-        String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
+        String version = ManifestTools.getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
             return null;
@@ -1206,12 +1213,20 @@ public class PluginManager {
      * @return plugin version
      */
     public String getPluginVersion(File file) {
-        String version = getAttributeFromManifest(file, "Plugin-Version");
+        String version = ManifestTools.getAttributeFromManifest(file, "Plugin-Version");
         if (StringUtils.isEmpty(version)) {
             System.out.println("Unable to get plugin version from " + file);
             return "";
         }
         return version;
+    }
+
+    /**
+     * @deprecated Use {@link ManifestTools#getAttributeFromManifest(File, String)}
+     */
+    @Deprecated
+    public String getAttributeFromManifest(File file, String key) {
+        return ManifestTools.getAttributeFromManifest(file, key);
     }
 
     /**

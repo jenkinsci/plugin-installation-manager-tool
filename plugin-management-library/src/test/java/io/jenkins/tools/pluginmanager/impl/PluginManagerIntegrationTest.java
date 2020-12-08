@@ -13,11 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import org.apache.commons.io.IOUtils;
+import org.hamcrest.CoreMatchers;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -26,6 +28,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link PluginManager} which operate with real data.
@@ -199,20 +202,35 @@ public class PluginManagerIntegrationTest {
     public void verifyDownloads() throws Exception {
 
         // First cycle, empty dir
+        Plugin initialWorkflowJob = new Plugin("workflow-job", "2.39", null, null);
         List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
-                new Plugin("workflow-job", "2.39", null, null)
+            initialWorkflowJob
         ));
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
         pluginManager.start();
+        assertPluginInstalled(initialWorkflowJob);
 
-        // Second cycle
+        // Second cycle, with plugin update and new plugin installation
+        Plugin workflowJob = new Plugin("workflow-job", "2.40", null, null);
+        Plugin utilitySteps = new Plugin("pipeline-utility-steps", "2.6.1", null, null);
         List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
-                new Plugin("workflow-job", "2.40", null, null),
-                new Plugin("pipeline-utility-steps", "2.6.1", null, null)
+                workflowJob, utilitySteps
         ));
         PluginManager pluginManager2 = initPluginManager(
-                configBuilder -> configBuilder.withPlugins(requestedPlugins_2));
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
         pluginManager2.start();
+
+        // Ensure that the plugins are actually in place
+        assertPluginInstalled(workflowJob);
+        assertPluginInstalled(utilitySteps);
+    }
+
+    public void assertPluginInstalled(Plugin plugin) throws IOException, AssertionError {
+        File pluginArchive = new File(pluginsDir, plugin.getArchiveFileName());
+
+        assertTrue("Plugin is not installed: " + plugin, pluginArchive.exists());
+        Plugin installed = ManifestTools.readPluginFromFile(pluginArchive);
+        assertThat(installed.getVersion()).isEqualByComparingTo(plugin.getVersion());
     }
 }
