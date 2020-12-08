@@ -497,26 +497,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void downloadPluginsSuccessfulTest() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
-
-        List<Plugin> plugins = singletonList(
-                new Plugin("plugin", "1.0", null, null));
-
-        pluginManagerSpy.downloadPlugins(plugins);
-
-        assertThat(pluginManagerSpy.getFailedPlugins()).isEmpty();
-    }
-
-    @Test
     public void downloadPluginsUnsuccessfulTest() {
         Config config = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
