@@ -67,12 +67,6 @@ public class Main {
                 return;
             }
 
-            if (cfg.isShowPluginsToBeDownloaded()) {
-                System.out.println("The --list flag is currently unsafe and is temporarily disabled, " +
-                    "see https://github.com/jenkinsci/plugin-installation-manager-tool/issues/173");
-                return;
-            }
-
             pm.start();
         } catch (Exception e) {
             if (options.isVerbose()) {

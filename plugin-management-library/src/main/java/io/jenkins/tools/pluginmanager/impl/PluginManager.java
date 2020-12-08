@@ -68,7 +68,10 @@ import static java.util.Comparator.comparing;
 public class PluginManager {
     private static final VersionNumber LATEST = new VersionNumber("latest");
     private List<Plugin> failedPlugins;
-    private File refDir;
+    /**
+     * Directory where the plugins will be downloaded
+     */
+    private File pluginDir;
     private String jenkinsUcLatest;
     private @CheckForNull VersionNumber jenkinsVersion;
     private @CheckForNull File jenkinsWarFile;
@@ -96,7 +99,7 @@ public class PluginManager {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
         this.cfg = cfg;
-        refDir = cfg.getPluginDir();
+        pluginDir = cfg.getPluginDir();
         jenkinsVersion = cfg.getJenkinsVersion();
         final String warArg = cfg.getJenkinsWar();
         jenkinsWarFile = warArg != null ? new File(warArg) : null;
@@ -129,19 +132,20 @@ public class PluginManager {
      * @since TODO
      */
     public void start(boolean downloadUc) {
-        if (refDir.exists()) {
+        if (cfg.isCleanPluginDir() &&  pluginDir.exists()) {
             try {
-                File[] toBeDeleted = refDir.listFiles();
+                logVerbose("Cleaning up the target plugin directory: " + pluginDir);
+                File[] toBeDeleted = pluginDir.listFiles();
                 if (toBeDeleted != null) {
                     for (File deletableFile : toBeDeleted) {
                         FileUtils.forceDelete(deletableFile);
                     }
                 }
             } catch (IOException e) {
-                throw new UncheckedIOException("Unable to delete: " + refDir.getAbsolutePath(), e);
+                throw new UncheckedIOException("Unable to delete: " + pluginDir.getAbsolutePath(), e);
             }
         }
-        createRefDir();
+        createPluginDir(cfg.isCleanPluginDir());
 
         if (useLatestSpecified && useLatestAll) {
             throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
@@ -171,9 +175,19 @@ public class PluginManager {
         System.out.println("Done");
     }
 
-    void createRefDir() {
+    void createPluginDir(boolean failIfExists) {
+        if (pluginDir.exists()) {
+            if (failIfExists) {
+                throw new DirectoryCreationException("The plugin directory already exists: " + pluginDir);
+            } else {
+                if (!pluginDir.isDirectory()) {
+                    throw new DirectoryCreationException("The plugin directory path is not a directory: " + pluginDir);
+                }
+                return;
+            }
+        }
         try {
-            Files.createDirectories(refDir.toPath());
+            Files.createDirectories(pluginDir.toPath());
         } catch (IOException e) {
             throw new DirectoryCreationException("Unable to create plugin directory", e);
         }
@@ -449,7 +463,8 @@ public class PluginManager {
     }
 
     /**
-     * Downloads a list of plugins
+     * Downloads a list of plugins.
+     * Plugins will be downloaded to a temporary directory, and then copied over to the final destination.
      *
      * @param plugins list of plugins to download
      */
@@ -909,11 +924,11 @@ public class PluginManager {
      * resolved after the plugin is downloaded.
      *
      * @param plugin   to download
-     * @param location location to download plugin to. If location is set to null, will download to the plugin folder
+     * @param location location to download plugin to. If location is set to {@code null}, will download to the plugin folder
      *                 otherwise will download to the temporary location specified.
      * @return boolean signifying if plugin was successful
      */
-    public boolean downloadPlugin(Plugin plugin, File location) {
+    public boolean downloadPlugin(Plugin plugin, @CheckForNull File location) {
         String pluginName = plugin.getName();
         VersionNumber pluginVersion = plugin.getVersion();
         // location will be populated if downloading a plugin to a temp file to determine dependencies
@@ -995,7 +1010,7 @@ public class PluginManager {
      *                     be null
      * @return true if download is successful, false otherwise
      */
-    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation) {
+    public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation) {
         return downloadToFile(urlString, plugin, fileLocation, DEFAULT_MAX_RETRIES);
     }
 
@@ -1011,10 +1026,10 @@ public class PluginManager {
      * @return true if download is successful, false otherwise
      */
     @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
-    public boolean downloadToFile(String urlString, Plugin plugin, File fileLocation, int maxRetries) {
+    public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
-            pluginFile = new File(refDir, plugin.getArchiveFileName());
+            pluginFile = new File(pluginDir, plugin.getArchiveFileName());
             System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
         } else {
             pluginFile = fileLocation;
@@ -1209,7 +1224,7 @@ public class PluginManager {
         FileFilter fileFilter = new WildcardFileFilter("*.jpi");
 
         // Only lists files in same directory, does not list files recursively
-        File[] files = refDir.listFiles(fileFilter);
+        File[] files = pluginDir.listFiles(fileFilter);
 
         if (files != null) {
             for (File file : files) {

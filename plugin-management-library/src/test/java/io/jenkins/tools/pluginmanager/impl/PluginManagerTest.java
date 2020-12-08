@@ -78,7 +78,7 @@ public class PluginManagerTest {
 
         PluginManager pluginManagerSpy = spy(pluginManager);
 
-        doNothing().when(pluginManagerSpy).createRefDir();
+        doNothing().when(pluginManagerSpy).createPluginDir(true);
         VersionNumber versionNumber = new VersionNumber("2.182");
         doReturn(versionNumber).when(pluginManagerSpy).getJenkinsVersionFromWar();
         doNothing().when(pluginManagerSpy).getUCJson(versionNumber);

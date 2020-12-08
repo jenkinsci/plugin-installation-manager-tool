@@ -17,6 +17,7 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -190,5 +191,31 @@ public class PluginManagerIntegrationTest {
         // then
         pluginManager.findPluginsAndDependencies(requestedPlugins);
         assertThatNoException();
+    }
+
+    //TODO: Enable as auto-test once it can run without massive traffic overhead
+    @Test
+    @Ignore
+    public void verifyDownloads() throws Exception {
+
+        // First cycle, empty dir
+        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
+                new Plugin("workflow-job", "2.39", null, null)
+        ));
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1));
+        pluginManager.start();
+
+        // Second cycle
+        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
+                new Plugin("workflow-job", "2.40", null, null),
+                new Plugin("pipeline-utility-steps", "2.6.1", null, null)
+        ));
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2));
+        pluginManager2.start();
+
+
+        Plugin
     }
 }
