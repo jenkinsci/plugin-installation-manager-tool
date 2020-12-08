@@ -203,7 +203,7 @@ public class PluginManagerIntegrationTest {
                 new Plugin("workflow-job", "2.39", null, null)
         ));
         PluginManager pluginManager = initPluginManager(
-                configBuilder -> configBuilder.withPlugins(requestedPlugins_1));
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
         pluginManager.start();
 
         // Second cycle
@@ -214,8 +214,5 @@ public class PluginManagerIntegrationTest {
         PluginManager pluginManager2 = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_2));
         pluginManager2.start();
-
-
-        Plugin
     }
 }
