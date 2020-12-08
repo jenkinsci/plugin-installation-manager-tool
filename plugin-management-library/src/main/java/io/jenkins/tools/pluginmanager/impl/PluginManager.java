@@ -508,7 +508,7 @@ public class PluginManager {
                     Files.deleteIfExists(downloadedPlugin.toPath());
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
-                Files.copy(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 if (skipFailedPlugins) {
                     System.out.println("SKIP: Unable to copy " + plugin.getName() + " to the plugin directory");
