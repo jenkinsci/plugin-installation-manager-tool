@@ -16,10 +16,10 @@ import java.util.zip.ZipFile;
 
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import org.apache.commons.io.IOUtils;
-import org.hamcrest.CoreMatchers;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
