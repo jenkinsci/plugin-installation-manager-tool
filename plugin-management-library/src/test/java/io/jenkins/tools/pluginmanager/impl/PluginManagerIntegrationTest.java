@@ -196,10 +196,39 @@ public class PluginManagerIntegrationTest {
         assertThatNoException();
     }
 
-    //TODO: Enable as auto-test once it can run without massive traffic overhead
+
+    @Test
+    public void verifyDownloads_smoke() throws Exception {
+
+        // First cycle, empty dir
+        Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
+        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
+                initialTrileadAPI
+        ));
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
+        pluginManager.start();
+        assertPluginInstalled(initialTrileadAPI);
+
+        // Second cycle, with plugin update and new plugin installation
+        Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
+        Plugin snakeYamlAPI = new Plugin("snakeyaml-api", "1.27.0", null, null);
+        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
+                trileadAPI, snakeYamlAPI
+        ));
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
+        pluginManager2.start();
+
+        // Ensure that the plugins are actually in place
+        assertPluginInstalled(trileadAPI);
+        assertPluginInstalled(snakeYamlAPI);
+    }
+
+    //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
     @Test
     @Ignore
-    public void verifyDownloads() throws Exception {
+    public void verifyDownloads_withDependencies() throws Exception {
 
         // First cycle, empty dir
         Plugin initialWorkflowJob = new Plugin("workflow-job", "2.39", null, null);

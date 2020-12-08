@@ -493,7 +493,8 @@ public class PluginManager {
         final List<Plugin> failedPlugins = getFailedPlugins();
         if (!skipFailedPlugins && failedPlugins.size() > 0) {
             throw new DownloadPluginException("Some plugin downloads failed: " +
-                    failedPlugins.stream().map(Plugin::getName).collect(Collectors.joining(",")));
+                    failedPlugins.stream().map(Plugin::getName).collect(Collectors.joining(",")) +
+                    ". See " + downloadsTmpDir.getAbsolutePath() + " for the temporary download directory");
         }
         Set<String> failedPluginNames = new HashSet<>(failedPlugins.size());
         failedPlugins.forEach(plugin -> failedPluginNames.add(plugin.getName()));
@@ -504,8 +505,8 @@ public class PluginManager {
             File downloadedPlugin = new File(downloadsTmpDir, archiveName);
             try {
                 if (failedPluginNames.contains(plugin.getName())) {
-                    System.out.println("Will skip the failed plugin download: " + plugin.getName());
-                    Files.deleteIfExists(downloadedPlugin.toPath());
+                    System.out.println("Will skip the failed plugin download: " + plugin.getName() +
+                            ". See " + downloadedPlugin.getAbsolutePath() + " for the downloaded file");
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
                 Files.move(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -1226,7 +1227,7 @@ public class PluginManager {
      */
     @Deprecated
     public String getAttributeFromManifest(File file, String key) {
-        return getAttributeFromManifest(file, key);
+        return ManifestTools.getAttributeFromManifest(file, key);
     }
 
     /**
