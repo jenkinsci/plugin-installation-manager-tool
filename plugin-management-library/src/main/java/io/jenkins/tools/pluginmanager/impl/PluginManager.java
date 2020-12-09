@@ -275,9 +275,9 @@ public class PluginManager {
         if (cfg.isShowPluginsToBeDownloaded()) {
             logPlugins("Installed plugins:", new ArrayList<>(installedPluginVersions.values()));
             logPlugins("Bundled plugins:", new ArrayList<>(bundledPluginVersions.values()));
-            logPlugins("Set of all requested plugins:", new ArrayList<>(allPluginsAndDependencies.values()));
-            logPlugins("Set of all requested plugins that will be downloaded:", pluginsToBeDownloaded);
-            logPlugins("Set of all existing plugins and plugins that will be downloaded:",
+            logPlugins("All requested plugins:", new ArrayList<>(allPluginsAndDependencies.values()));
+            logPlugins("Plugins that will be downloaded:", pluginsToBeDownloaded);
+            logPlugins("Resulting plugin list:",
                     new ArrayList<>(effectivePlugins.values()));
         }
     }
