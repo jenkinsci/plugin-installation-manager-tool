@@ -78,7 +78,7 @@ public class PluginManagerTest {
 
         PluginManager pluginManagerSpy = spy(pluginManager);
 
-        doNothing().when(pluginManagerSpy).createRefDir();
+        doNothing().when(pluginManagerSpy).createPluginDir(true);
         VersionNumber versionNumber = new VersionNumber("2.182");
         doReturn(versionNumber).when(pluginManagerSpy).getJenkinsVersionFromWar();
         doNothing().when(pluginManagerSpy).getUCJson(versionNumber);
@@ -494,26 +494,6 @@ public class PluginManagerTest {
 
         //check passes if no exception is thrown
         pm.checkVersionCompatibility(new VersionNumber("2.121.2"), Arrays.asList(plugin1, plugin2));
-    }
-
-    @Test
-    public void downloadPluginsSuccessfulTest() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
-
-        List<Plugin> plugins = singletonList(
-                new Plugin("plugin", "1.0", null, null));
-
-        pluginManagerSpy.downloadPlugins(plugins);
-
-        assertThat(pluginManagerSpy.getFailedPlugins()).isEmpty();
     }
 
     @Test

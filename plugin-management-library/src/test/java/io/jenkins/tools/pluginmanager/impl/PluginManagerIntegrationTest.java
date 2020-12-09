@@ -1,6 +1,7 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,6 +18,7 @@ import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -25,6 +27,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests for {@link PluginManager} which operate with real data.
@@ -190,5 +193,71 @@ public class PluginManagerIntegrationTest {
         // then
         pluginManager.findPluginsAndDependencies(requestedPlugins);
         assertThatNoException();
+    }
+
+    @Test
+    public void verifyDownloads_smoke() throws Exception {
+
+        // First cycle, empty dir
+        Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
+        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
+                initialTrileadAPI
+        ));
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
+        pluginManager.start();
+        assertPluginInstalled(initialTrileadAPI);
+
+        // Second cycle, with plugin update and new plugin installation
+        Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
+        Plugin snakeYamlAPI = new Plugin("snakeyaml-api", "1.27.0", null, null);
+        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
+                trileadAPI, snakeYamlAPI
+        ));
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
+        pluginManager2.start();
+
+        // Ensure that the plugins are actually in place
+        assertPluginInstalled(trileadAPI);
+        assertPluginInstalled(snakeYamlAPI);
+    }
+
+    //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
+    @Test
+    @Ignore
+    public void verifyDownloads_withDependencies() throws Exception {
+
+        // First cycle, empty dir
+        Plugin initialWorkflowJob = new Plugin("workflow-job", "2.39", null, null);
+        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
+            initialWorkflowJob
+        ));
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
+        pluginManager.start();
+        assertPluginInstalled(initialWorkflowJob);
+
+        // Second cycle, with plugin update and new plugin installation
+        Plugin workflowJob = new Plugin("workflow-job", "2.40", null, null);
+        Plugin utilitySteps = new Plugin("pipeline-utility-steps", "2.6.1", null, null);
+        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
+                workflowJob, utilitySteps
+        ));
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
+        pluginManager2.start();
+
+        // Ensure that the plugins are actually in place
+        assertPluginInstalled(workflowJob);
+        assertPluginInstalled(utilitySteps);
+    }
+
+    public void assertPluginInstalled(Plugin plugin) throws IOException, AssertionError {
+        File pluginArchive = new File(pluginsDir, plugin.getArchiveFileName());
+
+        assertTrue("Plugin is not installed: " + plugin, pluginArchive.exists());
+        Plugin installed = ManifestTools.readPluginFromFile(pluginArchive);
+        assertThat(installed.getVersion()).isEqualByComparingTo(plugin.getVersion());
     }
 }

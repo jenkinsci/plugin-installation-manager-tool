@@ -20,6 +20,7 @@ import javax.annotation.CheckForNull;
  */
 public class Config {
     private File pluginDir;
+    private boolean cleanPluginDir;
     private boolean showWarnings;
     private boolean showAllWarnings;
     private boolean showAvailableUpdates;
@@ -49,6 +50,7 @@ public class Config {
 
     private Config(
             File pluginDir,
+            boolean cleanPluginDir,
             boolean showWarnings,
             boolean showAllWarnings,
             boolean showAvailableUpdates,
@@ -67,6 +69,7 @@ public class Config {
             boolean skipFailedPlugins,
             OutputFormat outputFormat) {
         this.pluginDir = pluginDir;
+        this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
@@ -88,6 +91,10 @@ public class Config {
 
     public File getPluginDir() {
         return pluginDir;
+    }
+
+    public boolean isCleanPluginDir() {
+        return cleanPluginDir;
     }
 
     public boolean isShowWarnings() {
@@ -165,6 +172,7 @@ public class Config {
 
     public static class Builder {
         private File pluginDir;
+        private boolean cleanPluginDir;
         private boolean showWarnings;
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
@@ -188,6 +196,11 @@ public class Config {
 
         public Builder withPluginDir(File pluginDir) {
             this.pluginDir = pluginDir;
+            return this;
+        }
+
+        public Builder withCleanPluginsDir(boolean cleanPluginDir) {
+            this.cleanPluginDir = cleanPluginDir;
             return this;
         }
 
@@ -284,6 +297,7 @@ public class Config {
         public Config build() {
             return new Config(
                     pluginDir,
+                    cleanPluginDir,
                     showWarnings,
                     showAllWarnings,
                     showAvailableUpdates,

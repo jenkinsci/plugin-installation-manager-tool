@@ -39,6 +39,11 @@ class CliOptions {
             handler = FileOptionHandler.class)
     private File pluginDir;
 
+    @Option(name = "--clean-download-directory",
+            usage = "If sets, cleans the plugin download directory before plugin installation. " +
+                    "Otherwise the tool performs plugin download and reports compatibility issues, if any.")
+    private boolean cleanPluginDir;
+
     @Option(name = "--plugins", aliases = {"-p"}, usage = "List of plugins to install, separated by a space",
             handler = StringArrayOptionHandler.class)
     private String[] plugins = new String[0];
@@ -144,6 +149,7 @@ class CliOptions {
         return Config.builder()
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())
+                .withCleanPluginsDir(isCleanPluginDir())
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
@@ -212,6 +218,10 @@ class CliOptions {
                     "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         }
         return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
+    }
+
+    public boolean isCleanPluginDir() {
+        return cleanPluginDir;
     }
 
     @CheckForNull
