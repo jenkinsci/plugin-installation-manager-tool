@@ -233,17 +233,17 @@ public class PluginManagerTest {
                         "\nBundled plugins:\n" +
                         "bundled1 1.0\n" +
                         "bundled2 2.0\n" +
-                        "\nSet of all requested plugins:\n" +
+                        "\nAll requested plugins:\n" +
                         "dependency1 1.0.0\n" +
                         "dependency2 1.0.0\n" +
                         "plugin1 1.0\n" +
                         "plugin2 2.0\n" +
-                        "\nSet of all requested plugins that will be downloaded:\n" +
+                        "\nPlugins that will be downloaded:\n" +
                         "dependency1 1.0.0\n" +
                         "dependency2 1.0.0\n" +
                         "plugin1 1.0\n" +
                         "plugin2 2.0\n" +
-                        "\nSet of all existing plugins and plugins that will be downloaded:\n" +
+                        "\nResulting plugin list:\n" +
                         "bundled1 1.0\n" +
                         "bundled2 2.0\n" +
                         "dependency1 1.0.0\n" +
