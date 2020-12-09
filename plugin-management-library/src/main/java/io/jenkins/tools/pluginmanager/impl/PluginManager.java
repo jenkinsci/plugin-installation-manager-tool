@@ -787,6 +787,7 @@ public class PluginManager {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
+            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
 
             String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
@@ -820,7 +821,6 @@ public class PluginManager {
                                     .map(p -> p.getName() + " " + p.getVersion())
                                     .collect(Collectors.joining("\n")));
 
-            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
