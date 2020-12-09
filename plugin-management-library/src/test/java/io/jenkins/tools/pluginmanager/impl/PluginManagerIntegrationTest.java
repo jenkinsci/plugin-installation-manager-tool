@@ -195,7 +195,6 @@ public class PluginManagerIntegrationTest {
         assertThatNoException();
     }
 
-
     @Test
     public void verifyDownloads_smoke() throws Exception {
 

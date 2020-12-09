@@ -134,7 +134,7 @@ public class PluginManager {
      * @since TODO
      */
     public void start(boolean downloadUc) {
-        if (cfg.isCleanPluginDir() &&  pluginDir.exists()) {
+        if (cfg.isCleanPluginDir() && pluginDir.exists()) {
             try {
                 logVerbose("Cleaning up the target plugin directory: " + pluginDir);
                 File[] toBeDeleted = pluginDir.listFiles();
