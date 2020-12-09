@@ -3,8 +3,6 @@ package io.jenkins.tools.pluginmanager.util;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.DownloadPluginException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,12 +10,13 @@ import java.util.List;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import org.apache.commons.lang3.StringUtils;
 
 public class ManifestTools {
 
     public static Plugin readPluginFromFile(File file) throws IOException {
         Plugin plugin = new Plugin(file.getName(), "undefined", null, null);
-        List<Plugin> dependentPlugins = new ArrayList<>();
+
 
         // TODO: refactor code so that we read the manifest only once
         String version = getAttributeFromManifest(file, "Plugin-Version");
@@ -34,6 +33,7 @@ public class ManifestTools {
         }
 
         String[] dependencies = dependencyString.split(",");
+        List<Plugin> dependentPlugins = new ArrayList<>();
         for (String dependency : dependencies) {
             if (!dependency.contains("resolution:=optional")) {
                 String[] pluginInfo = dependency.split(":");
@@ -44,6 +44,7 @@ public class ManifestTools {
                 dependentPlugin.setParent(plugin);
             }
         }
+        plugin.setDependencies(dependentPlugins);
 
         return plugin;
     }

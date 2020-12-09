@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -16,20 +17,32 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
-import java.util.jar.Attributes;
 import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
-
-import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -459,6 +472,7 @@ public class PluginManager {
      *
      * @param plugins list of plugins to download
      */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public void downloadPlugins(List<Plugin> plugins) {
         final File downloadsTmpDir;
         try {
@@ -471,7 +485,7 @@ public class PluginManager {
         ForkJoinPool ioThreadPool = new ForkJoinPool(64);
         try {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
-                boolean successfulDownload = downloadPlugin(plugin, new File(downloadsTmpDir, plugin.getArchiveFileName()));
+                boolean successfulDownload = downloadPlugin(plugin, getPluginArchive(downloadsTmpDir, plugin));
                 if (skipFailedPlugins) {
                     System.out.println(
                             "SKIP: Unable to download " + plugin.getName());
@@ -518,6 +532,11 @@ public class PluginManager {
                 }
             }
         }
+    }
+
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    private File getPluginArchive(File pluginDir, Plugin plugin) {
+        return new File(pluginDir, plugin.getArchiveFileName());
     }
 
     /**

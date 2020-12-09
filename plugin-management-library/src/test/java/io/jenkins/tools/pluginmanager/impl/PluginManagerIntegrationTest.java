@@ -1,6 +1,7 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -13,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
