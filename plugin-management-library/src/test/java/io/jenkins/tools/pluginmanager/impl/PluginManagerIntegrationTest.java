@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import io.jenkins.tools.pluginmanager.util.PluginManagerUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
@@ -221,6 +223,44 @@ public class PluginManagerIntegrationTest {
         // Ensure that the plugins are actually in place
         assertPluginInstalled(trileadAPI);
         assertPluginInstalled(snakeYamlAPI);
+    }
+
+    /**
+     * Jenkins core supports passing plugins as unzipped {@code plugin.hpi} directories.
+     * This test ensures this mode actually works.
+     */
+    @Test
+    public void verifyDownloads_toUnzipped() throws Exception {
+
+        // First cycle, empty dir
+        Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
+        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
+                initialTrileadAPI
+        ));
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
+        pluginManager.start();
+        assertPluginInstalled(initialTrileadAPI);
+
+        // Replace the plugin
+        File pluginArchive = new File(pluginsDir, initialTrileadAPI.getArchiveFileName());
+        File pluginDir = new File(pluginsDir, "trilead-api");
+        PluginManagerUtils.explodePlugin(pluginArchive, pluginDir);
+        Files.delete(pluginArchive.toPath());
+        Files.move(pluginDir.toPath(), pluginArchive.toPath());
+        assertPluginInstalled(initialTrileadAPI);
+
+        // Second cycle, with plugin update and new plugin installation
+        Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
+        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
+                trileadAPI
+        ));
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
+        pluginManager2.start();
+
+        // Ensure that the plugins are actually in place
+        assertPluginInstalled(trileadAPI);
     }
 
     //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
