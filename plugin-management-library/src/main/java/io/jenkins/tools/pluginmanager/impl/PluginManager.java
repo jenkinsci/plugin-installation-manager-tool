@@ -523,7 +523,13 @@ public class PluginManager {
                             ". See " + downloadedPlugin.getAbsolutePath() + " for the downloaded file");
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
-                Files.move(downloadedPlugin.toPath(), new File(pluginDir, archiveName).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                File finalPath = new File(pluginDir, archiveName);
+                if (finalPath.isDirectory()) {
+                    // Jenkins supports storing plugins as unzipped files with ".jpi" extension
+                    FileUtils.cleanDirectory(finalPath);
+                    Files.delete(finalPath.toPath());
+                }
+                Files.move(downloadedPlugin.toPath(), finalPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 if (skipFailedPlugins) {
                     System.out.println("SKIP: Unable to move " + plugin.getName() + " to the plugin directory");

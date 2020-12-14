@@ -1,9 +1,11 @@
 package io.jenkins.tools.pluginmanager.util;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.DownloadPluginException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +51,20 @@ public class ManifestTools {
         return plugin;
     }
 
+    public static Attributes getAttributesFromManifest(File file) throws IOException {
+        final Manifest mf;
+        if (file.isDirectory()) { // Already exploded
+            try (FileInputStream istream = new FileInputStream(new File(file, "META-INF/MANIFEST.MF"))) {
+                mf = new Manifest(istream);
+            }
+        } else {
+            try (JarFile jarFile = new JarFile(file)) {
+                mf = jarFile.getManifest();
+            }
+        }
+        return mf.getMainAttributes();
+    }
+
     /**
      * Given a jar file and a key to retrieve from the jar's MANIFEST.MF file, confirms that the file is a jar returns
      * the value matching the key
@@ -57,15 +73,14 @@ public class ManifestTools {
      * @param key  key matching value to retrieve
      * @return value matching the key in the jar file
      */
+    @CheckForNull
     public static String getAttributeFromManifest(File file, String key) {
-        try (JarFile jarFile = new JarFile(file)) {
-            Manifest manifest = jarFile.getManifest();
-            Attributes attributes = manifest.getMainAttributes();
-            return attributes.getValue(key);
+        try {
+            return getAttributesFromManifest(file).getValue(key);
         } catch (IOException e) {
             System.out.println("Unable to open " + file);
             if (key.equals("Plugin-Dependencies")) {
-                throw new DownloadPluginException("Unable to determine plugin dependencies", e);
+                throw new DownloadPluginException("Unable to read " + key + " from the manifest of " + file, e);
             }
         }
         return null;

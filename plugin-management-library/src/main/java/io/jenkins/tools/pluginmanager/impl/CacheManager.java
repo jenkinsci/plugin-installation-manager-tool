@@ -21,15 +21,25 @@ public class CacheManager {
     private Path cache;
     private boolean verbose;
     private Clock clock;
+    private boolean expires;
 
     public CacheManager(Path cache, boolean verbose) {
-        this(cache, verbose, Clock.systemDefaultZone());
+        this(cache, verbose, Clock.systemDefaultZone(), true);
+    }
+
+    public CacheManager(Path cache, boolean verbose, boolean expires) {
+        this(cache, verbose, Clock.systemDefaultZone(), expires);
     }
 
     CacheManager(Path cache, boolean verbose, Clock clock) {
+        this(cache, verbose, clock, true);
+    }
+
+    CacheManager(Path cache, boolean verbose, Clock clock, boolean expires) {
         this.cache = cache;
         this.verbose = verbose;
         this.clock = clock;
+        this.expires = expires;
     }
 
     void createCache() {
@@ -78,9 +88,12 @@ public class CacheManager {
 
             if (betweenHours > 0L) {
                 if (verbose) {
-                    System.out.println("Cache entry expired");
+                    System.out.println("Cache entry expired: " + cacheKey +
+                            (expires ? ". Will skip it" : ". Will accept it, because expiration is disabled"));
                 }
-                return null;
+                if (expires) {
+                    return null;
+                }
             }
 
             JSONTokener tokener = new JSONTokener(newInputStream(cachedPath));
