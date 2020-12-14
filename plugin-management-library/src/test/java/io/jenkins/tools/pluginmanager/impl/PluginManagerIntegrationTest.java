@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
+import io.jenkins.tools.pluginmanager.util.PluginManagerUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -14,13 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import io.jenkins.tools.pluginmanager.util.PluginManagerUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
@@ -41,17 +42,20 @@ public class PluginManagerIntegrationTest {
     static File pluginVersionsFile;
 
     @ClassRule
-    public static TemporaryFolder tmp = new TemporaryFolder();
+    public static TemporaryFolder classTmpDir = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder tmpDir = new TemporaryFolder();
+
     public static File jenkinsWar;
     public static File cacheDir;
-    public static File pluginsDir;
+    public File pluginsDir;
 
     // TODO: Convert to a rule
     public interface Configurator {
         void configure(Config.Builder configBuilder);
     }
 
-    public static PluginManager initPluginManager(Configurator configurator) throws IOException {
+    public PluginManager initPluginManager(Configurator configurator) throws IOException {
         Config.Builder configBuilder = Config.builder()
                 .withJenkinsWar(jenkinsWar.getAbsolutePath())
                 .withPluginDir(pluginsDir)
@@ -62,7 +66,7 @@ public class PluginManagerIntegrationTest {
         Config config = configBuilder.build();
 
         PluginManager pluginManager = new PluginManager(config);
-        pluginManager.setCm(new CacheManager(cacheDir.toPath(), true));
+        pluginManager.setCm(new CacheManager(cacheDir.toPath(), true, false));
         pluginManager.setLatestUcJson(latestUcJson);
         pluginManager.setLatestUcPlugins(latestUcJson.getJSONObject("plugins"));
         pluginManager.setPluginInfoJson(pluginManager.getJson(pluginVersionsFile.toURI().toURL(), "plugin-versions"));
@@ -71,7 +75,7 @@ public class PluginManagerIntegrationTest {
     }
 
     private static void unzipResource(Class clazz, String resourceName, String fileName, File target) throws IOException {
-        final File archivePath = new File(tmp.getRoot(), target.toPath().getFileName() + ".zip");
+        final File archivePath = new File(classTmpDir.getRoot(), target.toPath().getFileName() + ".zip");
         try (InputStream archive = clazz.getResourceAsStream(resourceName)) {
             if (archive == null) {
                 throw new IOException("Cannot find " + resourceName + " in " + clazz);
@@ -91,24 +95,28 @@ public class PluginManagerIntegrationTest {
     }
 
     @BeforeClass
-    public static void setup() throws Exception {
-        File updatesJSON = new File(tmp.getRoot(), "updates.json");
+    public static void setupCaches() throws Exception {
+        File updatesJSON = new File(classTmpDir.getRoot(), "updates.json");
         unzipResource(PluginManagerIntegrationTest.class, "updates.zip", "updates.json", updatesJSON);
         try (InputStream istream = new FileInputStream(updatesJSON)) {
             latestUcJson = new JSONObject(IOUtils.toString(istream, StandardCharsets.UTF_8));
         }
 
-        pluginVersionsFile = new File(tmp.getRoot(), "plugin-versions.json");
+        pluginVersionsFile = new File(classTmpDir.getRoot(), "plugin-versions.json");
         unzipResource(PluginManagerIntegrationTest.class, "plugin-versions.zip", "plugin-versions.json", pluginVersionsFile);
 
         //TODO: Use real 2.222.1 war instead
-        jenkinsWar = new File(tmp.getRoot(), "jenkins.war");
+        jenkinsWar = new File(classTmpDir.getRoot(), "jenkins.war");
         try (InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
             Files.copy(war, jenkinsWar.toPath());
         }
 
-        cacheDir = tmp.newFolder("cache");
-        pluginsDir = tmp.newFolder("pluginsDir");
+        cacheDir = classTmpDir.newFolder("cache");
+    }
+
+    @Before
+    public void before() throws Exception {
+        pluginsDir = tmpDir.newFolder("pluginsDir");
     }
 
     // https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101

@@ -1,19 +1,17 @@
 package io.jenkins.tools.pluginmanager.util;
 
-import org.apache.commons.io.IOUtils;
-
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.commons.io.IOUtils;
 
 import static java.util.Objects.requireNonNull;
 
@@ -152,6 +150,7 @@ public final class PluginManagerUtils {
      * @param source Source file
      * @param destDir Destination
      */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public static File explodePlugin(File source, File destDir) throws IOException {
         try (JarFile jarfile = new JarFile(source)) {
             Enumeration<JarEntry> entries = jarfile.entries();

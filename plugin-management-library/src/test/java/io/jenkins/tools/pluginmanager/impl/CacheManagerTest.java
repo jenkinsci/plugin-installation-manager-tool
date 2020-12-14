@@ -114,7 +114,7 @@ public class CacheManagerTest {
                 () -> managerWithExpiredEntries.retrieveFromCache("the-cache-key")
         );
 
-         assertThat(out).isEqualTo("Cache entry expired\n");
+         assertThat(out).isEqualTo("Cache entry expired: the-cache-key. Will skip it\n");
     }
 
     @Test
