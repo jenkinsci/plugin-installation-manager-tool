@@ -1164,7 +1164,7 @@ public class PluginManager {
         String expectedChecksum = plugin.getSha256Checksum();
         if (expectedChecksum == null) {
             if (verbose) {
-                System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin");
+                System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin)");
             }
             return;
         }
