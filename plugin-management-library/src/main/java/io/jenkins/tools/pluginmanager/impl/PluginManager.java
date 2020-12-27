@@ -28,6 +28,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -349,9 +350,12 @@ public class PluginManager {
      */
     public void showAllSecurityWarnings() {
         if (cfg.isShowAllWarnings()) {
-            allSecurityWarnings.values().stream().sorted().
-                    forEach(p -> p.stream().sorted().
-                            map(w -> w.getName() + " - " + w.getMessage()).forEach(System.out::println));
+            allSecurityWarnings.values()
+                    .stream()
+                    .flatMap(List::stream)
+                    .sorted(Comparator.comparing(SecurityWarning::getName))
+                    .map(w -> w.getName() + " - " + w.getMessage())
+                    .forEach(System.out::println);
         }
     }
 
