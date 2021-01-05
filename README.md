@@ -9,14 +9,14 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 
 ### Usage
 
-- [Getting Started](#Getting Started)
-- [CLI Options](#CLI Options)
-- [Advanced configuration](#Advanced configuration)
-- [Plugin Input Format](#Plugin Input Format)
-- [Updating plugins](#Updating plugins)
-- [Examples](#Examples)
-- [Proxy Support](#Proxy Support)
-- [Other Information](#Other Information)
+- [Getting Started](#getting-started)
+- [CLI Options](#cli-options)
+- [Advanced configuration](#advanced-configuration)
+- [Plugin Input Format](#plugin-input-format)
+- [Updating plugins](#updating-plugins)
+- [Examples](#examples)
+- [Proxy Support](#proxy-support)
+- [Other Information](#other-information)
 
 #### Getting Started
 
