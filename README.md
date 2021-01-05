@@ -9,6 +9,15 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 
 ### Usage
 
+- [Getting Started](#getting-started)
+- [CLI Options](#cli-options)
+- [Advanced configuration](#advanced-configuration)
+- [Plugin Input Format](#plugin-input-format)
+- [Updating plugins](#updating-plugins)
+- [Examples](#examples)
+- [Proxy Support](#proxy-support)
+- [Other Information](#other-information)
+
 #### Getting Started
 
 Download the latest jenkins-plugin-manager jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
