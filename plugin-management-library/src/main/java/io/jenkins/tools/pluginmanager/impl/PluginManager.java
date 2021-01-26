@@ -1096,6 +1096,7 @@ public class PluginManager {
 
         boolean success = true;
         for (int i = 0; i < maxRetries; i++) {
+            success = true;
             try {
                 if (pluginFile.exists()) {
                     Files.delete(pluginFile.toPath());
@@ -1137,6 +1138,7 @@ public class PluginManager {
 
             // both the download and zip validation passed
             if(success) {
+                System.out.println("Downloaded file for " + plugin.getName());
                 break;
             }
         }
