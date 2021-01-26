@@ -192,7 +192,7 @@ public class PluginManager {
         try {
             Files.createDirectories(pluginDir.toPath());
         } catch (IOException e) {
-            throw new DirectoryCreationException("Unable to create plugin directory", e);
+            throw new DirectoryCreationException(String.format("Unable to create plugin directory: '%s', supply a directory with -d <your-directory>", pluginDir), e);
         }
     }
 
