@@ -1138,7 +1138,7 @@ public class PluginManager {
 
             // both the download and zip validation passed
             if(success) {
-                System.out.println("Downloaded file for " + plugin.getName());
+                logVerbose("Downloaded plugin " + plugin.getName());
                 break;
             }
         }
