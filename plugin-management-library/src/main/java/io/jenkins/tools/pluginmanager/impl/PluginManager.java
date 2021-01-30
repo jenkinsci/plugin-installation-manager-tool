@@ -1027,7 +1027,10 @@ public class PluginManager {
         }
 
         String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
-        if (StringUtils.isNotEmpty(pluginUrl)) {
+        String jenkinsPluginsUrl =  System.getenv("JENKINS_PLUGINS_URL");
+        if (StringUtils.isNotEmpty(jenkinsPluginsUrl)) {
+            urlString = appendPathOntoUrl(jenkinsPluginsUrl, pluginName, pluginVersion, pluginName + ".hpi");
+        } else if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
         } else if (StringUtils.isNotEmpty(jenkinsUcDownload)) {
             urlString = appendPathOntoUrl(jenkinsUcDownload, "/plugins", pluginName, pluginVersion, pluginName + ".hpi");

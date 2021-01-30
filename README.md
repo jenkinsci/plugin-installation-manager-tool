@@ -72,6 +72,8 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 * `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or to proxy the Jenkins plugin download site. 
 If set then all plugins will be downloaded through that URL.
   
+* `JENKINS_PLUGINS_URL`: Rewrites the plugin url to the specified value before a plugin is downloaded. Use this option to download from a specific server and bypass the mirrors and force the use of your own server. For example, if your server has the Jenkins plugins at `https://company.com/jenkins-plugins` then simply set this variable to that value. From the specified URL, the plugin must be found under `pluginName/version/pluginName.hpii`. There is no need to re-write the `update-center.json` file as this feature will re-write the URL right before the plugin is fetched. This is useful when the mirrors are broken or if you have an internal policy requirement. You still need access to the official `update-center.json` on the Jenkins servers file.
+
 #### Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
