@@ -69,9 +69,10 @@ Jenkins in a broken state.
 * `CACHE_DIR`: used to configure the directory where the plugins update center cache is located. By default it will be in `~/.cache/jenkins-plugin-management-cli`,
 if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jenkins-plugin-management-cli`.
 
-* `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or to proxy the Jenkins plugin download site. 
-If set then all plugins will be downloaded through that URL.
-  
+* `JENKINS_UC_DOWNLOAD`: when this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD}+/plugins`. Often used to cache or to proxy the Jenkins plugin download site. To also replace the `/plugins` hard coded value, use `JENKINS_UC_DOWNLOAD2`.
+
+* `JENKINS_UC_DOWNLOAD2`: when this value is set, it replaces the plugin download URL found in the `update-center.json` file with `JENKINS_UC_DOWNLOAD2`. Often used to cache or to proxy the Jenkins plugin download site. When this value is set at the same time as `JENKINS_UC_DOWNLOAD`, the later is ignored.
+
 #### Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
