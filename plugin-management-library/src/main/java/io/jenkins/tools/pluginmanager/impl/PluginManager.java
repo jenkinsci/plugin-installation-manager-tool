@@ -1115,6 +1115,7 @@ public class PluginManager {
                     List<URI> redirectLocations = context.getRedirectLocations();
                     // Expected to be an absolute URI
                     URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
+                    logVerbose(String.format("downloading %s from %s", plugin.getName(), location));
                     FileUtils.copyURLToFile(location.toURL(), pluginFile);
                 } catch (URISyntaxException | IOException e) {
                     logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
