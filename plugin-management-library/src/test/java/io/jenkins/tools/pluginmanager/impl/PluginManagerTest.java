@@ -962,7 +962,7 @@ public class PluginManagerTest {
 
         Plugin parent1 = new Plugin("parent1", "1.0", null, null);
         Plugin parent2 = new Plugin("replaced1", "1.0", null, null);
-        Plugin parent3= new Plugin("parent3", "1.2", null, null);
+        Plugin parent3 = new Plugin("parent3", "1.2", null, null);
 
         Plugin child1 = new Plugin("replaced1", "1.3", null, null);
         Plugin child2 = new Plugin("child2", "3.2.1", null, null);
@@ -992,10 +992,10 @@ public class PluginManagerTest {
         Map<String, Plugin> recursiveDependencies = pluginManagerSpy.resolveRecursiveDependencies(grandParent);
 
         assertThat(recursiveDependencies)
-                .hasSize(10)
                 .containsValues(
                         grandParent, parent1, child4, parent3, child2, child3,
-                        child8, child9, child5, child6);
+                        child8, child9, child5, child6)
+                .hasSize(10);
     }
 
 
