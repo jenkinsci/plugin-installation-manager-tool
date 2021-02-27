@@ -990,13 +990,19 @@ public class PluginManager {
 
                 if (!recursiveDependencies.containsKey(dependencyName)) {
                     recursiveDependencies.put(dependencyName, p);
-                    queue.add(p);
+                    if (!p.getOptional()) {
+                        // If/when this dependency becomes non-optional, we will expand its dependencies.
+                        queue.add(p);
+                    }
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().isOlderThan(p.getVersion())) {
-                        outputPluginReplacementInfo(existingDependency, p);
-                        queue.add(p); //in case the higher version contains dependencies the lower version didn't have
-                        recursiveDependencies.replace(dependencyName, existingDependency, p);
+                    Plugin newDependency = combineDependencies(existingDependency, p);
+                    if (!newDependency.equals(existingDependency)) {
+                        outputPluginReplacementInfo(existingDependency, newDependency);
+                        recursiveDependencies.replace(dependencyName, existingDependency, newDependency);
+                        // newDependency may have additional dependencies if it is a higher version or
+                        // if it became non-optional.
+                        queue.add(newDependency);
                     }
                 }
             }
