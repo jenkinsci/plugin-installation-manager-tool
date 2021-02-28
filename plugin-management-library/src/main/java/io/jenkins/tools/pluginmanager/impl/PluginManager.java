@@ -954,7 +954,6 @@ public class PluginManager {
         return resolveRecursiveDependencies(plugin, null);
     }
 
-    // TODO(oleg_nenashev): This method is private, because it is only a partial fix for https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
     // A full dependency graph resolution and removal of non-needed dependency trees is required
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
         Deque<Plugin> queue = new LinkedList<>();
