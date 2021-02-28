@@ -577,14 +577,43 @@ public class PluginManager {
                     allPluginDependencies.put(dependencyName, dependentPlugin);
                 } else {
                     Plugin existingDependency = allPluginDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().isOlderThan(dependencyVersion)) {
-                        outputPluginReplacementInfo(existingDependency, dependentPlugin);
-                        allPluginDependencies.replace(existingDependency.getName(), dependentPlugin);
-                    }
+                    allPluginDependencies.replace(existingDependency.getName(),
+                            combineDependencies(existingDependency, dependentPlugin));
                 }
             }
         }
-        return allPluginDependencies;
+        return removeOptional(allPluginDependencies);
+    }
+
+    private Map<String, Plugin> removeOptional(Map<String, Plugin> plugins) {
+        Map<String, Plugin> filtered = new HashMap<>();
+        for (Map.Entry<String, Plugin> entry : plugins.entrySet()) {
+            if (!entry.getValue().getOptional()) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered;
+    }
+
+    // Return a new dependency which is the intersection of the two given dependencies. The rules
+    // for determining this are as follows:
+    // - The resulting plugin is optional iff both the given plugins are optional
+    // - the resulting plugin will have the higher of the given versions
+    // - any remaining plugin attributes will come from the plugin with the higher version
+    private Plugin combineDependencies(Plugin a, Plugin b) {
+        if (!a.getName().equals(b.getName())) {
+            throw new IllegalStateException("Can only combine dependencies on the same plugin. Got " + a.getName() + " and " + b.getName());
+        }
+
+        boolean resultIsOptional = a.getOptional() && b.getOptional();
+
+        Plugin higherVersion = a;
+        if (a.getVersion().isOlderThan(b.getVersion())) {
+            higherVersion = b;
+        }
+
+        higherVersion.setOptional(resultIsOptional);
+        return higherVersion;
     }
 
     private void calculateChecksum(Plugin requestedPlugin) {
@@ -808,22 +837,20 @@ public class PluginManager {
             }
             String[] dependencies = dependencyString.split(",");
 
-            //ignore optional dependencies
             for (String dependency : dependencies) {
-                if (!dependency.contains("resolution:=optional")) {
-                    String[] pluginInfo = dependency.split(":");
-                    String pluginName = pluginInfo[0];
-                    String pluginVersion = pluginInfo[1];
-                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                    if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                        VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
-                        dependentPlugin.setVersion(latestPluginVersion);
-                        dependentPlugin.setLatest(true);
-                    }
-
-                    dependentPlugins.add(dependentPlugin);
-                    dependentPlugin.setParent(plugin);
+                String[] pluginInfo = dependency.split(":");
+                String pluginName = pluginInfo[0];
+                String pluginVersion = pluginInfo[1];
+                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    dependentPlugin.setVersion(latestPluginVersion);
+                    dependentPlugin.setLatest(true);
                 }
+                dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
+
+                dependentPlugins.add(dependentPlugin);
+                dependentPlugin.setParent(plugin);
             }
             logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                     String.format("%n%s depends on: %n", plugin.getName()) +
@@ -844,7 +871,7 @@ public class PluginManager {
 
     /**
      * Given a plugin and json that contains plugin information, determines the dependencies and returns the list of
-     * dependencies. Optional dependencies will be excluded.
+     * dependencies.
      *
      * @param plugin     for which to find dependencies
      * @param pluginJson json that will be parsed to find requested plugin's dependencies
@@ -860,19 +887,18 @@ public class PluginManager {
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
-            boolean isPluginOptional = dependency.getBoolean("optional");
-            if (!isPluginOptional) {
-                String pluginName = dependency.getString("name");
-                String pluginVersion = dependency.getString("version");
-                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
-                    dependentPlugin.setVersion(latestPluginVersion);
-                    dependentPlugin.setLatest(true);
-                }
-                dependentPlugins.add(dependentPlugin);
-                dependentPlugin.setParent(plugin);
+            String pluginName = dependency.getString("name");
+            String pluginVersion = dependency.getString("version");
+            Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+            if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
+                VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                dependentPlugin.setVersion(latestPluginVersion);
+                dependentPlugin.setLatest(true);
             }
+            dependentPlugin.setOptional(dependency.getBoolean("optional"));
+
+            dependentPlugins.add(dependentPlugin);
+            dependentPlugin.setParent(plugin);
         }
 
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
@@ -928,9 +954,8 @@ public class PluginManager {
         return resolveRecursiveDependencies(plugin, null);
     }
 
-    // TODO(oleg_nenashev): This method is private, because it is only a partial fix for https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
     // A full dependency graph resolution and removal of non-needed dependency trees is required
-    private Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
@@ -964,13 +989,19 @@ public class PluginManager {
 
                 if (!recursiveDependencies.containsKey(dependencyName)) {
                     recursiveDependencies.put(dependencyName, p);
-                    queue.add(p);
+                    if (!p.getOptional()) {
+                        // If/when this dependency becomes non-optional, we will expand its dependencies.
+                        queue.add(p);
+                    }
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().isOlderThan(p.getVersion())) {
-                        outputPluginReplacementInfo(existingDependency, p);
-                        queue.add(p); //in case the higher version contains dependencies the lower version didn't have
-                        recursiveDependencies.replace(dependencyName, existingDependency, p);
+                    Plugin newDependency = combineDependencies(existingDependency, p);
+                    if (!newDependency.equals(existingDependency)) {
+                        outputPluginReplacementInfo(existingDependency, newDependency);
+                        recursiveDependencies.replace(dependencyName, existingDependency, newDependency);
+                        // newDependency may have additional dependencies if it is a higher version or
+                        // if it became non-optional.
+                        queue.add(newDependency);
                     }
                 }
             }

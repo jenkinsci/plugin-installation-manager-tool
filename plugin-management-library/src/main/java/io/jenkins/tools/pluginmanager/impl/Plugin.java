@@ -21,6 +21,7 @@ public class Plugin {
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
     private boolean experimental;
+    private boolean optional;
     private String sha256Checksum;
     private VersionNumber jenkinsVersion;
 
@@ -134,6 +135,15 @@ public class Plugin {
         return parent;
     }
 
+    public Plugin setOptional(boolean optional) {
+        this.optional = optional;
+        return this;
+    }
+
+    public boolean getOptional() {
+        return this.optional;
+    }
+
     public VersionNumber getJenkinsVersion() {
         return jenkinsVersion;
     }
@@ -174,7 +184,8 @@ public class Plugin {
         return Objects.equals(name, plugin.name) &&
                 Objects.equals(version, plugin.version) &&
                 Objects.equals(groupId, plugin.groupId) &&
-                Objects.equals(url, plugin.url);
+                Objects.equals(url, plugin.url) &&
+                Objects.equals(optional, plugin.optional);
     }
 
     @Override
