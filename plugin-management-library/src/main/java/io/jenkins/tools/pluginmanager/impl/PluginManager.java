@@ -1160,9 +1160,9 @@ public class PluginManager {
                     if (locations != null) {
                         String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
                         if (success) {
-                            System.out.println(message);
-                        } else {
                             logVerbose(message);
+                        } else {
+                            System.out.println(message);
                         }
                     }
                 }
