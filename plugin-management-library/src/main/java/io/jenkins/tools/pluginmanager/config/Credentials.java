@@ -8,7 +8,6 @@ public class Credentials {
     private final int port;
 
     public Credentials(String username, String password, String host, int port) {
-        super();
         this.username = username;
         this.password = password;
         this.host = host;
