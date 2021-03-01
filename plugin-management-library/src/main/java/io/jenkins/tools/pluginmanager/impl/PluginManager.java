@@ -1158,7 +1158,12 @@ public class PluginManager {
                     // get final URI (after all redirects)
                     List<URI> locations = context.getRedirectLocations();
                     if (locations != null) {
-                        logVerbose(String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1)));
+                        String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
+                        if (success) {
+                            System.out.println(message);
+                        } else {
+                            logVerbose(message);
+                        }
                     }
                 }
             } catch (IOException e) {
