@@ -5,6 +5,7 @@ import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.CheckForNull;
 
@@ -47,6 +48,7 @@ public class Config {
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
     private final OutputFormat outputFormat;
+    private final List<Credentials> credentials;
 
     private Config(
             File pluginDir,
@@ -67,7 +69,8 @@ public class Config {
             boolean useLatestSpecified,
             boolean useLatestAll,
             boolean skipFailedPlugins,
-            OutputFormat outputFormat) {
+            OutputFormat outputFormat,
+            List<Credentials> credentials) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -87,6 +90,7 @@ public class Config {
         this.useLatestAll = useLatestAll;
         this.skipFailedPlugins = skipFailedPlugins;
         this.outputFormat = outputFormat;
+        this.credentials = credentials;
     }
 
     public File getPluginDir() {
@@ -166,6 +170,10 @@ public class Config {
         return skipFailedPlugins;
     }
 
+    public List<Credentials> getCredentials() {
+        return credentials;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -190,6 +198,7 @@ public class Config {
         private boolean useLatestAll;
         private boolean skipFailedPlugins;
         private OutputFormat outputFormat = OutputFormat.STDOUT;
+        private List<Credentials> credentials = Collections.emptyList();
 
         private Builder() {
         }
@@ -294,6 +303,12 @@ public class Config {
             return this;
         }
 
+
+        public Builder withCredentials(List<Credentials> credentials) {
+            this.credentials  = credentials;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -314,8 +329,10 @@ public class Config {
                     useLatestSpecified,
                     useLatestAll,
                     skipFailedPlugins,
-                    outputFormat
+                    outputFormat,
+                    credentials
             );
         }
+
     }
 }

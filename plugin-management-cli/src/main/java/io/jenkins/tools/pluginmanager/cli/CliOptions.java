@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -140,6 +141,10 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;
 
+    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
+            handler = MultiCredentialsOptionHandler.class)
+    private List<Credentials> credentials;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -166,6 +171,7 @@ class CliOptions {
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
+                .withCredentials(credentials)
                 .build();
     }
 

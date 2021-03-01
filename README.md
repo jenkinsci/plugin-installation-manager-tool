@@ -63,6 +63,7 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 * `--no-download`: (optional) Set to true to not download plugins. By default it is set to false and plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
 Jenkins in a broken state.
+* `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports). Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
 
 #### Advanced configuration
 
