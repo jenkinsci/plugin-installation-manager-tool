@@ -12,4 +12,10 @@ public class MultiCredentialsOptionHandler extends DelimitedOptionHandler<Creden
         super(parser, option, setter, ",", new CredentialsOptionHandler(parser, option, setter));
     }
 
+    @Override
+    public String printDefaultValue() {
+        // workaround for https://github.com/kohsuke/args4j/issues/166
+        return null;
+    }
+
 }

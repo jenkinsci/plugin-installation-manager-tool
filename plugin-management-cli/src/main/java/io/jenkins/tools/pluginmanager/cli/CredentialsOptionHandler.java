@@ -29,4 +29,9 @@ public class CredentialsOptionHandler extends OneArgumentOptionHandler<Credentia
         }
         return option;
     }
+
+    @Override
+    public String getDefaultMetaVariable() {
+        return "CREDENTIALS";
+    }
 }
