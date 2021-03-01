@@ -1150,6 +1150,11 @@ public class PluginManager {
                 HttpGet httpGet = new HttpGet(urlString);
                 try {
                     httpclient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
+                    // get final URI (after all redirects)
+                    List<URI> locations = context.getRedirectLocations();
+                    if (locations != null) {
+                        logVerbose(String.format("Downloading %s from %s", plugin.getName(), locations.get(locations.size() - 1)));
+                    }
                 } catch (IOException e) {
                     logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
                             urlString, plugin.getName()));
@@ -1201,6 +1206,9 @@ public class PluginManager {
     }
 
     private CredentialsProvider getCredentialsProvider() {
+        if (cfg.getCredentials().isEmpty()) {
+            return null;
+        }
         CredentialsProvider credsProvider = new BasicCredentialsProvider();
         for (Credentials credentials : cfg.getCredentials()) {
             credsProvider.setCredentials(
