@@ -1150,15 +1150,16 @@ public class PluginManager {
                 HttpGet httpGet = new HttpGet(urlString);
                 try {
                     httpclient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
-                    // get final URI (after all redirects)
-                    List<URI> locations = context.getRedirectLocations();
-                    if (locations != null) {
-                        logVerbose(String.format("Downloading %s from %s", plugin.getName(), locations.get(locations.size() - 1)));
-                    }
                 } catch (IOException e) {
                     logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
                             urlString, plugin.getName()));
                     success = false;
+                } finally {
+                    // get final URI (after all redirects)
+                    List<URI> locations = context.getRedirectLocations();
+                    if (locations != null) {
+                        logVerbose(String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1)));
+                    }
                 }
             } catch (IOException e) {
                 System.out.println("Unable to create HTTP connection to download plugin");
