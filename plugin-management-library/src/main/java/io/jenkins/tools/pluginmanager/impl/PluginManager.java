@@ -3,7 +3,9 @@ package io.jenkins.tools.pluginmanager.impl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.FileFilter;
@@ -50,12 +52,13 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpHead;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.client.utils.URIUtils;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
@@ -1115,7 +1118,7 @@ public class PluginManager {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
@@ -1140,18 +1143,28 @@ public class PluginManager {
                     .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, true))
                     .build()) {
                 HttpClientContext context = HttpClientContext.create();
-                HttpHead httphead = new HttpHead(urlString);
-                try (CloseableHttpResponse ignored = httpclient.execute(httphead, context)) {
-                    HttpHost target = context.getTargetHost();
-                    List<URI> redirectLocations = context.getRedirectLocations();
-                    // Expected to be an absolute URI
-                    URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
-                    logVerbose(String.format("downloading %s from %s", plugin.getName(), location));
-                    FileUtils.copyURLToFile(location.toURL(), pluginFile);
-                } catch (URISyntaxException | IOException e) {
+                CredentialsProvider credentialsProvider = getCredentialsProvider();
+                if (credentialsProvider != null) {
+                    context.setCredentialsProvider(credentialsProvider);
+                }
+                HttpGet httpGet = new HttpGet(urlString);
+                try {
+                    httpclient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
+                } catch (IOException e) {
                     logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
                             urlString, plugin.getName()));
                     success = false;
+                } finally {
+                    // get final URI (after all redirects)
+                    List<URI> locations = context.getRedirectLocations();
+                    if (locations != null) {
+                        String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
+                        if (success) {
+                            logVerbose(message);
+                        } else {
+                            System.out.println(message);
+                        }
+                    }
                 }
             } catch (IOException e) {
                 System.out.println("Unable to create HTTP connection to download plugin");
@@ -1196,6 +1209,19 @@ public class PluginManager {
             failedPlugins.add(plugin);
         }
         return success;
+    }
+
+    private CredentialsProvider getCredentialsProvider() {
+        if (cfg.getCredentials().isEmpty()) {
+            return null;
+        }
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        for (Credentials credentials : cfg.getCredentials()) {
+            credsProvider.setCredentials(
+                    new AuthScope(credentials.getHost(), credentials.getPort()),
+                    new UsernamePasswordCredentials(credentials.getUsername(), credentials.getPassword()));
+        }
+        return credsProvider;
     }
 
     void verifyChecksum(Plugin plugin, File pluginFile) {
