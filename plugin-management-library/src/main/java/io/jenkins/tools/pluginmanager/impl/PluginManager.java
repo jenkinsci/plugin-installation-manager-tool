@@ -7,6 +7,7 @@ import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -55,6 +56,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
@@ -62,6 +64,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -71,7 +74,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 import static java.util.Comparator.comparing;
 
-public class PluginManager {
+public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber("latest");
     private List<Plugin> failedPlugins;
     /**
@@ -97,6 +100,7 @@ public class PluginManager {
     private boolean useLatestSpecified;
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
+    private CloseableHttpClient httpClient;
 
     private CacheManager cm;
 
@@ -119,6 +123,19 @@ public class PluginManager {
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
         skipFailedPlugins = cfg.isSkipFailedPlugins();
+        httpClient = null;
+    }
+
+    private HttpClient getHttpClient() {
+        if (httpClient == null) {
+            httpClient = HttpClients.custom().useSystemProperties()
+                // there is a more complex retry handling in downloadToFile(...) on the whole flow
+                // this affects only the single request
+                .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
+                .setConnectionManager(new PoolingHttpClientConnectionManager())
+                .build();
+        }
+        return httpClient;
     }
 
     /**
@@ -1138,37 +1155,30 @@ public class PluginManager {
             } catch (IOException e) {
                 logVerbose(String.format("Unable to delete %s before retry %d", pluginFile, i + 1));
             }
-
-            try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
-                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, true))
-                    .build()) {
-                HttpClientContext context = HttpClientContext.create();
-                CredentialsProvider credentialsProvider = getCredentialsProvider();
-                if (credentialsProvider != null) {
-                    context.setCredentialsProvider(credentialsProvider);
-                }
-                HttpGet httpGet = new HttpGet(urlString);
-                try {
-                    httpclient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
-                } catch (IOException e) {
-                    logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
-                            urlString, plugin.getName()));
-                    success = false;
-                } finally {
-                    // get final URI (after all redirects)
-                    List<URI> locations = context.getRedirectLocations();
-                    if (locations != null) {
-                        String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
-                        if (success) {
-                            logVerbose(message);
-                        } else {
-                            System.out.println(message);
-                        }
+            HttpClient httpClient = getHttpClient();
+            HttpClientContext context = HttpClientContext.create();
+            CredentialsProvider credentialsProvider = getCredentialsProvider();
+            if (credentialsProvider != null) {
+                context.setCredentialsProvider(credentialsProvider);
+            }
+            HttpGet httpGet = new HttpGet(urlString);
+            try {
+                httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
+            } catch (IOException e) {
+                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
+                        urlString, plugin.getName()));
+                success = false;
+            } finally {
+                // get final URI (after all redirects)
+                List<URI> locations = context.getRedirectLocations();
+                if (locations != null) {
+                    String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
+                    if (success) {
+                        logVerbose(message);
+                    } else {
+                        System.out.println(message);
                     }
                 }
-            } catch (IOException e) {
-                System.out.println("Unable to create HTTP connection to download plugin");
-                success = false;
             }
 
             // Check integrity of plugin file
@@ -1540,5 +1550,12 @@ public class PluginManager {
      */
     public List<Plugin> getFailedPlugins() {
         return failedPlugins;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 }
