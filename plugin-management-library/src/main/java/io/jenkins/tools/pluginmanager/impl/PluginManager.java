@@ -912,16 +912,26 @@ public class PluginManager implements Closeable {
             String pluginName = dependency.getString("name");
             String pluginVersion = dependency.getString("version");
             Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-            if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
-                dependentPlugin.setVersion(latestPluginVersion);
-                dependentPlugin.setLatest(true);
-            }
             dependentPlugin.setOptional(dependency.getBoolean("optional"));
-
-            dependentPlugins.add(dependentPlugin);
             dependentPlugin.setParent(plugin);
-        }
+
+            try {
+                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    dependentPlugin.setVersion(latestPluginVersion);
+                    dependentPlugin.setLatest(true);
+                }
+                dependentPlugins.add(dependentPlugin);
+            } catch (PluginNotFoundException e) {
+                if (!dependentPlugin.getOptional()) {
+                    throw e;
+                }
+                logWarning(String.format(
+                            "Unable to find optional plugin %s in update center %s. " +
+                            "Ignoring until it becomes required.",
+                            pluginName, jenkinsUcLatest));
+            }
+    }
 
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                 String.format("%n%s depends on: %n", plugin.getName()) +
@@ -1488,6 +1498,15 @@ public class PluginManager implements Closeable {
         if (verbose) {
             System.out.println(message);
         }
+    }
+
+    /**
+     * Outputs a message to standard error with a warning prefix.
+     *
+     * @param message informational string to output
+     */
+    public void logWarning(String message) {
+        System.err.println("WARN: " + message);
     }
 
     /**
