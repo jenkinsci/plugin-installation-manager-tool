@@ -168,7 +168,9 @@ public class PluginManager implements Closeable {
                 throw new UncheckedIOException("Unable to delete: " + pluginDir.getAbsolutePath(), e);
             }
         }
-        createPluginDir(cfg.isCleanPluginDir());
+        if (cfg.doDownload()) {
+            createPluginDir(cfg.isCleanPluginDir());
+        }
 
         if (useLatestSpecified && useLatestAll) {
             throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
