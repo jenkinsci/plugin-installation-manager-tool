@@ -305,6 +305,11 @@ public class Config {
 
 
         public Builder withCredentials(List<Credentials> credentials) {
+            if (credentials == null) {
+                this.credentials = Collections.emptyList();
+                return this;
+            }
+
             this.credentials  = credentials;
             return this;
         }
