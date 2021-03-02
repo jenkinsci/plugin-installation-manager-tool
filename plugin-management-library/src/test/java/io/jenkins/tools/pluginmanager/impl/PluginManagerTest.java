@@ -109,12 +109,28 @@ public class PluginManagerTest {
                 .withPluginDir(new File(pluginParentDir, "plugins"))
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .withDoDownload(true)
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
 
         assertThatThrownBy(pluginManager::start)
                 .isInstanceOf(DirectoryCreationException.class);
+    }
+
+    @Test
+    public void startNoDirectoryNoPluginDirTest() throws IOException {
+        File pluginParentDir = folder.newFile();
+        Config config = Config.builder()
+                .withPluginDir(new File(pluginParentDir, "plugins"))
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .withDoDownload(false)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        pluginManager.start();
+        // everything should be ok.
     }
 
     @Test
