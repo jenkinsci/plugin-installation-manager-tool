@@ -46,28 +46,29 @@ public class Main {
             }
 
             Config cfg = options.setup();
-            PluginManager pm = new PluginManager(cfg);
+            try (PluginManager pm = new PluginManager(cfg)) {
 
-            if (options.isShowAvailableUpdates()) {
-                pm.getUCJson(pm.getJenkinsVersion());
-                List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
-                OutputFormat outputFormat = options.getOutputFormat() == null ? OutputFormat.STDOUT : options.getOutputFormat();
-                String output;
-                switch (outputFormat) {
-                    case YAML:
-                        output = new YamlPluginOutputConverter().convert(latestVersionsOfPlugins);
-                        break;
-                    case TXT:
-                        output = new TxtOutputConverter().convert(latestVersionsOfPlugins);
-                        break;
-                    default:
-                        output = new StdOutPluginOutputConverter(cfg.getPlugins()).convert(latestVersionsOfPlugins);
+                if (options.isShowAvailableUpdates()) {
+                    pm.getUCJson(pm.getJenkinsVersion());
+                    List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
+                    OutputFormat outputFormat = options.getOutputFormat() == null ? OutputFormat.STDOUT : options.getOutputFormat();
+                    String output;
+                    switch (outputFormat) {
+                        case YAML:
+                            output = new YamlPluginOutputConverter().convert(latestVersionsOfPlugins);
+                            break;
+                        case TXT:
+                            output = new TxtOutputConverter().convert(latestVersionsOfPlugins);
+                            break;
+                        default:
+                            output = new StdOutPluginOutputConverter(cfg.getPlugins()).convert(latestVersionsOfPlugins);
+                    }
+                    System.out.println(output);
+                    return;
                 }
-                System.out.println(output);
-                return;
-            }
 
-            pm.start();
+                pm.start();
+            }
         } catch (Exception e) {
             if (options.isVerbose()) {
                 e.printStackTrace();
