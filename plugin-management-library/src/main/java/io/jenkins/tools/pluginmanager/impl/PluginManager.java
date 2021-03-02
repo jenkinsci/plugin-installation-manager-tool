@@ -926,7 +926,7 @@ public class PluginManager implements Closeable {
                 if (!dependentPlugin.getOptional()) {
                     throw e;
                 }
-                logWarning(String.format(
+                logVerbose(String.format(
                             "Unable to find optional plugin %s in update center %s. " +
                             "Ignoring until it becomes required.",
                             pluginName, jenkinsUcLatest));
@@ -1498,15 +1498,6 @@ public class PluginManager implements Closeable {
         if (verbose) {
             System.out.println(message);
         }
-    }
-
-    /**
-     * Outputs a message to standard error with a warning prefix.
-     *
-     * @param message informational string to output
-     */
-    public void logWarning(String message) {
-        System.err.println("WARN: " + message);
     }
 
     /**
