@@ -1049,12 +1049,12 @@ public class PluginManager implements Closeable {
                         final String transitiveMessageExtension;
                         if (!dependency.equals(plugin)) {
                             // transitive dependency
-                            transitiveMessageExtension = String.format(" (transitively via %s:%s)", dependency.getName(), dependency.getVersion());
+                            transitiveMessageExtension = String.format("transitively (via %s:%s)", dependency.getName(), dependency.getVersion());
                         } else {
                             // direct dependency
-                            transitiveMessageExtension = "";
+                            transitiveMessageExtension = "directly";
                         }
-                        String message = String.format("Plugin %s:%s%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                        String message = String.format("Plugin %s:%s depends %s on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 plugin.getName(), plugin.getVersion(), transitiveMessageExtension, p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
                         PluginDependencyStrategyException exception = new PluginDependencyStrategyException(message);
                         if (exceptions != null) {
