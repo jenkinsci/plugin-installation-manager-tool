@@ -185,15 +185,17 @@ public class PluginManager implements Closeable {
         showAllSecurityWarnings();
         bundledPluginVersions = bundledPlugins();
         installedPluginVersions = installedPlugins();
-
-        allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins());
+        List<Exception> exceptions = new ArrayList<>();
+        allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins(), exceptions);
         pluginsToBeDownloaded = findPluginsToDownload(allPluginsAndDependencies);
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
-        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded);
-
+        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
+        if (!exceptions.isEmpty()) {
+            throw new AggregatePluginPrerequisitesNotMetException(exceptions);
+        }
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
@@ -474,18 +476,36 @@ public class PluginManager implements Closeable {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
+     * @param jenkinsVersion the current version of Jenkins
      * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
     public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded) {
+        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, null);
+    }
+
+    /**
+     * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
+     * user specified Jenkins war file
+     *
+     * @param jenkinsVersion the current version of Jenkins
+     * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
+     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     */
+    public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded, @CheckForNull List<Exception> exceptions) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
                 final VersionNumber pluginJenkinsVersion = p.getJenkinsVersion();
                 if (pluginJenkinsVersion!= null) {
                     if (pluginJenkinsVersion.isNewerThan(jenkinsVersion)) {
-                        throw new VersionCompatibilityException(
+                        VersionCompatibilityException exception = new VersionCompatibilityException(
                                 String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s",
                                         p.getName(), p.getVersion().toString(), pluginJenkinsVersion.toString(),
                                         jenkinsVersion.toString()));
+                        if (exceptions != null) {
+                            exceptions.add(exception);
+                        } else {
+                            throw exception;
+                        }
                     }
                 }
             }
@@ -579,6 +599,18 @@ public class PluginManager implements Closeable {
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
+        return findPluginsAndDependencies(requestedPlugins, null);
+    }
+
+    /**
+     * Given a list of plugins, finds the recursive set of all dependent plugins. If multiple plugins rely on different
+     * versions of the same plugin, the higher version required will replace the lower version dependency
+     *
+     * @param requestedPlugins list of plugins to find all dependencies for
+     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     * @return set of all requested plugins and their recursive dependencies
+     */
+    public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins, @CheckForNull List<Exception> exceptions) {
         // Prepare the initial list by putting all explicitly requested plugins
         Map<String, Plugin> topLevelDependencies = new HashMap<>();
         for (Plugin requestedPlugin : requestedPlugins) {
@@ -589,7 +621,7 @@ public class PluginManager implements Closeable {
         for (Plugin requestedPlugin : requestedPlugins) {
             calculateChecksum(requestedPlugin);
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
-            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
+            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies, exceptions);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
@@ -973,11 +1005,15 @@ public class PluginManager implements Closeable {
      * the requested plugin itself
      */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
-        return resolveRecursiveDependencies(plugin, null);
+        return resolveRecursiveDependencies(plugin, null, null);
+    }
+
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
+        return resolveRecursiveDependencies(plugin, topLevelDependencies, null);
     }
 
     // A full dependency graph resolution and removal of non-needed dependency trees is required
-    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
@@ -986,10 +1022,17 @@ public class PluginManager implements Closeable {
         while (queue.size() != 0) {
             Plugin dependency = queue.poll();
 
-            if (!dependency.isDependenciesSpecified()) {
-                dependency.setDependencies(resolveDirectDependencies(dependency));
+            try {
+                if (!dependency.isDependenciesSpecified()) {
+                    dependency.setDependencies(resolveDirectDependencies(dependency));
+                }
+            } catch (Exception e) {
+                if (exceptions != null) {
+                    exceptions.add(e);
+                } else {
+                    throw e;
+                }
             }
-
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
                 Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
@@ -1005,7 +1048,13 @@ public class PluginManager implements Closeable {
                     } else {
                         String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                        throw new PluginDependencyStrategyException(message);
+                        PluginDependencyStrategyException exception = new PluginDependencyStrategyException(message);
+                        if (exceptions != null) {
+                            exceptions.add(exception);
+                        } else {
+                            throw exception;
+                        }
+                        continue;
                     }
                 }
 
