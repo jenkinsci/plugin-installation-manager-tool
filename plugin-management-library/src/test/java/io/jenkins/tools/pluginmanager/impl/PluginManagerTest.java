@@ -500,14 +500,14 @@ public class PluginManagerTest {
         // dependencies on it are optional.
         deps1.put("matrix", new Plugin("matrix", "2.5", null, null).setOptional(true));
         doReturn(deps1).when(pluginManagerSpy).resolveRecursiveDependencies(
-            eq(plugin1), nullable(Map.class));
+            eq(plugin1), nullable(Map.class), eq(null));
 
         Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
         Map<String, Plugin> deps2 = new HashMap<>();
         deps2.put("structs", new Plugin("structs", "1.7", null, null));
         deps2.put("matrix", new Plugin("matrix", "2.5", null, null).setOptional(true));
         doReturn(deps2).when(pluginManagerSpy).resolveRecursiveDependencies(
-            eq(plugin2), nullable(Map.class));
+            eq(plugin2), nullable(Map.class), eq(null));
 
         Map<String, Plugin> dependencies = pluginManagerSpy.findPluginsAndDependencies(
                 Arrays.asList(plugin1, plugin2));
