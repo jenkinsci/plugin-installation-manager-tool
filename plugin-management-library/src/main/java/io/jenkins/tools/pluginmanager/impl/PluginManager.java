@@ -1332,7 +1332,7 @@ public class PluginManager implements Closeable {
         }
     }
 
-    @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_SHA1", justification = "Needed for legacy purposes.")
+    @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_SHA1", justification = "CloudBees update center only uses sha1, remove sha1 once this has been updated.")
     private byte[] calculateChecksum(File pluginFile) {
         try (FileInputStream fin = new FileInputStream(pluginFile)) {
             HashFunction hashFunction = getHashFunction();
