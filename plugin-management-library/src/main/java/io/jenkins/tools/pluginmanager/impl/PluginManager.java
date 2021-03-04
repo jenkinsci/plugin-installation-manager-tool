@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
+import io.jenkins.tools.pluginmanager.config.HashFunction;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
@@ -82,6 +83,7 @@ public class PluginManager implements Closeable {
      */
     private File pluginDir;
     private String jenkinsUcLatest;
+    private HashFunction hashFunction;
     private @CheckForNull VersionNumber jenkinsVersion;
     private @CheckForNull File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
@@ -123,6 +125,7 @@ public class PluginManager implements Closeable {
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
         skipFailedPlugins = cfg.isSkipFailedPlugins();
+        hashFunction = cfg.getHashFunction();
         httpClient = null;
     }
 
@@ -580,7 +583,7 @@ public class PluginManager implements Closeable {
                 if (skipFailedPlugins) {
                     System.out.println("SKIP: Unable to move " + plugin.getName() + " to the plugin directory");
                 } else {
-                    throw new DownloadPluginException("Unable to move " + plugin.getName()  + " to the plugin directory", ex);
+                    throw new DownloadPluginException("Unable to move " + plugin.getName() + " to the plugin directory", ex);
                 }
             }
         }
@@ -677,18 +680,18 @@ public class PluginManager implements Closeable {
             String versionInUpdateCenter = pluginFromUpdateCenter.getString("version");
             if (versionInUpdateCenter.equals(requestedPlugin.getVersion().toString())) {
 
-                String sha256 = pluginFromUpdateCenter.getString("sha256");
+                String checksum = pluginFromUpdateCenter.getString(getHashFunction().toString());
                 if (verbose) {
-                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + sha256);
+                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + checksum);
                 }
-                requestedPlugin.setSha256Checksum(sha256);
+                requestedPlugin.setChecksum(checksum);
             } else {
-                if (verbose && requestedPlugin.getSha256Checksum() == null) {
+                if (verbose && requestedPlugin.getChecksum() == null) {
                     System.out.println("Couldn't find checksum for " + requestedPlugin.getName() + " at version: " + requestedPlugin.getVersion().toString());
                 }
             }
         } else {
-            if (verbose && requestedPlugin.getSha256Checksum() == null) {
+            if (verbose && requestedPlugin.getChecksum() == null) {
                 System.out.println("Couldn't find checksum for: " + requestedPlugin.getName());
             }
         }
@@ -718,7 +721,6 @@ public class PluginManager implements Closeable {
      *
      * @param urlString string representing the url from which to get the json object
      * @deprecated see {@link #getJson(URL, String)}
-     * @return json object
      */
     @Deprecated
     public JSONObject getJson(String urlString) {
@@ -811,11 +813,11 @@ public class PluginManager implements Closeable {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
-                String checksum = specificVersionInfo.getString("sha256");
+                String checksum = specificVersionInfo.getString(getHashFunction().toString());
                 if (verbose) {
                     System.out.println("Setting checksum for: " + plugin.getName() + " to " + checksum);
                 }
-                plugin.setSha256Checksum(checksum);
+                plugin.setChecksum(checksum);
                 plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
@@ -1260,7 +1262,7 @@ public class PluginManager implements Closeable {
             }
 
             // both the download and zip validation passed
-            if(success) {
+            if (success) {
                 logVerbose("Downloaded plugin " + plugin.getName());
                 break;
             }
@@ -1303,7 +1305,7 @@ public class PluginManager implements Closeable {
     }
 
     void verifyChecksum(Plugin plugin, File pluginFile) {
-        String expectedChecksum = plugin.getSha256Checksum();
+        String expectedChecksum = plugin.getChecksum();
         if (expectedChecksum == null) {
             if (verbose) {
                 System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin)");
@@ -1330,9 +1332,20 @@ public class PluginManager implements Closeable {
         }
     }
 
+    @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_SHA1", justification = "Needed for legacy purposes.")
     private byte[] calculateChecksum(File pluginFile) {
         try (FileInputStream fin = new FileInputStream(pluginFile)) {
-            return DigestUtils.sha256(fin);
+            HashFunction hashFunction = getHashFunction();
+            switch (hashFunction) {
+                case SHA1:
+                    return DigestUtils.sha1(fin);
+                case SHA512:
+                    return DigestUtils.sha512(fin);
+                case SHA256:
+                    return DigestUtils.sha256(fin);
+                default:
+                    throw new UnsupportedChecksumException(hashFunction.toString() + "is an unsupported hash function.");
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -1476,6 +1489,20 @@ public class PluginManager implements Closeable {
             System.out.println("War not found, installing all plugins: " + jenkinsWarFile.toString());
         }
         return bundledPlugins;
+    }
+
+
+    /**
+     * Gets the hash function used for the update center
+     *
+     * @return Jenkins update center hash function string
+     */
+    public HashFunction getHashFunction() {
+        return hashFunction;
+    }
+
+    public void setHashFunction(HashFunction hashFunction) {
+        this.hashFunction = hashFunction;
     }
 
     /**

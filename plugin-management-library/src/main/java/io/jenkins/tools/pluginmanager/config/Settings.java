@@ -18,6 +18,7 @@ public class Settings {
     public static final URL DEFAULT_PLUGIN_INFO;
     public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/plugin-versions.json";
     public static final Path DEFAULT_CACHE_PATH;
+    public static final HashFunction DEFAULT_HASH_FUNCTION = HashFunction.SHA256;
 
     static {
         String cacheBaseDir = System.getProperty("user.home");
