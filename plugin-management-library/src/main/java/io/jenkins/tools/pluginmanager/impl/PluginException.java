@@ -8,13 +8,13 @@ public class PluginException extends RuntimeException {
 
     private final Plugin plugin;
 
-    public PluginException(Plugin plugin, String message, Throwable cause) {
-        super(message, cause);
+    public PluginException(Plugin plugin, String messageSuffix, Throwable cause) {
+        super(messageSuffix, cause);
         this.plugin = plugin;
     }
 
-    public PluginException(Plugin plugin, String message) {
-        this(plugin, message, null);
+    public PluginException(Plugin plugin, String messageSuffix) {
+        this(plugin, messageSuffix, null);
     }
 
     String getOriginatorPluginAndDependencyChain() {

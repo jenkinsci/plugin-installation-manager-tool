@@ -1038,7 +1038,7 @@ public class PluginManager implements Closeable {
                 }
             } catch (RuntimeException e) {
                 if (!(e instanceof PluginDependencyException)) {
-                    e = new PluginDependencyException(dependency, String.format("Could not resolve dependencies: %s", e.getMessage()), e);
+                    e = new PluginDependencyException(dependency, String.format("has unresolvable dependencies: %s", e.getMessage()), e);
                 }
                 if (exceptions != null) {
                     exceptions.add(e);
