@@ -1036,12 +1036,16 @@ public class PluginManager implements Closeable {
                 if (!dependency.isDependenciesSpecified()) {
                     dependency.setDependencies(resolveDirectDependencies(dependency));
                 }
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
+                if (!(e instanceof PluginDependencyException)) {
+                    e = new PluginDependencyException(dependency, String.format("Could not resolve dependencies: %s", e.getMessage()), e);
+                }
                 if (exceptions != null) {
                     exceptions.add(e);
                 } else {
                     throw e;
                 }
+                continue;
             }
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
@@ -1056,17 +1060,9 @@ public class PluginManager implements Closeable {
                         }
                         continue;
                     } else {
-                        final String transitiveMessageExtension;
-                        if (!dependency.equals(plugin)) {
-                            // transitive dependency
-                            transitiveMessageExtension = String.format("transitively (via %s:%s)", dependency.getName(), dependency.getVersion());
-                        } else {
-                            // direct dependency
-                            transitiveMessageExtension = "directly";
-                        }
-                        String message = String.format("Plugin %s:%s depends %s on %s:%s, but there is an older version defined on the top level - %s:%s",
-                                plugin.getName(), plugin.getVersion(), transitiveMessageExtension, p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                        PluginDependencyStrategyException exception = new PluginDependencyStrategyException(message);
+                        String message = String.format("depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                                p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
+                        PluginDependencyException exception = new PluginDependencyException(dependency, message);
                         if (exceptions != null) {
                             exceptions.add(exception);
                         } else {
