@@ -17,7 +17,7 @@ public class PluginException extends RuntimeException {
         this(plugin, messageSuffix, null);
     }
 
-    String getOriginatorPluginAndDependencyChain() {
+    public String getOriginatorPluginAndDependencyChain() {
         List<Plugin> dependencyChain = new ArrayList<>();
         Plugin currentPlugin = plugin;
         dependencyChain.add(currentPlugin);

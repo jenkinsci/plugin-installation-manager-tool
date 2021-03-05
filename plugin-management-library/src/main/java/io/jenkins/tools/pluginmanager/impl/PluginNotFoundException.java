@@ -1,12 +1,12 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-public class PluginNotFoundException extends RuntimeException {
+public class PluginNotFoundException extends PluginException {
 
-    public PluginNotFoundException(String message) {
-        super(message);
+    public PluginNotFoundException(Plugin dependendantPlugin, String message) {
+        super(dependendantPlugin, message);
     }
 
-    public PluginNotFoundException(String message, Throwable cause) {
-        super(message, cause);
+    public PluginNotFoundException(Plugin dependendantPlugin, String message, Throwable cause) {
+        super(dependendantPlugin, message, cause);
     }
 }

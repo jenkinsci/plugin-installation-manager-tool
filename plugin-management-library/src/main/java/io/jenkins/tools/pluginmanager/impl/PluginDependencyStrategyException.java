@@ -6,7 +6,7 @@ public class PluginDependencyStrategyException extends RuntimeException {
         super(message);
     }
 
-    public PluginDependencyStrategyException(Plugin plugin, String message, Throwable cause) {
+    public PluginDependencyStrategyException(String message, Throwable cause) {
         super(message, cause);
     }
 }
