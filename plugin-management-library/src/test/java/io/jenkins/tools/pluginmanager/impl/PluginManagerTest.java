@@ -20,6 +20,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+
 public class PluginManagerTest {
     private PluginManager pm;
     private Config cfg;
@@ -46,6 +48,9 @@ public class PluginManagerTest {
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
+
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Before
     public void setUp() {
@@ -1106,6 +1111,10 @@ public class PluginManagerTest {
         String otherURL = dirName(cfg.getJenkinsUc().toString()) +
                 "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertThat(pm.getPluginDownloadUrl(pluginOtherVersion)).isEqualTo(otherURL);
+
+        Plugin pluginUrlOverride = new Plugin("pluginName", "pluginVersion", "https://mirror.server.com/path/pluginName/pluginVersion/pluginName.hpi", null);
+        environmentVariables.set("JENKINS_UC_DOWNLOAD2", "https://server.com/jenkins-plugins");
+        assertThat(pm.getPluginDownloadUrl(plugin)).isEqualTo("https://server.com/jenkins-plugins/pluginName/pluginVersion/pluginName.hpi");
     }
 
     @Test
