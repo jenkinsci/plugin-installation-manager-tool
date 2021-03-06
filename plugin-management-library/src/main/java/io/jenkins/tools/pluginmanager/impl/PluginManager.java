@@ -881,7 +881,14 @@ public class PluginManager implements Closeable {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
-            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
+            String minimumJenkinsVersion = getAttributeFromManifest(tempFile, "Jenkins-Version");
+            if (minimumJenkinsVersion == null) {
+                minimumJenkinsVersion = getAttributeFromManifest(tempFile, "Hudson-Version");
+            }
+            if (minimumJenkinsVersion == null) {
+                throw new PluginDependencyException(plugin, "does not contain a Jenkins-Version attribute in the MANIFEST.MF");
+            }
+            plugin.setJenkinsVersion(minimumJenkinsVersion);
 
             String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
