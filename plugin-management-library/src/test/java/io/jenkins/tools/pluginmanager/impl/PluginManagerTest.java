@@ -795,6 +795,35 @@ public class PluginManagerTest {
     }
 
     @Test
+    public void resolveDependenciesFromHudsonManifest() {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        Plugin testPlugin = new Plugin("test", "1.0", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        doReturn(null).when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+        doReturn("1.2.0").when(pluginManagerSpy).getAttributeFromManifest(any(File.class), eq("Hudson-Version"));
+        pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
+
+        assertThat(testPlugin.getJenkinsVersion()).hasToString("1.2.0");
+    }
+
+
+    @Test
+    public void resolveDependenciesFromInvalidManifest() {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        Plugin testPlugin = new Plugin("test", "1.0", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        doReturn(null).when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+
+        assertThatThrownBy(() -> pluginManagerSpy.resolveDependenciesFromManifest(testPlugin))
+        .isInstanceOf(PluginDependencyException.class)
+        .hasMessageContaining("does not contain a Jenkins-Version attribute");
+    }
+
+    @Test
     public void resolveDependenciesFromManifestDownload() {
         PluginManager pluginManagerSpy = spy(pm);
 
