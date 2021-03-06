@@ -39,6 +39,7 @@ public class Config {
     private String jenkinsWar;
     private List<Plugin> plugins;
     private boolean verbose;
+    private HashFunction hashFunction;
     private URL jenkinsUc;
     private URL jenkinsUcExperimental;
     private URL jenkinsIncrementalsRepoMirror;
@@ -70,6 +71,7 @@ public class Config {
             boolean useLatestAll,
             boolean skipFailedPlugins,
             OutputFormat outputFormat,
+            HashFunction hashFunction,
             List<Credentials> credentials) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
@@ -91,6 +93,7 @@ public class Config {
         this.skipFailedPlugins = skipFailedPlugins;
         this.outputFormat = outputFormat;
         this.credentials = credentials;
+        this.hashFunction = hashFunction;
     }
 
     public File getPluginDir() {
@@ -178,6 +181,10 @@ public class Config {
         return new Builder();
     }
 
+    public HashFunction getHashFunction() {
+        return hashFunction;
+    }
+
     public static class Builder {
         private File pluginDir;
         private boolean cleanPluginDir;
@@ -199,6 +206,7 @@ public class Config {
         private boolean skipFailedPlugins;
         private OutputFormat outputFormat = OutputFormat.STDOUT;
         private List<Credentials> credentials = Collections.emptyList();
+        private HashFunction hashFunction = Settings.DEFAULT_HASH_FUNCTION;
 
         private Builder() {
         }
@@ -314,6 +322,11 @@ public class Config {
             return this;
         }
 
+        public Builder withHashFunction(HashFunction hashFunction) {
+            this.hashFunction = hashFunction;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -335,6 +348,7 @@ public class Config {
                     useLatestAll,
                     skipFailedPlugins,
                     outputFormat,
+                    hashFunction,
                     credentials
             );
         }

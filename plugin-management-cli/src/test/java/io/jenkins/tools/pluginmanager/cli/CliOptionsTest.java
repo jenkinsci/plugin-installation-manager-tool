@@ -73,6 +73,7 @@ public class CliOptionsTest {
             .and("JENKINS_UC_EXPERIMENTAL", "")
             .and("JENKINS_INCREMENTALS_REPO_MIRROR", "")
             .and("JENKINS_PLUGIN_INFO", "")
+            .and("JENKINS_UC_HASH_FUNCTION", "")
             .execute(options::setup);
 
         assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
@@ -83,6 +84,7 @@ public class CliOptionsTest {
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
+        assertThat(cfg.getHashFunction()).isEqualTo(Settings.DEFAULT_HASH_FUNCTION);
     }
 
 

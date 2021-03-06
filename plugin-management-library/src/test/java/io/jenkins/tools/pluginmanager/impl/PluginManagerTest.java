@@ -370,7 +370,7 @@ public class PluginManagerTest {
         pm.setPluginInfoJson(pluginVersionJson);
 
         Plugin browserStackPlugin1 = new Plugin("browserstack-integration", "1.0.0", null, null);
-        browserStackPlugin1.setSha256Checksum("1234");
+        browserStackPlugin1.setChecksum("1234");
         JSONArray browserStackPluginJson1 = pm.getPluginDependencyJsonArray(browserStackPlugin1, pluginVersionJson);
         assertThat(browserStackPluginJson1)
                 .hasToString(dependencies1.toString());

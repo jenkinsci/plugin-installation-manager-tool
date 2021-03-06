@@ -22,7 +22,7 @@ public class Plugin {
     private boolean latest;
     private boolean experimental;
     private boolean optional;
-    private String sha256Checksum;
+    private String checksum;
     private VersionNumber jenkinsVersion;
 
     public Plugin(String name, String version, String url, String groupId) {
@@ -72,12 +72,12 @@ public class Plugin {
         this.latest = latest;
     }
 
-    public String getSha256Checksum() {
-        return sha256Checksum;
+    public String getChecksum() {
+        return checksum;
     }
 
-    public void setSha256Checksum(String sha256Checksum) {
-        this.sha256Checksum = sha256Checksum;
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
     }
 
     public String getName() {
