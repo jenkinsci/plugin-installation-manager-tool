@@ -832,17 +832,18 @@ public class PluginManager implements Closeable {
     /**
      * Retrieves the latest available version of a specified plugin.
      *
+     * @param dependendantPlugin the plugin depending on the given plugin
      * @param pluginName the name of the plugin
      * @return latest version of the specified plugin
      * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
-    public VersionNumber getLatestPluginVersion(String pluginName) {
+    public VersionNumber getLatestPluginVersion(Plugin dependendantPlugin, String pluginName) {
         if (latestPlugins == null) {
             throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
         }
 
         if (!latestPlugins.has(pluginName)) {
-            throw new PluginNotFoundException(String.format("Unable to find plugin %s in update center %s", pluginName,
+            throw new PluginNotFoundException(dependendantPlugin, String.format("unable to find dependant plugin %s in update center %s", pluginName,
                     jenkinsUcLatest));
         }
 
@@ -897,7 +898,7 @@ public class PluginManager implements Closeable {
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
                 if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);
                 }
@@ -949,7 +950,7 @@ public class PluginManager implements Closeable {
 
             try {
                 if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);
                 }
@@ -959,8 +960,8 @@ public class PluginManager implements Closeable {
                     throw e;
                 }
                 logVerbose(String.format(
-                            "Unable to find optional plugin %s in update center %s. " +
-                            "Ignoring until it becomes required.",
+                            "%s unable to find optional plugin %s in update center %s. " +
+                            "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
                             pluginName, jenkinsUcLatest));
             }
     }
@@ -1036,12 +1037,16 @@ public class PluginManager implements Closeable {
                 if (!dependency.isDependenciesSpecified()) {
                     dependency.setDependencies(resolveDirectDependencies(dependency));
                 }
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
+                if (!(e instanceof PluginException)) {
+                    e = new PluginDependencyException(dependency, String.format("has unresolvable dependencies: %s", e.getMessage()), e);
+                }
                 if (exceptions != null) {
                     exceptions.add(e);
                 } else {
                     throw e;
                 }
+                continue;
             }
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
@@ -1056,17 +1061,9 @@ public class PluginManager implements Closeable {
                         }
                         continue;
                     } else {
-                        final String transitiveMessageExtension;
-                        if (!dependency.equals(plugin)) {
-                            // transitive dependency
-                            transitiveMessageExtension = String.format("transitively (via %s:%s)", dependency.getName(), dependency.getVersion());
-                        } else {
-                            // direct dependency
-                            transitiveMessageExtension = "directly";
-                        }
-                        String message = String.format("Plugin %s:%s depends %s on %s:%s, but there is an older version defined on the top level - %s:%s",
-                                plugin.getName(), plugin.getVersion(), transitiveMessageExtension, p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                        PluginDependencyStrategyException exception = new PluginDependencyStrategyException(message);
+                        String message = String.format("depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                                p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
+                        PluginDependencyException exception = new PluginDependencyException(dependency, message);
                         if (exceptions != null) {
                             exceptions.add(exception);
                         } else {

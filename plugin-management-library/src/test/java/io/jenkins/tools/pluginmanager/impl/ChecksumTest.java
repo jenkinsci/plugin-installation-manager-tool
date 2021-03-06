@@ -48,6 +48,6 @@ public class ChecksumTest {
         });
 
         assertThat(checksumMismatchException.getMessage(),
-                is("Invalid checksum for mailer plugin expected: jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=, actual: BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc="));
+                is("Plugin mailer:1.32 invalid checksum, expected: jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=, actual: BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc="));
     }
 }

@@ -711,17 +711,17 @@ public class PluginManagerTest {
     public void getLatestPluginVersionExceptionTest() {
         setTestUcJson();
 
-        assertThatThrownBy(() -> pm.getLatestPluginVersion("git"))
+        assertThatThrownBy(() -> pm.getLatestPluginVersion(null, "git"))
                 .isInstanceOf(PluginNotFoundException.class);
     }
 
     @Test
     public void getLatestPluginTest() {
         setTestUcJson();
-        VersionNumber antLatestVersion = pm.getLatestPluginVersion("ant");
+        VersionNumber antLatestVersion = pm.getLatestPluginVersion(null, "ant");
         assertThat(antLatestVersion).hasToString("1.9");
 
-        VersionNumber amazonEcsLatestVersion = pm.getLatestPluginVersion("amazon-ecs");
+        VersionNumber amazonEcsLatestVersion = pm.getLatestPluginVersion(null, "amazon-ecs");
         assertThat(amazonEcsLatestVersion).hasToString("1.20");
     }
 
@@ -748,7 +748,7 @@ public class PluginManagerTest {
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(String.class));
+                getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
 
@@ -777,7 +777,7 @@ public class PluginManagerTest {
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(String.class));
+                getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
 
@@ -956,7 +956,7 @@ public class PluginManagerTest {
         doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
         doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
                 .doReturn(new VersionNumber("2.0")).doReturn(new VersionNumber("1.8"))
-                .when(pluginManagerSpy).getLatestPluginVersion(any(String.class));
+                .when(pluginManagerSpy).getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromJson(mvnInvokerPlugin, pluginJson);
 
