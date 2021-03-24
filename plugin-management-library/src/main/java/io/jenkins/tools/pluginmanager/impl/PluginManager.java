@@ -3,8 +3,12 @@ package io.jenkins.tools.pluginmanager.impl;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Credentials;
+import io.jenkins.tools.pluginmanager.config.HashFunction;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
@@ -50,15 +54,18 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpHead;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.client.utils.URIUtils;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -68,7 +75,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
 import static java.util.Comparator.comparing;
 
-public class PluginManager {
+public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber("latest");
     private List<Plugin> failedPlugins;
     /**
@@ -76,6 +83,7 @@ public class PluginManager {
      */
     private File pluginDir;
     private String jenkinsUcLatest;
+    private HashFunction hashFunction;
     private @CheckForNull VersionNumber jenkinsVersion;
     private @CheckForNull File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
@@ -94,6 +102,7 @@ public class PluginManager {
     private boolean useLatestSpecified;
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
+    private CloseableHttpClient httpClient;
 
     private CacheManager cm;
 
@@ -116,6 +125,20 @@ public class PluginManager {
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
         skipFailedPlugins = cfg.isSkipFailedPlugins();
+        hashFunction = cfg.getHashFunction();
+        httpClient = null;
+    }
+
+    private HttpClient getHttpClient() {
+        if (httpClient == null) {
+            httpClient = HttpClients.custom().useSystemProperties()
+                // there is a more complex retry handling in downloadToFile(...) on the whole flow
+                // this affects only the single request
+                .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
+                .setConnectionManager(new PoolingHttpClientConnectionManager())
+                .build();
+        }
+        return httpClient;
     }
 
     /**
@@ -148,7 +171,9 @@ public class PluginManager {
                 throw new UncheckedIOException("Unable to delete: " + pluginDir.getAbsolutePath(), e);
             }
         }
-        createPluginDir(cfg.isCleanPluginDir());
+        if (cfg.doDownload()) {
+            createPluginDir(cfg.isCleanPluginDir());
+        }
 
         if (useLatestSpecified && useLatestAll) {
             throw new PluginDependencyStrategyException("Only one plugin dependency version strategy can be selected " +
@@ -163,15 +188,17 @@ public class PluginManager {
         showAllSecurityWarnings();
         bundledPluginVersions = bundledPlugins();
         installedPluginVersions = installedPlugins();
-
-        allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins());
+        List<Exception> exceptions = new ArrayList<>();
+        allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins(), exceptions);
         pluginsToBeDownloaded = findPluginsToDownload(allPluginsAndDependencies);
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
-        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded);
-
+        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
+        if (!exceptions.isEmpty()) {
+            throw new AggregatePluginPrerequisitesNotMetException(exceptions);
+        }
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
@@ -452,18 +479,36 @@ public class PluginManager {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
+     * @param jenkinsVersion the current version of Jenkins
      * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
     public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded) {
+        checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, null);
+    }
+
+    /**
+     * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
+     * user specified Jenkins war file
+     *
+     * @param jenkinsVersion the current version of Jenkins
+     * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
+     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     */
+    public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded, @CheckForNull List<Exception> exceptions) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
                 final VersionNumber pluginJenkinsVersion = p.getJenkinsVersion();
                 if (pluginJenkinsVersion!= null) {
                     if (pluginJenkinsVersion.isNewerThan(jenkinsVersion)) {
-                        throw new VersionCompatibilityException(
+                        VersionCompatibilityException exception = new VersionCompatibilityException(
                                 String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s",
                                         p.getName(), p.getVersion().toString(), pluginJenkinsVersion.toString(),
                                         jenkinsVersion.toString()));
+                        if (exceptions != null) {
+                            exceptions.add(exception);
+                        } else {
+                            throw exception;
+                        }
                     }
                 }
             }
@@ -538,7 +583,7 @@ public class PluginManager {
                 if (skipFailedPlugins) {
                     System.out.println("SKIP: Unable to move " + plugin.getName() + " to the plugin directory");
                 } else {
-                    throw new DownloadPluginException("Unable to move " + plugin.getName()  + " to the plugin directory", ex);
+                    throw new DownloadPluginException("Unable to move " + plugin.getName() + " to the plugin directory", ex);
                 }
             }
         }
@@ -557,6 +602,18 @@ public class PluginManager {
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins) {
+        return findPluginsAndDependencies(requestedPlugins, null);
+    }
+
+    /**
+     * Given a list of plugins, finds the recursive set of all dependent plugins. If multiple plugins rely on different
+     * versions of the same plugin, the higher version required will replace the lower version dependency
+     *
+     * @param requestedPlugins list of plugins to find all dependencies for
+     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     * @return set of all requested plugins and their recursive dependencies
+     */
+    public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins, @CheckForNull List<Exception> exceptions) {
         // Prepare the initial list by putting all explicitly requested plugins
         Map<String, Plugin> topLevelDependencies = new HashMap<>();
         for (Plugin requestedPlugin : requestedPlugins) {
@@ -567,7 +624,7 @@ public class PluginManager {
         for (Plugin requestedPlugin : requestedPlugins) {
             calculateChecksum(requestedPlugin);
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
-            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
+            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies, exceptions);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
@@ -577,14 +634,43 @@ public class PluginManager {
                     allPluginDependencies.put(dependencyName, dependentPlugin);
                 } else {
                     Plugin existingDependency = allPluginDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().isOlderThan(dependencyVersion)) {
-                        outputPluginReplacementInfo(existingDependency, dependentPlugin);
-                        allPluginDependencies.replace(existingDependency.getName(), dependentPlugin);
-                    }
+                    allPluginDependencies.replace(existingDependency.getName(),
+                            combineDependencies(existingDependency, dependentPlugin));
                 }
             }
         }
-        return allPluginDependencies;
+        return removeOptional(allPluginDependencies);
+    }
+
+    private Map<String, Plugin> removeOptional(Map<String, Plugin> plugins) {
+        Map<String, Plugin> filtered = new HashMap<>();
+        for (Map.Entry<String, Plugin> entry : plugins.entrySet()) {
+            if (!entry.getValue().getOptional()) {
+                filtered.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return filtered;
+    }
+
+    // Return a new dependency which is the intersection of the two given dependencies. The rules
+    // for determining this are as follows:
+    // - The resulting plugin is optional iff both the given plugins are optional
+    // - the resulting plugin will have the higher of the given versions
+    // - any remaining plugin attributes will come from the plugin with the higher version
+    private Plugin combineDependencies(Plugin a, Plugin b) {
+        if (!a.getName().equals(b.getName())) {
+            throw new IllegalStateException("Can only combine dependencies on the same plugin. Got " + a.getName() + " and " + b.getName());
+        }
+
+        boolean resultIsOptional = a.getOptional() && b.getOptional();
+
+        Plugin higherVersion = a;
+        if (a.getVersion().isOlderThan(b.getVersion())) {
+            higherVersion = b;
+        }
+
+        higherVersion.setOptional(resultIsOptional);
+        return higherVersion;
     }
 
     private void calculateChecksum(Plugin requestedPlugin) {
@@ -594,18 +680,18 @@ public class PluginManager {
             String versionInUpdateCenter = pluginFromUpdateCenter.getString("version");
             if (versionInUpdateCenter.equals(requestedPlugin.getVersion().toString())) {
 
-                String sha256 = pluginFromUpdateCenter.getString("sha256");
+                String checksum = pluginFromUpdateCenter.getString(getHashFunction().toString());
                 if (verbose) {
-                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + sha256);
+                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + checksum);
                 }
-                requestedPlugin.setSha256Checksum(sha256);
+                requestedPlugin.setChecksum(checksum);
             } else {
-                if (verbose && requestedPlugin.getSha256Checksum() == null) {
+                if (verbose && requestedPlugin.getChecksum() == null) {
                     System.out.println("Couldn't find checksum for " + requestedPlugin.getName() + " at version: " + requestedPlugin.getVersion().toString());
                 }
             }
         } else {
-            if (verbose && requestedPlugin.getSha256Checksum() == null) {
+            if (verbose && requestedPlugin.getChecksum() == null) {
                 System.out.println("Couldn't find checksum for: " + requestedPlugin.getName());
             }
         }
@@ -635,7 +721,6 @@ public class PluginManager {
      *
      * @param urlString string representing the url from which to get the json object
      * @deprecated see {@link #getJson(URL, String)}
-     * @return json object
      */
     @Deprecated
     public JSONObject getJson(String urlString) {
@@ -728,11 +813,11 @@ public class PluginManager {
             //plugin-versions.json has a slightly different structure than other update center json
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
-                String checksum = specificVersionInfo.getString("sha256");
+                String checksum = specificVersionInfo.getString(getHashFunction().toString());
                 if (verbose) {
                     System.out.println("Setting checksum for: " + plugin.getName() + " to " + checksum);
                 }
-                plugin.setSha256Checksum(checksum);
+                plugin.setChecksum(checksum);
                 plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
             }
@@ -749,17 +834,18 @@ public class PluginManager {
     /**
      * Retrieves the latest available version of a specified plugin.
      *
+     * @param dependendantPlugin the plugin depending on the given plugin
      * @param pluginName the name of the plugin
      * @return latest version of the specified plugin
      * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
-    public VersionNumber getLatestPluginVersion(String pluginName) {
+    public VersionNumber getLatestPluginVersion(Plugin dependendantPlugin, String pluginName) {
         if (latestPlugins == null) {
             throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
         }
 
         if (!latestPlugins.has(pluginName)) {
-            throw new PluginNotFoundException(String.format("Unable to find plugin %s in update center %s", pluginName,
+            throw new PluginNotFoundException(dependendantPlugin, String.format("unable to find dependant plugin %s in update center %s", pluginName,
                     jenkinsUcLatest));
         }
 
@@ -797,7 +883,14 @@ public class PluginManager {
                     plugin.setVersion(new VersionNumber(version));
                 }
             }
-            plugin.setJenkinsVersion(getAttributeFromManifest(tempFile, "Jenkins-Version"));
+            String minimumJenkinsVersion = getAttributeFromManifest(tempFile, "Jenkins-Version");
+            if (minimumJenkinsVersion == null) {
+                minimumJenkinsVersion = getAttributeFromManifest(tempFile, "Hudson-Version");
+            }
+            if (minimumJenkinsVersion == null) {
+                throw new PluginDependencyException(plugin, "does not contain a Jenkins-Version attribute in the MANIFEST.MF");
+            }
+            plugin.setJenkinsVersion(minimumJenkinsVersion);
 
             String dependencyString = getAttributeFromManifest(tempFile, "Plugin-Dependencies");
 
@@ -808,22 +901,20 @@ public class PluginManager {
             }
             String[] dependencies = dependencyString.split(",");
 
-            //ignore optional dependencies
             for (String dependency : dependencies) {
-                if (!dependency.contains("resolution:=optional")) {
-                    String[] pluginInfo = dependency.split(":");
-                    String pluginName = pluginInfo[0];
-                    String pluginVersion = pluginInfo[1];
-                    Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                    if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                        VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
-                        dependentPlugin.setVersion(latestPluginVersion);
-                        dependentPlugin.setLatest(true);
-                    }
-
-                    dependentPlugins.add(dependentPlugin);
-                    dependentPlugin.setParent(plugin);
+                String[] pluginInfo = dependency.split(":");
+                String pluginName = pluginInfo[0];
+                String pluginVersion = pluginInfo[1];
+                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
+                    dependentPlugin.setVersion(latestPluginVersion);
+                    dependentPlugin.setLatest(true);
                 }
+                dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
+
+                dependentPlugins.add(dependentPlugin);
+                dependentPlugin.setParent(plugin);
             }
             logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                     String.format("%n%s depends on: %n", plugin.getName()) +
@@ -844,7 +935,7 @@ public class PluginManager {
 
     /**
      * Given a plugin and json that contains plugin information, determines the dependencies and returns the list of
-     * dependencies. Optional dependencies will be excluded.
+     * dependencies.
      *
      * @param plugin     for which to find dependencies
      * @param pluginJson json that will be parsed to find requested plugin's dependencies
@@ -860,20 +951,29 @@ public class PluginManager {
 
         for (int i = 0; i < dependencies.length(); i++) {
             JSONObject dependency = dependencies.getJSONObject(i);
-            boolean isPluginOptional = dependency.getBoolean("optional");
-            if (!isPluginOptional) {
-                String pluginName = dependency.getString("name");
-                String pluginVersion = dependency.getString("version");
-                Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+            String pluginName = dependency.getString("name");
+            String pluginVersion = dependency.getString("version");
+            Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+            dependentPlugin.setOptional(dependency.getBoolean("optional"));
+            dependentPlugin.setParent(plugin);
+
+            try {
                 if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(pluginName);
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);
                 }
                 dependentPlugins.add(dependentPlugin);
-                dependentPlugin.setParent(plugin);
+            } catch (PluginNotFoundException e) {
+                if (!dependentPlugin.getOptional()) {
+                    throw e;
+                }
+                logVerbose(String.format(
+                            "%s unable to find optional plugin %s in update center %s. " +
+                            "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
+                            pluginName, jenkinsUcLatest));
             }
-        }
+    }
 
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                 String.format("%n%s depends on: %n", plugin.getName()) +
@@ -925,12 +1025,15 @@ public class PluginManager {
      * the requested plugin itself
      */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
-        return resolveRecursiveDependencies(plugin, null);
+        return resolveRecursiveDependencies(plugin, null, null);
     }
 
-    // TODO(oleg_nenashev): This method is private, because it is only a partial fix for https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
+        return resolveRecursiveDependencies(plugin, topLevelDependencies, null);
+    }
+
     // A full dependency graph resolution and removal of non-needed dependency trees is required
-    private Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
         queue.add(plugin);
@@ -939,10 +1042,21 @@ public class PluginManager {
         while (queue.size() != 0) {
             Plugin dependency = queue.poll();
 
-            if (!dependency.isDependenciesSpecified()) {
-                dependency.setDependencies(resolveDirectDependencies(dependency));
+            try {
+                if (!dependency.isDependenciesSpecified()) {
+                    dependency.setDependencies(resolveDirectDependencies(dependency));
+                }
+            } catch (RuntimeException e) {
+                if (!(e instanceof PluginException)) {
+                    e = new PluginDependencyException(dependency, String.format("has unresolvable dependencies: %s", e.getMessage()), e);
+                }
+                if (exceptions != null) {
+                    exceptions.add(e);
+                } else {
+                    throw e;
+                }
+                continue;
             }
-
             for (Plugin p : dependency.getDependencies()) {
                 String dependencyName = p.getName();
                 Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
@@ -956,21 +1070,32 @@ public class PluginManager {
                         }
                         continue;
                     } else {
-                        String message = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
-                                plugin.getName(), plugin.getVersion(), p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
-                        throw new PluginDependencyStrategyException(message);
+                        String message = String.format("depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                                p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
+                        PluginDependencyException exception = new PluginDependencyException(dependency, message);
+                        if (exceptions != null) {
+                            exceptions.add(exception);
+                        } else {
+                            throw exception;
+                        }
                     }
                 }
 
                 if (!recursiveDependencies.containsKey(dependencyName)) {
                     recursiveDependencies.put(dependencyName, p);
-                    queue.add(p);
+                    if (!p.getOptional()) {
+                        // If/when this dependency becomes non-optional, we will expand its dependencies.
+                        queue.add(p);
+                    }
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
-                    if (existingDependency.getVersion().isOlderThan(p.getVersion())) {
-                        outputPluginReplacementInfo(existingDependency, p);
-                        queue.add(p); //in case the higher version contains dependencies the lower version didn't have
-                        recursiveDependencies.replace(dependencyName, existingDependency, p);
+                    Plugin newDependency = combineDependencies(existingDependency, p);
+                    if (!newDependency.equals(existingDependency)) {
+                        outputPluginReplacementInfo(existingDependency, newDependency);
+                        recursiveDependencies.replace(dependencyName, existingDependency, newDependency);
+                        // newDependency may have additional dependencies if it is a higher version or
+                        // if it became non-optional.
+                        queue.add(newDependency);
                     }
                 }
             }
@@ -1084,7 +1209,7 @@ public class PluginManager {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
+    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
@@ -1096,6 +1221,7 @@ public class PluginManager {
 
         boolean success = true;
         for (int i = 0; i < maxRetries; i++) {
+            success = true;
             try {
                 if (pluginFile.exists()) {
                     Files.delete(pluginFile.toPath());
@@ -1103,26 +1229,30 @@ public class PluginManager {
             } catch (IOException e) {
                 logVerbose(String.format("Unable to delete %s before retry %d", pluginFile, i + 1));
             }
-
-            try (CloseableHttpClient httpclient = HttpClients.custom().useSystemProperties()
-                    .setRetryHandler(new DefaultHttpRequestRetryHandler(maxRetries, true))
-                    .build()) {
-                HttpClientContext context = HttpClientContext.create();
-                HttpHead httphead = new HttpHead(urlString);
-                try (CloseableHttpResponse ignored = httpclient.execute(httphead, context)) {
-                    HttpHost target = context.getTargetHost();
-                    List<URI> redirectLocations = context.getRedirectLocations();
-                    // Expected to be an absolute URI
-                    URI location = URIUtils.resolve(httphead.getURI(), target, redirectLocations);
-                    FileUtils.copyURLToFile(location.toURL(), pluginFile);
-                } catch (URISyntaxException | IOException e) {
-                    logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
-                            urlString, plugin.getName()));
-                    success = false;
-                }
+            HttpClient httpClient = getHttpClient();
+            HttpClientContext context = HttpClientContext.create();
+            CredentialsProvider credentialsProvider = getCredentialsProvider();
+            if (credentialsProvider != null) {
+                context.setCredentialsProvider(credentialsProvider);
+            }
+            HttpGet httpGet = new HttpGet(urlString);
+            try {
+                httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
             } catch (IOException e) {
-                System.out.println("Unable to create HTTP connection to download plugin");
+                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
+                        urlString, plugin.getName()));
                 success = false;
+            } finally {
+                // get final URI (after all redirects)
+                List<URI> locations = context.getRedirectLocations();
+                if (locations != null) {
+                    String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
+                    if (success) {
+                        logVerbose(message);
+                    } else {
+                        System.out.println(message);
+                    }
+                }
             }
 
             // Check integrity of plugin file
@@ -1136,7 +1266,8 @@ public class PluginManager {
             }
 
             // both the download and zip validation passed
-            if(success) {
+            if (success) {
+                logVerbose("Downloaded plugin " + plugin.getName());
                 break;
             }
         }
@@ -1164,8 +1295,21 @@ public class PluginManager {
         return success;
     }
 
+    private CredentialsProvider getCredentialsProvider() {
+        if (cfg.getCredentials().isEmpty()) {
+            return null;
+        }
+        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+        for (Credentials credentials : cfg.getCredentials()) {
+            credsProvider.setCredentials(
+                    new AuthScope(credentials.getHost(), credentials.getPort()),
+                    new UsernamePasswordCredentials(credentials.getUsername(), credentials.getPassword()));
+        }
+        return credsProvider;
+    }
+
     void verifyChecksum(Plugin plugin, File pluginFile) {
-        String expectedChecksum = plugin.getSha256Checksum();
+        String expectedChecksum = plugin.getChecksum();
         if (expectedChecksum == null) {
             if (verbose) {
                 System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin)");
@@ -1192,9 +1336,20 @@ public class PluginManager {
         }
     }
 
+    @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_SHA1", justification = "CloudBees update center only uses sha1, remove sha1 once this has been updated.")
     private byte[] calculateChecksum(File pluginFile) {
         try (FileInputStream fin = new FileInputStream(pluginFile)) {
-            return DigestUtils.sha256(fin);
+            HashFunction hashFunction = getHashFunction();
+            switch (hashFunction) {
+                case SHA1:
+                    return DigestUtils.sha1(fin);
+                case SHA512:
+                    return DigestUtils.sha512(fin);
+                case SHA256:
+                    return DigestUtils.sha256(fin);
+                default:
+                    throw new UnsupportedChecksumException(hashFunction.toString() + "is an unsupported hash function.");
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -1340,6 +1495,20 @@ public class PluginManager {
         return bundledPlugins;
     }
 
+
+    /**
+     * Gets the hash function used for the update center
+     *
+     * @return Jenkins update center hash function string
+     */
+    public HashFunction getHashFunction() {
+        return hashFunction;
+    }
+
+    public void setHashFunction(HashFunction hashFunction) {
+        this.hashFunction = hashFunction;
+    }
+
     /**
      * Gets the update center url string
      *
@@ -1480,5 +1649,12 @@ public class PluginManager {
      */
     public List<Plugin> getFailedPlugins() {
         return failedPlugins;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 }

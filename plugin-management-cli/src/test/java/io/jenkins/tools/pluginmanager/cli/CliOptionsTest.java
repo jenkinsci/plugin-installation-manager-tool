@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
@@ -72,6 +73,7 @@ public class CliOptionsTest {
             .and("JENKINS_UC_EXPERIMENTAL", "")
             .and("JENKINS_INCREMENTALS_REPO_MIRROR", "")
             .and("JENKINS_PLUGIN_INFO", "")
+            .and("JENKINS_UC_HASH_FUNCTION", "")
             .execute(options::setup);
 
         assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
@@ -82,6 +84,7 @@ public class CliOptionsTest {
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
+        assertThat(cfg.getHashFunction()).isEqualTo(Settings.DEFAULT_HASH_FUNCTION);
     }
 
 
@@ -326,6 +329,22 @@ public class CliOptionsTest {
 
         assertThat(cfg.isUseLatestAll())
                 .isFalse();
+    }
+
+    @Test
+    public void credentialsTest() throws CmdLineException {
+        parser.parseArgument("--credentials", "myhost:myuser:mypass,myhost2:1234:myuser2:mypass2");
+
+        Config cfg = options.setup();
+        assertThat(cfg.getCredentials()).containsExactly(
+                new Credentials("myuser", "mypass", "myhost"),
+                new Credentials("myuser2", "mypass2", "myhost2", 1234));
+    }
+
+    @Test
+    public void invalidCredentialsTest() throws CmdLineException {
+        assertThatThrownBy(() -> parser.parseArgument("--credentials", "myhost:myuser,myhost2:1234:myuser2:mypass2"))
+        .isInstanceOf(CmdLineException.class).hasMessageContaining("Require at least a value containing 2 colons but found \"myhost:myuser\". The value must adhere to the grammar \"<host>[:port]:<username>:<password>\"");
     }
 
     private void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {

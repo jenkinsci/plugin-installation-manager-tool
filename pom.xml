@@ -5,11 +5,11 @@
     <parent>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>jenkins</artifactId>
-        <version>1.62</version>
+        <version>1.63</version>
     </parent>
 
     <properties>
-        <revision>2.5.1</revision>
+        <revision>2.9.1</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <!-- Version of Maven Components -->
@@ -88,7 +88,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.7.7</version>
+            <version>3.8.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -99,12 +99,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.1.1</version>
+                    <version>3.1.2</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.39</version>
+                            <version>8.41</version>
                         </dependency>
                     </dependencies>
                 </plugin>

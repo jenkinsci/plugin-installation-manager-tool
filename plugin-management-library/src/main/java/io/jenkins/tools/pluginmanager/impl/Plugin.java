@@ -21,7 +21,8 @@ public class Plugin {
     private List<SecurityWarning> securityWarnings;
     private boolean latest;
     private boolean experimental;
-    private String sha256Checksum;
+    private boolean optional;
+    private String checksum;
     private VersionNumber jenkinsVersion;
 
     public Plugin(String name, String version, String url, String groupId) {
@@ -71,12 +72,12 @@ public class Plugin {
         this.latest = latest;
     }
 
-    public String getSha256Checksum() {
-        return sha256Checksum;
+    public String getChecksum() {
+        return checksum;
     }
 
-    public void setSha256Checksum(String sha256Checksum) {
-        this.sha256Checksum = sha256Checksum;
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
     }
 
     public String getName() {
@@ -134,6 +135,15 @@ public class Plugin {
         return parent;
     }
 
+    public Plugin setOptional(boolean optional) {
+        this.optional = optional;
+        return this;
+    }
+
+    public boolean getOptional() {
+        return this.optional;
+    }
+
     public VersionNumber getJenkinsVersion() {
         return jenkinsVersion;
     }
@@ -174,7 +184,8 @@ public class Plugin {
         return Objects.equals(name, plugin.name) &&
                 Objects.equals(version, plugin.version) &&
                 Objects.equals(groupId, plugin.groupId) &&
-                Objects.equals(url, plugin.url);
+                Objects.equals(url, plugin.url) &&
+                Objects.equals(optional, plugin.optional);
     }
 
     @Override

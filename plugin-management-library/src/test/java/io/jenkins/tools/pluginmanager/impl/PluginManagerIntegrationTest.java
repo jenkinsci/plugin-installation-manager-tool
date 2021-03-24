@@ -183,7 +183,30 @@ public class PluginManagerIntegrationTest {
         // then
         assertThatThrownBy(() -> pluginManager.findPluginsAndDependencies(requestedPlugins))
                 .hasMessage("Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
-                .isInstanceOf(PluginDependencyStrategyException.class);
+                .isInstanceOf(PluginDependencyException.class);
+    }
+
+    @Test
+    public void failsWithMultiplePrerequisitesNotMet() throws IOException {
+        // given
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
+        Plugin plugin2 = new Plugin("plugin2", "1.0", null, null);
+
+        Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
+        plugin1.setDependencies(singletonList(replaced1));
+        plugin2.setDependencies(singletonList(replaced1));
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, replaced));
+
+        // when
+        PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
+
+        // then
+        assertThatThrownBy(() -> pluginManager.start())
+                .hasMessage("Multiple plugin prerequisites not met:\n" +
+                        "Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0,\n" +
+                        "Plugin plugin2:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
+                .isInstanceOf(AggregatePluginPrerequisitesNotMetException.class);
     }
 
     @Test

@@ -1,23 +1,13 @@
 package io.jenkins.tools.pluginmanager.impl;
 
-public class PluginChecksumMismatchException extends RuntimeException {
-    private final String pluginName;
+public class PluginChecksumMismatchException extends PluginException {
     private final String expectedChecksum;
     private final String actualChecksum;
 
     public PluginChecksumMismatchException(Plugin plugin, String expectedChecksum, String actualChecksum) {
-        this.pluginName = plugin.getName();
+        super(plugin, String.format("invalid checksum, expected: %s, actual: %s", expectedChecksum, actualChecksum));
         this.expectedChecksum = expectedChecksum;
         this.actualChecksum = actualChecksum;
-    }
-
-    @Override
-    public String getMessage() {
-        return String.format("Invalid checksum for %s plugin expected: %s, actual: %s", pluginName, expectedChecksum, actualChecksum);
-    }
-
-    public String getPluginName() {
-        return pluginName;
     }
 
     public String getExpectedChecksum() {

@@ -63,6 +63,7 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 * `--no-download`: (optional) Set to true to not download plugins. By default it is set to false and plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
 Jenkins in a broken state.
+* `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports). Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
 
 #### Advanced configuration
 
@@ -72,6 +73,8 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 * `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or to proxy the Jenkins plugin download site. 
 If set then all plugins will be downloaded through that URL.
   
+* `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
+
 #### Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 

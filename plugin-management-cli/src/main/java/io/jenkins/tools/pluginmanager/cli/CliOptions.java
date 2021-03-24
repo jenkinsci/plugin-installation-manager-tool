@@ -4,6 +4,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.Credentials;
+import io.jenkins.tools.pluginmanager.config.HashFunction;
 import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -140,6 +142,10 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;
 
+    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
+            handler = MultiCredentialsOptionHandler.class)
+    private List<Credentials> credentials;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -166,6 +172,8 @@ class CliOptions {
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
+                .withCredentials(credentials)
+                .withHashFunction(getHashFunction())
                 .build();
     }
 
@@ -554,4 +562,22 @@ class CliOptions {
     public boolean isShowVersion() {
         return showVersion;
     }
+
+
+    /**
+     * Determines the hash function used with the Update Center
+     * set via environment variable only
+     *
+     * @return the string value for the hash function. Currently allows sha1, sha256(default), sha512
+     */
+    private HashFunction getHashFunction() {
+
+        String fromEnv = System.getenv("JENKINS_UC_HASH_FUNCTION");
+        if (StringUtils.isNotBlank(fromEnv)) {
+            return HashFunction.valueOf(fromEnv.toUpperCase());
+        } else {
+            return Settings.DEFAULT_HASH_FUNCTION;
+        }
+    }
+
 }

@@ -1,6 +1,7 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.HashFunction;
 import java.io.File;
 import java.net.URL;
 import org.junit.Before;
@@ -19,6 +20,7 @@ public class ChecksumTest {
         Config cfg = Config.builder()
                 .withJenkinsWar("")
                 .withIsVerbose(true)
+                .withHashFunction(HashFunction.SHA256)
                 .build();
 
         pm = new PluginManager(cfg);
@@ -27,7 +29,7 @@ public class ChecksumTest {
     @Test
     public void mailerPluginChecksumsMatch() {
         Plugin mailer = new Plugin("mailer", "1.32", null, null);
-        mailer.setSha256Checksum("BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
+        mailer.setChecksum("BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
 
         URL mailerHpi = this.getClass().getResource("mailer.hpi");
         File mailerFile = new File(mailerHpi.getFile());
@@ -38,7 +40,7 @@ public class ChecksumTest {
     @Test
     public void mailerPluginInvalidChecksums() {
         Plugin mailer = new Plugin("mailer", "1.32", null, null);
-        mailer.setSha256Checksum("jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
+        mailer.setChecksum("jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
 
         URL mailerHpi = this.getClass().getResource("mailer.hpi");
         File mailerFile = new File(mailerHpi.getFile());
@@ -48,6 +50,6 @@ public class ChecksumTest {
         });
 
         assertThat(checksumMismatchException.getMessage(),
-                is("Invalid checksum for mailer plugin expected: jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=, actual: BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc="));
+                is("Plugin mailer:1.32 invalid checksum, expected: jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=, actual: BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc="));
     }
 }

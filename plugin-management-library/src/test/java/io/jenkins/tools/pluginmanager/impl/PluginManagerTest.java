@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -59,7 +60,8 @@ public class PluginManagerTest {
             new Plugin("workflow-api", "2.22", null, null),
             new Plugin("workflow-step-api", "2.12", null, null),
             new Plugin("mailer", "1.18", null, null),
-            new Plugin("script-security", "1.30", null, null)
+            new Plugin("script-security", "1.30", null, null),
+            new Plugin("structs", "1.7", null, null).setOptional(true)
         );
     }
 
@@ -107,12 +109,28 @@ public class PluginManagerTest {
                 .withPluginDir(new File(pluginParentDir, "plugins"))
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .withDoDownload(true)
                 .build();
 
         PluginManager pluginManager = new PluginManager(config);
 
         assertThatThrownBy(pluginManager::start)
                 .isInstanceOf(DirectoryCreationException.class);
+    }
+
+    @Test
+    public void startNoDirectoryNoPluginDirTest() throws IOException {
+        File pluginParentDir = folder.newFile();
+        Config config = Config.builder()
+                .withPluginDir(new File(pluginParentDir, "plugins"))
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withJenkinsUc(Settings.DEFAULT_UPDATE_CENTER)
+                .withDoDownload(false)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        pluginManager.start();
+        // everything should be ok.
     }
 
     @Test
@@ -352,7 +370,7 @@ public class PluginManagerTest {
         pm.setPluginInfoJson(pluginVersionJson);
 
         Plugin browserStackPlugin1 = new Plugin("browserstack-integration", "1.0.0", null, null);
-        browserStackPlugin1.setSha256Checksum("1234");
+        browserStackPlugin1.setChecksum("1234");
         JSONArray browserStackPluginJson1 = pm.getPluginDependencyJsonArray(browserStackPlugin1, pluginVersionJson);
         assertThat(browserStackPluginJson1)
                 .hasToString(dependencies1.toString());
@@ -456,6 +474,49 @@ public class PluginManagerTest {
         // currently fails since 2.5.3 matches pattern even though 2.5.1 is last effected version
         assertThat(pm.warningExists(sshAgents1)).isTrue();
         assertThat(pm.warningExists(sshAgents2)).isFalse();
+    }
+
+    @Test
+    public void getPluginsFilterOptionalTest() {
+         Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withUseLatestSpecified(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        JSONObject testJson = setTestUcJson();
+        pluginManagerSpy.setLatestUcJson(testJson);
+        pluginManagerSpy.setLatestUcPlugins(testJson.getJSONObject("plugins"));
+
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Map<String, Plugin> deps1 = new HashMap<>();
+        // structs at v1.8 will be non-optional  in the end because
+        // plugin2 has a real dependency on structs and plugin1 requires
+        // that the version be >= 1.8.
+        deps1.put("structs", new Plugin("structs", "1.8", null, null).setOptional(true));
+        // matrix will not be in the resulting dependency set because all
+        // dependencies on it are optional.
+        deps1.put("matrix", new Plugin("matrix", "2.5", null, null).setOptional(true));
+        doReturn(deps1).when(pluginManagerSpy).resolveRecursiveDependencies(
+            eq(plugin1), nullable(Map.class), eq(null));
+
+        Plugin plugin2 = new Plugin("plugin2", "2.1.1", null, null);
+        Map<String, Plugin> deps2 = new HashMap<>();
+        deps2.put("structs", new Plugin("structs", "1.7", null, null));
+        deps2.put("matrix", new Plugin("matrix", "2.5", null, null).setOptional(true));
+        doReturn(deps2).when(pluginManagerSpy).resolveRecursiveDependencies(
+            eq(plugin2), nullable(Map.class), eq(null));
+
+        Map<String, Plugin> dependencies = pluginManagerSpy.findPluginsAndDependencies(
+                Arrays.asList(plugin1, plugin2));
+
+        assertThat(dependencies)
+            .hasSize(3)
+            .containsValues(
+                    plugin1, plugin2,
+                    new Plugin("structs", "1.8", null, null));
     }
 
     @Test
@@ -650,17 +711,17 @@ public class PluginManagerTest {
     public void getLatestPluginVersionExceptionTest() {
         setTestUcJson();
 
-        assertThatThrownBy(() -> pm.getLatestPluginVersion("git"))
+        assertThatThrownBy(() -> pm.getLatestPluginVersion(null, "git"))
                 .isInstanceOf(PluginNotFoundException.class);
     }
 
     @Test
     public void getLatestPluginTest() {
         setTestUcJson();
-        VersionNumber antLatestVersion = pm.getLatestPluginVersion("ant");
+        VersionNumber antLatestVersion = pm.getLatestPluginVersion(null, "ant");
         assertThat(antLatestVersion).hasToString("1.9");
 
-        VersionNumber amazonEcsLatestVersion = pm.getLatestPluginVersion("amazon-ecs");
+        VersionNumber amazonEcsLatestVersion = pm.getLatestPluginVersion(null, "amazon-ecs");
         assertThat(amazonEcsLatestVersion).hasToString("1.20");
     }
 
@@ -687,7 +748,7 @@ public class PluginManagerTest {
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(String.class));
+                getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
 
@@ -716,7 +777,7 @@ public class PluginManagerTest {
                 .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
 
         doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(String.class));
+                getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
 
@@ -731,6 +792,35 @@ public class PluginManagerTest {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         setTestUcJson();
         assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
+    }
+
+    @Test
+    public void resolveDependenciesFromHudsonManifest() {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        Plugin testPlugin = new Plugin("test", "1.0", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        doReturn(null).when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+        doReturn("1.2.0").when(pluginManagerSpy).getAttributeFromManifest(any(File.class), eq("Hudson-Version"));
+        pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
+
+        assertThat(testPlugin.getJenkinsVersion()).hasToString("1.2.0");
+    }
+
+
+    @Test
+    public void resolveDependenciesFromInvalidManifest() {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        Plugin testPlugin = new Plugin("test", "1.0", null, null);
+        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
+
+        doReturn(null).when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
+
+        assertThatThrownBy(() -> pluginManagerSpy.resolveDependenciesFromManifest(testPlugin))
+        .isInstanceOf(PluginDependencyException.class)
+        .hasMessageContaining("does not contain a Jenkins-Version attribute");
     }
 
     @Test
@@ -762,8 +852,11 @@ public class PluginManagerTest {
                         new Plugin("credentials", "2.1.14", null, null),
                         new Plugin("git-client", "2.7.7", null, null),
                         new Plugin("mailer", "1.18", null, null),
+                        new Plugin("parameterized-trigger", "2.33;resolution", null, null).setOptional(true),
+                        new Plugin("promoted-builds", "2.27;resolution", null, null).setOptional(true),
                         new Plugin("scm-api", "2.6.3", null, null),
-                        new Plugin("ssh-credentials", "1.13", null, null));
+                        new Plugin("ssh-credentials", "1.13", null, null),
+                        new Plugin("token-macro", "1.12.1;resolution", null, null).setOptional(true));
         assertThat(testPlugin.getVersion()).hasToString("1.0.0");
     }
 
@@ -891,8 +984,8 @@ public class PluginManagerTest {
 
         doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
         doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
-                .doReturn(new VersionNumber("2.0"))
-                .when(pluginManagerSpy).getLatestPluginVersion(any(String.class));
+                .doReturn(new VersionNumber("2.0")).doReturn(new VersionNumber("1.8"))
+                .when(pluginManagerSpy).getLatestPluginVersion(any(Plugin.class), any(String.class));
 
         List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromJson(mvnInvokerPlugin, pluginJson);
 
@@ -901,7 +994,8 @@ public class PluginManagerTest {
                         new Plugin("workflow-api", "2.44", null, null),
                         new Plugin("workflow-step-api", "2.30", null, null),
                         new Plugin("mailer", "1.18", null, null),
-                        new Plugin("script-security", "2.0", null, null));
+                        new Plugin("script-security", "2.0", null, null),
+                        new Plugin("structs", "1.8", null, null).setOptional(true));
     }
 
     @Test
@@ -913,7 +1007,7 @@ public class PluginManagerTest {
 
         Plugin parent1 = new Plugin("parent1", "1.0", null, null);
         Plugin parent2 = new Plugin("replaced1", "1.0", null, null);
-        Plugin parent3= new Plugin("parent3", "1.2", null, null);
+        Plugin parent3 = new Plugin("parent3", "1.2", null, null);
 
         Plugin child1 = new Plugin("replaced1", "1.3", null, null);
         Plugin child2 = new Plugin("child2", "3.2.1", null, null);
@@ -943,10 +1037,10 @@ public class PluginManagerTest {
         Map<String, Plugin> recursiveDependencies = pluginManagerSpy.resolveRecursiveDependencies(grandParent);
 
         assertThat(recursiveDependencies)
-                .hasSize(10)
                 .containsValues(
                         grandParent, parent1, child4, parent3, child2, child3,
-                        child8, child9, child5, child6);
+                        child8, child9, child5, child6)
+                .hasSize(10);
     }
 
 
@@ -1094,6 +1188,7 @@ public class PluginManagerTest {
         structsPlugin.put("dependencies", array(credentials));
         structsPlugin.put("version", "1.19");
         structsPlugin.put("requiredCore", "2.60.3");
+        structsPlugin.put("optional", true);
         pluginJson.put("structs", structsPlugin);
 
         JSONObject testWeaverPlugin = new JSONObject();
