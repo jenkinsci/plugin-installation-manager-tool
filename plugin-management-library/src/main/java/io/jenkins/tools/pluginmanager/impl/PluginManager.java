@@ -136,6 +136,7 @@ public class PluginManager implements Closeable {
                 // this affects only the single request
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
+                .setUserAgent("Plugin Manager")
                 .build();
         }
         return httpClient;
