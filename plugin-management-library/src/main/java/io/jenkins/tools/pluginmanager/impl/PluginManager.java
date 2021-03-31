@@ -145,7 +145,7 @@ public class PluginManager implements Closeable {
                 }
             }
             else{
-                userAgentInformation = "Plugin-Manager";
+                userAgentInformation = "Plugin-Installation-Manager-Tool";
             }
         return userAgentInformation;
     }
