@@ -130,24 +130,29 @@ public class PluginManager implements Closeable {
         httpClient = null;
     }
 
-    private HttpClient getHttpClient() {
-        String userAgentInformation = "";
-        if (httpClient == null) {
-            Properties properties = new Properties();
+    private String getUserAgentInformation(){
+        String userAgentInformation="";
+        Properties properties = new Properties();
             ClassLoader propertiesClassLoader = this.getClass().getClassLoader();
-            InputStream propertiesStream = propertiesClassLoader.getResourceAsStream(".properties");
+            InputStream propertiesStream = propertiesClassLoader.getResourceAsStream("Version.properties");
             if(propertiesStream != null){
                 try{
                 properties.load(propertiesStream);
                 userAgentInformation = properties.getProperty("project.artifactId") +"/"+properties.getProperty("project.version");
                 }
                 catch(IOException e){
-                    throw new UncheckedIOException("Not able to load .properties file", e);
+                    throw new UncheckedIOException("Not able to load Version.properties file", e);
                 }
             }
             else{
                 userAgentInformation = "Plugin-Manager";
             }
+        return userAgentInformation;
+    }
+
+    private HttpClient getHttpClient() {
+        if (httpClient == null) {
+            String userAgentInformation = getUserAgentInformation();
             httpClient = HttpClients.custom().useSystemProperties()
                 // there is a more complex retry handling in downloadToFile(...) on the whole flow
                 // this affects only the single request
