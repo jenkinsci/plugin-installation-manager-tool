@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -130,13 +131,29 @@ public class PluginManager implements Closeable {
     }
 
     private HttpClient getHttpClient() {
+        String userAgentInformation = "";
         if (httpClient == null) {
+            Properties properties = new Properties();
+            ClassLoader propertiesClassLoader = this.getClass().getClassLoader();
+            InputStream propertiesStream = propertiesClassLoader.getResourceAsStream(".properties");
+            if(propertiesStream != null){
+                try{
+                properties.load(propertiesStream);
+                userAgentInformation = properties.getProperty("project.artifactId") +"/"+properties.getProperty("project.version");
+                }
+                catch(IOException e){
+                    throw new UncheckedIOException("Not able to load .properties file", e);
+                }
+            }
+            else{
+                userAgentInformation = "Plugin-Manager";
+            }
             httpClient = HttpClients.custom().useSystemProperties()
                 // there is a more complex retry handling in downloadToFile(...) on the whole flow
                 // this affects only the single request
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .setUserAgent("Plugin Manager")
+                .setUserAgent(userAgentInformation)
                 .build();
         }
         return httpClient;
