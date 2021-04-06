@@ -102,6 +102,7 @@ public class PluginManager implements Closeable {
     private boolean verbose;
     private boolean useLatestSpecified;
     private boolean useLatestAll;
+    private String userAgentInformation;
     private boolean skipFailedPlugins;
     private CloseableHttpClient httpClient;
 
@@ -128,31 +129,34 @@ public class PluginManager implements Closeable {
         skipFailedPlugins = cfg.isSkipFailedPlugins();
         hashFunction = cfg.getHashFunction();
         httpClient = null;
+        try{
+            userAgentInformation = this.getUserAgentInformation();
+        }
+        catch(UserAgentInformationException e){
+            logVerbose("Unable to get the UserAgentInformation");
+        }
     }
 
-    private String getUserAgentInformation(){
-        String userAgentInformation="";
+    private String getUserAgentInformation() throws UserAgentInformationException{
         Properties properties = new Properties();
-            ClassLoader propertiesClassLoader = this.getClass().getClassLoader();
-            InputStream propertiesStream = propertiesClassLoader.getResourceAsStream("Version.properties");
+        ClassLoader propertiesClassLoader = this.getClass().getClassLoader();
+        try(InputStream propertiesStream = propertiesClassLoader.getResourceAsStream("Version.properties")){
             if(propertiesStream != null){
-                try{
                 properties.load(propertiesStream);
                 userAgentInformation = properties.getProperty("project.artifactId") +"/"+properties.getProperty("project.version");
-                }
-                catch(IOException e){
-                    throw new UncheckedIOException("Not able to load Version.properties file", e);
-                }
             }
             else{
                 userAgentInformation = "Plugin-Installation-Manager-Tool";
             }
+        }
+        catch(IOException e){
+            logVerbose("Not able to load/detect Version.properties file");
+        }
         return userAgentInformation;
-    }
+}
 
     private HttpClient getHttpClient() {
         if (httpClient == null) {
-            String userAgentInformation = getUserAgentInformation();
             httpClient = HttpClients.custom().useSystemProperties()
                 // there is a more complex retry handling in downloadToFile(...) on the whole flow
                 // this affects only the single request
