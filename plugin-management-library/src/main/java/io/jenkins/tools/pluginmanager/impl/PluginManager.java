@@ -914,7 +914,7 @@ public class PluginManager implements Closeable {
                         dependentPlugin.setVersion(latestPluginVersion);
                         dependentPlugin.setLatest(true);
                     } catch(PluginNotFoundException e) {
-                        if (! dependentPlugin.getOptional()) {
+                        if (!dependentPlugin.getOptional()) {
                             throw e;
                         }
                     }
