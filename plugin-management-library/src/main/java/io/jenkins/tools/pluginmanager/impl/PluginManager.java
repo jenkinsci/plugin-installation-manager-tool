@@ -906,12 +906,19 @@ public class PluginManager implements Closeable {
                 String pluginName = pluginInfo[0];
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
-                    dependentPlugin.setVersion(latestPluginVersion);
-                    dependentPlugin.setLatest(true);
-                }
                 dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
+
+                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
+                    try {
+                        VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
+                        dependentPlugin.setVersion(latestPluginVersion);
+                        dependentPlugin.setLatest(true);
+                    } catch(PluginNotFoundException e) {
+                        if (! dependentPlugin.getOptional()) {
+                            throw e;
+                        }
+                    }
+                }
 
                 dependentPlugins.add(dependentPlugin);
                 dependentPlugin.setParent(plugin);
