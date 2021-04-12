@@ -145,7 +145,7 @@ public class PluginManager implements Closeable {
                 properties.load(propertiesStream);
                 userAgentInformation = "Jenkins plugin manager" + "/" + properties.getProperty("project.version");
             } else {
-                userAgentInformation = "Plugin-Installation-Manager-Tool";
+                userAgentInformation = "Jenkins plugin manager/Dev";
             }
         }
         catch(IOException e){
