@@ -150,6 +150,7 @@ public class PluginManager implements Closeable {
         }
         catch(IOException e){
             logVerbose("Not able to load/detect Version.properties file");
+            userAgentInformation = "Jenkins plugin manager/Dev";
         }
         return userAgentInformation;
 }
