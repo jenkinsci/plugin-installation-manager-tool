@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -101,6 +102,7 @@ public class PluginManager implements Closeable {
     private boolean verbose;
     private boolean useLatestSpecified;
     private boolean useLatestAll;
+    private String userAgentInformation;
     private boolean skipFailedPlugins;
     private CloseableHttpClient httpClient;
 
@@ -127,6 +129,20 @@ public class PluginManager implements Closeable {
         skipFailedPlugins = cfg.isSkipFailedPlugins();
         hashFunction = cfg.getHashFunction();
         httpClient = null;
+        userAgentInformation = this.getUserAgentInformation();
+    }
+
+    private String getUserAgentInformation() {
+        String userAgentInformation= "Jenkins plugin manager/Dev";
+        Properties properties = new Properties();
+        try (InputStream propertiesStream = this.getClass().getClassLoader().getResourceAsStream("version.properties")) {
+                properties.load(propertiesStream);
+                userAgentInformation = "Jenkins plugin manager" + "/" + properties.getProperty("project.version");
+        }
+        catch (IOException e) {
+            logVerbose("Not able to load/detect version.properties file");
+        }
+        return userAgentInformation;
     }
 
     private HttpClient getHttpClient() {
@@ -136,6 +152,7 @@ public class PluginManager implements Closeable {
                 // this affects only the single request
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
+                .setUserAgent(userAgentInformation)
                 .build();
         }
         return httpClient;

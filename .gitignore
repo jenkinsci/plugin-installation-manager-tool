@@ -16,6 +16,7 @@ build
 
 # VSCode workspace file
 *.code-workspace
+.vscode
 
 # vim
 *~
