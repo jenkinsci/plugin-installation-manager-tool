@@ -109,6 +109,7 @@ public class PluginManager implements Closeable {
     private CacheManager cm;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
+    private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
@@ -1256,14 +1257,19 @@ public class PluginManager implements Closeable {
             try {
                 httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
             } catch (IOException e) {
-                logVerbose(String.format("Unable to resolve plugin URL %s, or download plugin %s to file",
-                        urlString, plugin.getName()));
+                String message = String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s",
+                        urlString, plugin.getName(), e.getMessage());
+                if (i >= maxRetries -1) {
+                    System.out.println(message);
+                } else {
+                    logVerbose(message);
+                }
                 success = false;
             } finally {
                 // get final URI (after all redirects)
                 List<URI> locations = context.getRedirectLocations();
                 if (locations != null) {
-                    String message = String.format("%s %s from %s", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1));
+                    String message = String.format("%s %s from %s (attempt %d of %d)", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1), i+1, maxRetries);
                     if (success) {
                         logVerbose(message);
                     } else {
@@ -1272,41 +1278,49 @@ public class PluginManager implements Closeable {
                 }
             }
 
-            // Check integrity of plugin file
+            // Check if plugin is a proper ZIP file
             if (success) {
                 try (JarFile ignored = new JarFile(pluginFile)) {
                     plugin.setFile(pluginFile);
+                    logVerbose("Downloaded and validated plugin " + plugin.getName());
+                    break;
                 } catch (IOException e) {
                     System.out.println("Downloaded file for " + plugin.getName() + " is not a valid ZIP");
+                    if (i >= maxRetries -1) {
+                        if (verbose) {
+                            e.printStackTrace();
+                        }
+                    }
                     success = false;
                 }
             }
-
-            // both the download and zip validation passed
-            if (success) {
-                logVerbose("Downloaded plugin " + plugin.getName());
-                break;
-            }
         }
 
-        // Check integrity of plugin file
-        try (JarFile ignored = new JarFile(pluginFile)) {
-            verifyChecksum(plugin, pluginFile);
-            plugin.setFile(pluginFile);
-        } catch (IOException e) {
-            failedPlugins.add(plugin);
-            System.out.println("Downloaded file is not a valid ZIP");
-            if (verbose) {
-                e.printStackTrace();
-            }
-            return false;
-        } catch (PluginChecksumMismatchException e) {
-            failedPlugins.add(plugin);
-            System.out.println(e.getMessage());
-            return false;
+        if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
+            System.out.println("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+            // as fallback try to directly download from Jenkins server (only if mirrors fail)
+            urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
+            return downloadToFile(urlString, plugin, fileLocation, 1);
         }
 
-        if (!success) {
+        if (success) {
+            // Check integrity of plugin file
+            try (JarFile ignored = new JarFile(pluginFile)) {
+                verifyChecksum(plugin, pluginFile);
+                plugin.setFile(pluginFile);
+            } catch (IOException e) {
+                failedPlugins.add(plugin);
+                System.out.println("Downloaded file is not a valid ZIP");
+                if (verbose) {
+                    e.printStackTrace();
+                }
+                return false;
+            } catch (PluginChecksumMismatchException e) {
+                failedPlugins.add(plugin);
+                System.out.println(e.getMessage());
+                return false;
+            }
+        } else {
             failedPlugins.add(plugin);
         }
         return success;
