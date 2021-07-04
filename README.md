@@ -52,7 +52,7 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 * `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
 * `--available-updates`: (optional) Set to true to show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
-* `--output {json,stdout,yaml}`: (optional) Format to output plugin updates file in, stdout is the default.
+* `--output {stdout,yaml,txt}`: (optional) Format to output plugin updates file in, stdout is the default.
 * `--latest false`: (optional) Set to false to download the minimum required version of all dependencies.
 * `--latest-specified`: (optional) (advanced) Set to true to download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
 * `--jenkins-update-center`: (optional) Sets the main update center filename, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/update-center.actual.json
