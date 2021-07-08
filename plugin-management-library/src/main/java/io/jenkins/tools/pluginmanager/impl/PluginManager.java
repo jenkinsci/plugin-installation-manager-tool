@@ -796,13 +796,16 @@ public class PluginManager implements Closeable {
         cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
         cm.createCache();
 
-        String cacheSuffix = jenkinsVersion != null ? "-" + jenkinsVersion.toString(): "";
+        String cacheSuffix = jenkinsVersion != null ? "-" + jenkinsVersion : "";
         try {
             URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
             if (jenkinsVersion != null) {
                 uriBuilder.addParameter("version", jenkinsVersion.toString()).build();
             }
-            latestUcJson = getJson(uriBuilder.build().toURL(), "update-center" + cacheSuffix);
+            URL url = uriBuilder.build().toURL();
+            logVerbose("Update center URL: " + url);
+
+            latestUcJson = getJson(url, "update-center" + cacheSuffix);
         } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
