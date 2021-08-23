@@ -77,7 +77,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossi
 import static java.util.Comparator.comparing;
 
 public class PluginManager implements Closeable {
-    private static final VersionNumber LATEST = new VersionNumber("latest");
+    static final VersionNumber LATEST = new VersionNumber("latest");
     private List<Plugin> failedPlugins;
     /**
      * Directory where the plugins will be downloaded
@@ -856,24 +856,41 @@ public class PluginManager implements Closeable {
      * Retrieves the latest available version of a specified plugin.
      *
      * @param dependendantPlugin the plugin depending on the given plugin
-     * @param pluginName the name of the plugin
+     * @param plugin the plugin to resolve the latest version for
      * @return latest version of the specified plugin
      * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
-    public VersionNumber getLatestPluginVersion(Plugin dependendantPlugin, String pluginName) {
+    public VersionNumber getLatestPluginVersion(Plugin dependendantPlugin, Plugin plugin) {
         if (latestPlugins == null) {
             throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
         }
 
-        if (!latestPlugins.has(pluginName)) {
-            throw new PluginNotFoundException(dependendantPlugin, String.format("unable to find dependant plugin %s in update center %s", pluginName,
+        if (!latestPlugins.has(plugin.getName())) {
+            if (plugin.getOptional()) {
+                // case where a plugin depends on an optional plugin that is not available in the same Update Center
+                // we don't care about the version as we won't be able to download the plugin anyway
+                return LATEST;
+            }
+            throw new PluginNotFoundException(dependendantPlugin, String.format("unable to find dependant plugin %s in update center %s", plugin.getName(),
                     jenkinsUcLatest));
         }
 
-        JSONObject pluginInfo = (JSONObject) latestPlugins.get(pluginName);
+        JSONObject pluginInfo = (JSONObject) latestPlugins.get(plugin.getName());
         String latestPluginVersion = pluginInfo.getString("version");
 
         return new VersionNumber(latestPluginVersion);
+    }
+
+    /**
+     * @deprecated use {@link #getLatestPluginVersion(Plugin, Plugin)} instead
+     * @param dependendantPlugin the plugin depending on the given plugin
+     * @param pluginName the name of the plugin
+     * @return latest version of the specified plugin
+     * @throws IllegalStateException Update Center JSON has not been retrieved yet
+     */
+    @Deprecated
+    public VersionNumber getLatestPluginVersion(Plugin dependendantPlugin, String pluginName) {
+        return getLatestPluginVersion(dependendantPlugin, new Plugin(pluginName,null, null, null));
     }
 
     /**
@@ -927,13 +944,12 @@ public class PluginManager implements Closeable {
                 String pluginName = pluginInfo[0];
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
+                dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
                 if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, dependentPlugin);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);
                 }
-                dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
-
                 dependentPlugins.add(dependentPlugin);
                 dependentPlugin.setParent(plugin);
             }
@@ -980,7 +996,7 @@ public class PluginManager implements Closeable {
 
             try {
                 if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
+                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, dependentPlugin);
                     dependentPlugin.setVersion(latestPluginVersion);
                     dependentPlugin.setLatest(true);
                 }
