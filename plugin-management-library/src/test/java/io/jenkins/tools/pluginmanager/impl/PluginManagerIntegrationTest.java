@@ -229,6 +229,25 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
+    public void latestAllPinnedPluginsIsLowerThanLatest() throws Exception {
+        // given
+        Plugin mailer = new Plugin("mailer", "1.34", null, null);
+        Plugin pinnedDisplayUrlApi = new Plugin("display-url-api", "2.3.4", null, null);
+
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(mailer, pinnedDisplayUrlApi));
+
+        // when
+        PluginManager pluginManager = initPluginManager(
+            configBuilder -> configBuilder.withPlugins(requestedPlugins).withUseLatestAll(true));
+
+        // then
+        Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
+
+        assertThat(pluginsAndDependencies.values()).containsExactlyInAnyOrder(
+                mailer, pinnedDisplayUrlApi);
+    }
+
+    @Test
     public void verifyDownloads_smoke() throws Exception {
 
         // First cycle, empty dir

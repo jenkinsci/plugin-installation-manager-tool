@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -726,68 +727,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromManifestLatestSpecified() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withUseLatestSpecified(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Plugin testPlugin = new Plugin("test", "latest", null, null);
-        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        Path tempPath = mock(Path.class);
-        File tempFile = mock(File.class);
-
-        when(tempPath.toFile()).thenReturn(tempFile);
-
-        doReturn("1.0.0").doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
-                .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
-
-        doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(Plugin.class), any(String.class));
-
-        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-
-        assertThat(actualPlugins)
-                .containsExactlyInAnyOrder(
-                        new Plugin("workflow-scm-step", "2.4", null, null),
-                        new Plugin("workflow-step-api", "2.20", null, null));
-        assertThat(testPlugin.getVersion()).hasToString("1.0.0");
-    }
-
-    @Test
-    public void resolveDependenciesFromManifestLatestAll() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withUseLatestAll(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        Plugin testPlugin = new Plugin("test", "1.1", null, null);
-        doReturn(true).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), any(File.class));
-
-        doReturn("workflow-scm-step:2.4,workflow-step-api:2.13")
-                .when(pluginManagerSpy).getAttributeFromManifest(any(File.class), any(String.class));
-
-        doReturn(new VersionNumber("2.4")).doReturn(new VersionNumber("2.20")).when(pluginManagerSpy).
-                getLatestPluginVersion(any(Plugin.class), any(String.class));
-
-        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromManifest(testPlugin);
-
-        assertThat(actualPlugins)
-                .containsExactlyInAnyOrder(
-                        new Plugin("workflow-scm-step", "2.4", null, null),
-                        new Plugin("workflow-step-api", "2.20", null, null));
-    }
-
-    @Test
     public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         setTestUcJson();
@@ -940,65 +879,6 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void resolveDependenciesFromJsonLatestSpecifiedTest() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withUseLatestSpecified(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-
-        JSONObject testJson = setTestUcJson();
-        pluginManager.setLatestUcJson(testJson);
-        pluginManager.setLatestUcPlugins(testJson.getJSONObject("plugins"));
-
-        Plugin testWeaver = new Plugin("testweaver", "1.0.1", null, null);
-        testWeaver.setLatest(true);
-        List<Plugin> actualPlugins = pluginManager.resolveDependenciesFromJson(testWeaver, testJson);
-
-        assertThat(actualPlugins)
-                .containsExactly(new Plugin("structs", "1.19", null, null));
-    }
-
-    @Test
-    public void resolveDependenciesFromJsonLatestAll() {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withUseLatestAll(true)
-                .build();
-
-        PluginManager pluginManager = new PluginManager(config);
-        PluginManager pluginManagerSpy = spy(pluginManager);
-
-        JSONObject pluginJson = setTestUcJson();
-        Plugin mvnInvokerPlugin = new Plugin("maven-invoker-plugin", "2.4", null, null);
-
-        JSONArray mavenInvokerDependencies = array(
-                dependency("workflow-api", false, "2.22"),
-                dependency("workflow-step-api", false, "2.12"),
-                dependency("mailer", false, "1.18"),
-                dependency("script-security", false, "1.30"),
-                dependency("structs", true, "1.7"));
-
-        doReturn(mavenInvokerDependencies).when(pluginManagerSpy).getPluginDependencyJsonArray(any(Plugin.class), any(JSONObject.class));
-        doReturn(new VersionNumber("2.44")).doReturn(new VersionNumber("2.30")).doReturn(new VersionNumber("1.18"))
-                .doReturn(new VersionNumber("2.0")).doReturn(new VersionNumber("1.8"))
-                .when(pluginManagerSpy).getLatestPluginVersion(any(Plugin.class), any(String.class));
-
-        List<Plugin> actualPlugins = pluginManagerSpy.resolveDependenciesFromJson(mvnInvokerPlugin, pluginJson);
-
-        assertThat(actualPlugins)
-                .containsExactlyInAnyOrder(
-                        new Plugin("workflow-api", "2.44", null, null),
-                        new Plugin("workflow-step-api", "2.30", null, null),
-                        new Plugin("mailer", "1.18", null, null),
-                        new Plugin("script-security", "2.0", null, null),
-                        new Plugin("structs", "1.8", null, null).setOptional(true));
-    }
-
-    @Test
     public void resolveRecursiveDependenciesTest() {
         PluginManager pluginManagerSpy = spy(pm);
         doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
@@ -1043,6 +923,124 @@ public class PluginManagerTest {
                 .hasSize(10);
     }
 
+    @Test
+    public void resolveRecursiveDependenciesLatestAllPinnedOlderThanRequired() {
+        // Arrange
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withUseLatestAll(true)
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+        doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
+
+        Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
+        Plugin parent = new Plugin("parent", "1.0", null, null);
+
+        Plugin child1 = new Plugin("child1", "1.3", null, null);
+        Plugin child1Latest = new Plugin("child1", "1.5", null, null);
+        Plugin child1Pinned = new Plugin("child1", "1.2", null, null);
+
+        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
+
+        grandParent.setDependencies(singletonList(parent));
+        parent.setDependencies(singletonList(child1));
+
+        doReturn(child1Latest.getVersion())
+                .when(pluginManagerSpy).getLatestPluginVersion(parent, child1.getName());
+        doReturn(new VersionNumber("1.0"))
+                .when(pluginManagerSpy).getLatestPluginVersion(not(eq(parent)), not(eq(child1.getName())));
+
+        String exceptionMessage = String.format("Plugin %s:%s depends on %s:%s, but there is an older version defined on the top level - %s:%s",
+                parent.getName(), parent.getVersion(), child1.getName(), child1.getVersion(), child1Pinned.getName(), child1Pinned.getVersion());
+
+        // Act, Assert
+        assertThatThrownBy(() -> pluginManagerSpy.resolveRecursiveDependencies(grandParent, topLevelDependencies))
+                .isInstanceOf(PluginDependencyException.class)
+                .hasMessageContaining(exceptionMessage);
+    }
+
+    @Test
+    public void resolveRecursiveDependenciesLatestAllPinnedVsLatest() {
+        // Arrange
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withUseLatestAll(true)
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+        doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
+
+        Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
+        Plugin parent = new Plugin("parent", "1.0", null, null);
+
+        Plugin child1 = new Plugin("child1", "1.3", null, null);
+        Plugin child1Latest = new Plugin("child1", "1.5", null, null);
+        Plugin child1Pinned = new Plugin("child1", "1.4", null, null);
+        Plugin child2 = new Plugin("child2", "2.3", null, null);
+        Plugin child2Latest = new Plugin("child2", "2.5", null, null);
+
+        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
+
+        grandParent.setDependencies(singletonList(parent));
+        parent.setDependencies(Arrays.asList(child1, child2));
+
+        doReturn(child1Latest.getVersion())
+                .when(pluginManagerSpy).getLatestPluginVersion(parent, child1.getName());
+        doReturn(child2Latest.getVersion())
+                .when(pluginManagerSpy).getLatestPluginVersion(parent, child2.getName());
+        doReturn(parent.getVersion())
+                .when(pluginManagerSpy).getLatestPluginVersion(grandParent, parent.getName());
+        doReturn(grandParent.getVersion())
+                .when(pluginManagerSpy).getLatestPluginVersion(null, grandParent.getName());
+
+        // Act
+        Map<String, Plugin> recursiveDependencies = pluginManagerSpy
+                                .resolveRecursiveDependencies(grandParent, topLevelDependencies);
+
+        // Assert
+        assertThat(recursiveDependencies)
+                .containsValues(grandParent, parent, child2Latest)
+                .hasSize(3);
+    }
+
+    @Test
+    public void resolveRecursiveDependenciesPinnedPlugin() {
+        // Arrange
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withUseLatestAll(false)
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+        doReturn(new ArrayList<Plugin>()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
+
+        Plugin grandParent = new Plugin("grandparent", "1.0", null, null);
+        Plugin parent = new Plugin("parent", "1.0", null, null);
+        Plugin child1 = new Plugin("child1", "1.3", null, null);
+        Plugin child1Latest = new Plugin("child1", "1.5", null, null);
+        Plugin child1Pinned = new Plugin("child1", "1.4", null, null);
+
+        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
+
+        grandParent.setDependencies(singletonList(parent));
+        parent.setDependencies(singletonList(child1));
+
+        // Act
+        Map<String, Plugin> recursiveDependencies = pluginManagerSpy
+                                .resolveRecursiveDependencies(grandParent, topLevelDependencies);
+
+        // Assert
+        assertThat(recursiveDependencies)
+                .containsValues(grandParent, parent)
+                .hasSize(2);
+    }
 
     @Test
     public void installedPluginsTest() throws IOException {
