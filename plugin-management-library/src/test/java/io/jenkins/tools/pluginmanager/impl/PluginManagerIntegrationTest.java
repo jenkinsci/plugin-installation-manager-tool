@@ -248,6 +248,44 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
+    public void LatestSpecifiedPinnedPluginsIsLowerThanLatest() throws Exception {
+        // given
+        Plugin testweaver = new Plugin("testweaver", "1.0.1", null, null);
+        Plugin pinnedStructs = new Plugin("structs", "1.18", null, null);
+
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(testweaver, pinnedStructs));
+
+        // when
+        PluginManager pluginManager = initPluginManager(
+            configBuilder -> configBuilder.withPlugins(requestedPlugins).withUseLatestSpecified(true));
+
+        // then
+        Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
+
+        assertThat(pluginsAndDependencies.values()).containsExactlyInAnyOrder(
+                testweaver, pinnedStructs);
+    }
+
+    @Test
+    public void LatestSpecifiedNoPinned () throws Exception {
+        // given
+        Plugin testweaver = new Plugin("testweaver", "latest", null, null);
+        Plugin structs = new Plugin("structs", "1.7", null, null);
+
+        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(testweaver));
+
+        // when
+        PluginManager pluginManager = initPluginManager(
+            configBuilder -> configBuilder.withPlugins(requestedPlugins).withUseLatestSpecified(true));
+
+        // then
+        Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
+
+        assertThat(pluginsAndDependencies.values()).hasSameElementsAs(
+                pluginManager.getLatestVersionsOfPlugins(Arrays.asList(testweaver, structs)));
+    }
+
+    @Test
     public void verifyDownloads_smoke() throws Exception {
 
         // First cycle, empty dir

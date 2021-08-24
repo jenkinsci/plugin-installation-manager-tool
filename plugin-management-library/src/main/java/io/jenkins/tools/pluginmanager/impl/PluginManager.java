@@ -1076,7 +1076,7 @@ public class PluginManager implements Closeable {
                                         p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
                         continue;
                     }
-                } else if (useLatestSpecified && p.isLatest() || useLatestAll) {
+                } else if (useLatestSpecified && dependency.isLatest() || useLatestAll) {
                     try {
                         VersionNumber latestPluginVersion = getLatestPluginVersion(dependency, p.getName());
                         p.setVersion(latestPluginVersion);
