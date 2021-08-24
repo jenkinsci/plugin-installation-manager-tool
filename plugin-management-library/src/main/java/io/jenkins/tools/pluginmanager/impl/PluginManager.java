@@ -927,11 +927,6 @@ public class PluginManager implements Closeable {
                 String pluginName = pluginInfo[0];
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
-                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
-                    dependentPlugin.setVersion(latestPluginVersion);
-                    dependentPlugin.setLatest(true);
-                }
                 dependentPlugin.setOptional(dependency.contains("resolution:=optional"));
 
                 dependentPlugins.add(dependentPlugin);
@@ -977,24 +972,8 @@ public class PluginManager implements Closeable {
             Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
             dependentPlugin.setOptional(dependency.getBoolean("optional"));
             dependentPlugin.setParent(plugin);
-
-            try {
-                if (useLatestSpecified && plugin.isLatest() || useLatestAll) {
-                    VersionNumber latestPluginVersion = getLatestPluginVersion(plugin, pluginName);
-                    dependentPlugin.setVersion(latestPluginVersion);
-                    dependentPlugin.setLatest(true);
-                }
-                dependentPlugins.add(dependentPlugin);
-            } catch (PluginNotFoundException e) {
-                if (!dependentPlugin.getOptional()) {
-                    throw e;
-                }
-                logVerbose(String.format(
-                            "%s unable to find optional plugin %s in update center %s. " +
-                            "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
-                            pluginName, jenkinsUcLatest));
-            }
-    }
+            dependentPlugins.add(dependentPlugin);
+        }
 
         logVerbose(dependentPlugins.isEmpty() ? String.format("%n%s has no dependencies", plugin.getName()) :
                 String.format("%n%s depends on: %n", plugin.getName()) +
@@ -1082,15 +1061,8 @@ public class PluginManager implements Closeable {
                 String dependencyName = p.getName();
                 Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
 
-                // See https://github.com/jenkinsci/plugin-installation-manager-tool/pull/102
                 if (pinnedPlugin != null) { // There is a top-level plugin with the same ID
-                    if (pinnedPlugin.getVersion().isNewerThanOrEqualTo(p.getVersion()) || pinnedPlugin.getVersion().equals(LATEST)) {
-                        if (verbose) {
-                            logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
-                                    p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
-                        }
-                        continue;
-                    } else {
+                    if (pinnedPlugin.getVersion().isOlderThan(p.getVersion()) && !pinnedPlugin.getVersion().equals(LATEST)) {
                         String message = String.format("depends on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
                         PluginDependencyException exception = new PluginDependencyException(dependency, message);
@@ -1099,6 +1071,24 @@ public class PluginManager implements Closeable {
                         } else {
                             throw exception;
                         }
+                    } else {
+                        logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
+                                        p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
+                        continue;
+                    }
+                } else if (useLatestSpecified && dependency.isLatest() || useLatestAll) {
+                    try {
+                        VersionNumber latestPluginVersion = getLatestPluginVersion(dependency, p.getName());
+                        p.setVersion(latestPluginVersion);
+                        p.setLatest(true);
+                    } catch (PluginNotFoundException e) {
+                        if (!p.getOptional()) {
+                            throw e;
+                        }
+                        logVerbose(String.format(
+                                    "%s unable to find optional plugin %s in update center %s. " +
+                                    "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
+                                    dependencyName, jenkinsUcLatest));
                     }
                 }
 
