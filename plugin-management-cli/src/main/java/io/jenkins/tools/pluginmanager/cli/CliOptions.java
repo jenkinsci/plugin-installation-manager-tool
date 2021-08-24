@@ -122,14 +122,16 @@ class CliOptions {
     private boolean isNoDownload;
 
     @Option(name = "--latest-specified", usage = "Set to true to download latest transitive dependencies of any " +
-            "plugin that is requested to have the latest version. By default, plugin dependency versions will be " +
+            "plugin that is requested to have the latest version unless some specific version is explicitly requested." +
+            "By default, plugin dependency versions will be " +
             "determined by the update center metadata or plugin MANIFEST.MF",
             handler = BooleanOptionHandler.class)
     private boolean useLatestSpecified;
 
     @SuppressWarnings("FieldMayBeFinal")
     @Option(name = "--latest", usage = "Set to true to download the latest version of all dependencies, even " +
-            "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
+            "if the version(s) of the requested plugin(s) are not the latest unless some specific version " +
+            "is explicitly requested. By default, plugin dependency versions " +
             "will be determined by the update center metadata or plugin MANIFEST.MF",
             handler = ExplicitBooleanOptionHandler.class)
     private boolean useLatestAll = true;
