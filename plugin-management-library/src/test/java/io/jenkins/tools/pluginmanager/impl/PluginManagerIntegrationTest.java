@@ -248,7 +248,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void LatestSpecifiedPinnedPluginsIsLowerThanLatest() throws Exception {
+    public void latestSpecifiedPinnedPluginsIsLowerThanLatest() throws Exception {
         // given
         Plugin testweaver = new Plugin("testweaver", "1.0.1", null, null);
         Plugin pinnedStructs = new Plugin("structs", "1.18", null, null);
@@ -267,7 +267,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void LatestSpecifiedNoPinned () throws Exception {
+    public void latestSpecifiedNoPinned() throws Exception {
         // given
         Plugin testweaver = new Plugin("testweaver", "latest", null, null);
         Plugin structs = new Plugin("structs", "1.7", null, null);
