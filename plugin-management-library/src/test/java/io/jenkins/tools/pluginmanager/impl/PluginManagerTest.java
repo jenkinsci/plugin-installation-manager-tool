@@ -791,11 +791,11 @@ public class PluginManagerTest {
                         new Plugin("credentials", "2.1.14", null, null),
                         new Plugin("git-client", "2.7.7", null, null),
                         new Plugin("mailer", "1.18", null, null),
-                        new Plugin("parameterized-trigger", "2.33;resolution", null, null).setOptional(true),
-                        new Plugin("promoted-builds", "2.27;resolution", null, null).setOptional(true),
+                        new Plugin("parameterized-trigger", "2.33", null, null).setOptional(true),
+                        new Plugin("promoted-builds", "2.27", null, null).setOptional(true),
                         new Plugin("scm-api", "2.6.3", null, null),
                         new Plugin("ssh-credentials", "1.13", null, null),
-                        new Plugin("token-macro", "1.12.1;resolution", null, null).setOptional(true));
+                        new Plugin("token-macro", "1.12.1", null, null).setOptional(true));
         assertThat(testPlugin.getVersion()).hasToString("1.0.0");
     }
 

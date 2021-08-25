@@ -923,7 +923,9 @@ public class PluginManager implements Closeable {
             String[] dependencies = dependencyString.split(",");
 
             for (String dependency : dependencies) {
-                String[] pluginInfo = dependency.split(":");
+                String[] pluginInfo = dependency
+                        .replace(";resolution:=optional", "")
+                        .split(":");
                 String pluginName = pluginInfo[0];
                 String pluginVersion = pluginInfo[1];
                 Plugin dependentPlugin = new Plugin(pluginName, pluginVersion, null, null);
