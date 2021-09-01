@@ -139,8 +139,8 @@ public class PluginManager implements Closeable {
         String userAgentInformation = addonUserAgent + "JenkinsPluginManager";
         Properties properties = new Properties();
         try (InputStream propertiesStream = this.getClass().getClassLoader().getResourceAsStream("version.properties")) {
-                properties.load(propertiesStream);
-                userAgentInformation = addonUserAgent + "JenkinsPluginManager" + "/" + properties.getProperty("project.version");
+            properties.load(propertiesStream);
+            userAgentInformation = addonUserAgent + "JenkinsPluginManager" + "/" + properties.getProperty("project.version");
         }
         catch (IOException e) {
             logVerbose("Not able to load/detect version.properties file");
