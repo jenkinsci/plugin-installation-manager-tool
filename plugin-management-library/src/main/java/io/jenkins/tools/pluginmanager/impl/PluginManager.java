@@ -134,17 +134,20 @@ public class PluginManager implements Closeable {
     }
 
     private String getUserAgentInformation() {
-        // pull http.agent value and add space if http.agent is being provided, to then append to the default user agent header
-        String addonUserAgent = (System.getProperty("http.agent") != null ? (System.getProperty("http.agent") + " "): "");
-        String userAgentInformation = addonUserAgent + "JenkinsPluginManager";
+        String userAgentInformation = "JenkinsPluginManager";
         Properties properties = new Properties();
         try (InputStream propertiesStream = this.getClass().getClassLoader().getResourceAsStream("version.properties")) {
             properties.load(propertiesStream);
-            userAgentInformation = addonUserAgent + "JenkinsPluginManager" + "/" + properties.getProperty("project.version");
-        }
-        catch (IOException e) {
+            userAgentInformation =  "JenkinsPluginManager/" + properties.getProperty("project.version");
+        } catch (IOException e) {
             logVerbose("Not able to load/detect version.properties file");
         }
+
+        String additionalUserAgentInfo = System.getProperty("http.agent");
+        if (additionalUserAgentInfo != null) {
+            userAgentInformation = additionalUserAgentInfo + " " + userAgentInformation;
+        }
+
         return userAgentInformation;
     }
     private HttpClient getHttpClient() {
