@@ -70,9 +70,12 @@ Jenkins in a broken state.
 * `CACHE_DIR`: used to configure the directory where the plugins update center cache is located. By default it will be in `~/.cache/jenkins-plugin-management-cli`,
 if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jenkins-plugin-management-cli`.
 
-* `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. Often used to cache or to proxy the Jenkins plugin download site. 
-If set then all plugins will be downloaded through that URL.
-  
+* `JENKINS_UC_DOWNLOAD`: used to configure the URL from where plugins will be downloaded from. When this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD}/plugins`. Often used to cache or to proxy the Jenkins plugin download site.
+If set then all plugins will be downloaded through that URL. To use a custom URL, use `JENKINS_UD_DOWNLOAD_URL`.
+
+* `JENKINS_UC_DOWNLOAD_URL`: used to configure a custom URL from where plugins will be downloaded from. When this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD_URL}`. Often used to cache or to proxy the Jenkins plugin download site.
+If set then all plugins will be downloaded through that URL. To use a conventional download center url, use `JENKINS_UD_DOWNLOAD`.
+
 * `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
 
 #### Plugin Input Format
