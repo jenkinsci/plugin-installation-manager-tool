@@ -3,9 +3,8 @@ package io.jenkins.tools.pluginmanager.cli;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import org.kohsuke.args4j.Localizable;
 
-enum Messages implements Localizable {
+public enum Messages {
     INVALID_CREDENTIALS_VALUE;
 
     public String formatWithLocale(Locale locale, Object... args) {

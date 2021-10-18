@@ -1,4 +1,4 @@
-package io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.cli.util;
 
 public class VersionNotFoundException extends RuntimeException {
 

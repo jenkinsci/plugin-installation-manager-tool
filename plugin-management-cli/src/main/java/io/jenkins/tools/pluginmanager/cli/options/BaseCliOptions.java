@@ -1,8 +1,9 @@
-package io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.cli.options;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
+import io.jenkins.tools.pluginmanager.cli.util.VersionNotFoundException;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.HashFunction;
@@ -12,138 +13,127 @@ import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.util.PluginListParser;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import javax.annotation.CheckForNull;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.kohsuke.args4j.Option;
-import org.kohsuke.args4j.spi.BooleanOptionHandler;
-import org.kohsuke.args4j.spi.ExplicitBooleanOptionHandler;
-import org.kohsuke.args4j.spi.FileOptionHandler;
-import org.kohsuke.args4j.spi.StringArrayOptionHandler;
-import org.kohsuke.args4j.spi.URLOptionHandler;
+import picocli.CommandLine;
+import picocli.CommandLine.Option;
 
-class CliOptions {
+public class BaseCliOptions {
+
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec; // injected by picocli
+
     //path must include plugins.txt
-    @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt or plugins.yaml file",
-            handler = FileOptionHandler.class)
+    @Option(names = {"--plugin-file", "-f"},
+            description = "Path to plugins.txt or plugins.yaml file")
     private File pluginFile;
 
-    @Option(name = "--plugin-download-directory", aliases = {"-d"},
-            usage = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.",
-            handler = FileOptionHandler.class)
+    @Option(names = {"--plugin-download-directory", "-d"},
+            description = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.")
     private File pluginDir;
 
-    @Option(name = "--clean-download-directory",
-            usage = "If sets, cleans the plugin download directory before plugin installation. " +
+    @Option(names = "--clean-download-directory",
+            description = "If sets, cleans the plugin download directory before plugin installation. " +
                     "Otherwise the tool performs plugin download and reports compatibility issues, if any.")
     private boolean cleanPluginDir;
 
-    @Option(name = "--plugins", aliases = {"-p"}, usage = "List of plugins to install, separated by a space",
-            handler = StringArrayOptionHandler.class)
+    @Option(names = {"--plugins", "-p"},
+            description = "List of plugins to install, separated by a space")
     private String[] plugins = new String[0];
 
-    @Option(name = "--jenkins-version", usage = "Jenkins version to be used. " +
-            "If undefined, Plugin Manager will use alternative ways to retrieve the version, e.g. from WAR",
-            handler = VersionNumberHandler.class)
     @CheckForNull
     private VersionNumber jenkinsVersion;
 
-    @Option(name = "--war", aliases = {"-w"}, usage = "Path to Jenkins war file")
+    @Option(names = "--jenkins-version",
+            description = "Jenkins version to be used. " +
+                    "If undefined, Plugin Manager will use alternative ways to retrieve the version, e.g. from WAR")
+    public void setJenkinsVersion(String version) {
+        try {
+            jenkinsVersion = new VersionNumber(version);
+        } catch (Exception ex) {
+            throw new CommandLine.ParameterException(spec.commandLine(), "Failed to parse Jenkins version number (--jenkins-version): " + version, ex);
+        }
+    }
+
+    @Option(names = {"--war", "-w"}, description = "Path to Jenkins war file")
     @CheckForNull
     private String jenkinsWarFile;
 
-    @Option(name = "--list", aliases = {"-l"}, usage = "Lists all plugins currently installed and if given a list of " +
-            "plugins to install either via file or CLI option, all plugins that will be installed by the tool",
-            handler = BooleanOptionHandler.class)
+    @Option(names = {"--list", "-l"},
+            description = "Lists all plugins currently installed and if given a list of " +
+            "plugins to install either via file or CLI option, all plugins that will be installed by the tool")
     private boolean showPluginsToBeDownloaded;
 
-    @Option(name = "--verbose", usage = "Verbose logging",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--verbose",
+            description = "Verbose logging")
     private boolean verbose;
 
-    @Option(name = "--available-updates", usage = "Show available plugin updates for the requested plugins",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--available-updates",
+            description = "Show available plugin updates for the requested plugins")
     private boolean showAvailableUpdates;
 
-    @Option(name = "--output", usage = "Output format for available updates",   aliases = "-o")
+    @Option(names = {"--output", "-o"},
+            description = "Output format for available updates")
     private OutputFormat outputFormat;
 
-    @Option(name = "--view-security-warnings",
-            usage = "Show if any security warnings exist for the requested plugins",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--view-security-warnings",
+            description = "Show if any security warnings exist for the requested plugins")
     private boolean showWarnings;
 
-    @Option(name = "--view-all-security-warnings",
-            usage = "Set to true to show all plugins that have security warnings",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--view-all-security-warnings",
+            description = "Set to true to show all plugins that have security warnings")
     private boolean showAllWarnings;
 
-    @Option(name = "--jenkins-update-center",
-            usage = "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI " +
-                    "option or environment variable, will default to " + Settings.DEFAULT_UPDATE_CENTER_LOCATION,
-            handler = URLOptionHandler.class)
+    @Option(names = "--jenkins-update-center",
+            description = "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI " +
+                    "option or environment variable, will default to " + Settings.DEFAULT_UPDATE_CENTER_LOCATION)
     private URL jenkinsUc;
 
-    @Option(name = "--jenkins-experimental-update-center",
-            usage = "Sets experimental update center; will override JENKINS_UC_EXPERIMENTAL environment variable. If " +
+    @CommandLine.Option(names = "--jenkins-experimental-update-center",
+            description = "Sets experimental update center; will override JENKINS_UC_EXPERIMENTAL environment variable. If " +
                     "not set via CLI option or environment variable, will default to " +
-                    Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION,
-            handler = URLOptionHandler.class)
+                    Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION)
     private URL jenkinsUcExperimental;
 
-    @Option(name = "--jenkins-incrementals-repo-mirror",
-            usage = "Set Maven mirror to be used to download plugins from the Incrementals repository, will override " +
+    @Option(names = "--jenkins-incrementals-repo-mirror",
+            description = "Set Maven mirror to be used to download plugins from the Incrementals repository, will override " +
                     "the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If not set via CLI option or " +
-                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION,
-            handler = URLOptionHandler.class)
+                    "environment variable, will default to " + Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION)
     private URL jenkinsIncrementalsRepoMirror;
 
-    @Option(name = "--jenkins-plugin-info",
-            usage = "Sets the location of plugin information; will override JENKINS_PLUGIN_INFO environment variable. " +
+    @Option(names = "--jenkins-plugin-info",
+            description = "Sets the location of plugin information; will override JENKINS_PLUGIN_INFO environment variable. " +
                     "If not set via CLI option or environment variable, will default to " +
-                    Settings.DEFAULT_PLUGIN_INFO_LOCATION,
-            handler = URLOptionHandler.class)
+                    Settings.DEFAULT_PLUGIN_INFO_LOCATION)
     private URL jenkinsPluginInfo;
 
-    @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
-    private boolean showVersion;
-
-    @Option(name = "--no-download", usage = "Set true to avoid downloading plugins; can be used in combination with " +
-            "other options to see information about plugins and their dependencies",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--no-download",
+            description = "Set true to avoid downloading plugins; can be used in combination with " +
+                    "other options to see information about plugins and their dependencies")
     private boolean isNoDownload;
 
-    @Option(name = "--latest-specified", usage = "Set to true to download latest transitive dependencies of any " +
+    @Option(names = "--latest-specified", description = "Set to true to download latest transitive dependencies of any " +
             "plugin that is requested to have the latest version. By default, plugin dependency versions will be " +
-            "determined by the update center metadata or plugin MANIFEST.MF",
-            handler = BooleanOptionHandler.class)
+            "determined by the update center metadata or plugin MANIFEST.MF")
     private boolean useLatestSpecified;
 
     @SuppressWarnings("FieldMayBeFinal")
-    @Option(name = "--latest", usage = "Set to true to download the latest version of all dependencies, even " +
+    @Option(names = "--latest", description = "Set to true to download the latest version of all dependencies, even " +
             "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
-            "will be determined by the update center metadata or plugin MANIFEST.MF",
-            handler = ExplicitBooleanOptionHandler.class)
+            "will be determined by the update center metadata or plugin MANIFEST.MF")
     private boolean useLatestAll = true;
 
-    @Option(name = "--help", aliases = {"-h"}, help = true)
-    private boolean showHelp;
-
-    @Option(name = "--skip-failed-plugins", usage = "Set to true to skip installing plugins that have failed to download. " +
-            "By default, if a single plugin is unavailable then all plugins fail to download and install.",
-            handler = BooleanOptionHandler.class)
+    @Option(names = "--skip-failed-plugins", description = "Set to true to skip installing plugins that have failed to download. " +
+            "By default, if a single plugin is unavailable then all plugins fail to download and install.")
     private boolean skipFailedPlugins;
 
-    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
-            handler = MultiCredentialsOptionHandler.class)
+    @Option(names = "--credentials", description = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','")
     private List<Credentials> credentials;
 
     /**
@@ -151,7 +141,7 @@ class CliOptions {
      *
      * @return a configuration class that can be passed to the PluginManager class
      */
-    Config setup() {
+    public Config setup() {
         return Config.builder()
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())
@@ -490,33 +480,6 @@ class CliOptions {
     }
 
     /**
-     * Prints out the Plugin Management Tool version
-     */
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
-    public void showVersion() {
-        try (InputStream propertyInputStream = getPropertiesInputStream("/.properties")) {
-            if (propertyInputStream == null) {
-                throw new VersionNotFoundException("No version information available");
-            }
-            Properties properties = new Properties();
-            properties.load(propertyInputStream);
-
-            System.out.println(properties.getProperty("project.version"));
-        } catch (IOException e) {
-            throw new VersionNotFoundException("No version information available", e);
-        }
-    }
-
-    /**
-     * Returns boolean corresponding to if user wanted to view the help option output
-     *
-     * @return true if user wanted to show help
-     */
-    public boolean isShowHelp() {
-        return showHelp;
-    }
-
-    /**
      * Returns the boolean corresponding to if user wants dependencies of plugins with latest version specified to also
      * be the latest version
      *
@@ -548,21 +511,6 @@ class CliOptions {
         }
         return useLatestAll;
     }
-
-    // visible for testing
-    public InputStream getPropertiesInputStream(String path) {
-        return this.getClass().getResourceAsStream(path);
-    }
-
-    /**
-     * Returns if user requested to see the tool version from the CLI options
-     *
-     * @return true if user passed in option to see version, false otherwise
-     */
-    public boolean isShowVersion() {
-        return showVersion;
-    }
-
 
     /**
      * Determines the hash function used with the Update Center
