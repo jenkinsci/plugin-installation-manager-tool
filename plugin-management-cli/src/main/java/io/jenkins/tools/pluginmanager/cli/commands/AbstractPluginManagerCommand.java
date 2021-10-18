@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.cli.commands;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import io.jenkins.tools.pluginmanager.cli.options.BaseCliOptions;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
@@ -20,7 +21,7 @@ public abstract class AbstractPluginManagerCommand implements Callable<Integer> 
 
     public Config getConfig() {
         if (config == null) {
-            config = options.setup();
+            config = options.setup(getConfigurator());
         }
         return config;
     }
@@ -45,4 +46,11 @@ public abstract class AbstractPluginManagerCommand implements Callable<Integer> 
 
     public abstract Integer call(PluginManager pm, Config config) throws Exception;
 
+    /**
+     * Gets configurator that sets additional options.
+     */
+    @CheckForNull
+    public Config.Configurator getConfigurator() {
+        return null;
+    }
 }

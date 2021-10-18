@@ -4,9 +4,9 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
 import picocli.CommandLine;
 
-import java.util.concurrent.Callable;
-
 /**
+ * Installs plugins.
+ * This is the original default of Plugin Installation Manager before version 3.0.
  * @since 3.0
  */
 @CommandLine.Command(
@@ -19,5 +19,10 @@ public class InstallPluginsCommand extends AbstractPluginManagerCommand {
     public Integer call(PluginManager pm, Config config) throws Exception {
         pm.start();
         return 0;
+    }
+
+    @Override
+    public Config.Configurator getConfigurator() {
+        return (builder) -> {builder.withDoDownload(true);};
     }
 }

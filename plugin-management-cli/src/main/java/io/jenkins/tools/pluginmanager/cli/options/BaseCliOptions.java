@@ -113,11 +113,6 @@ public class BaseCliOptions {
                     Settings.DEFAULT_PLUGIN_INFO_LOCATION)
     private URL jenkinsPluginInfo;
 
-    @Option(names = "--no-download",
-            description = "Set true to avoid downloading plugins; can be used in combination with " +
-                    "other options to see information about plugins and their dependencies")
-    private boolean isNoDownload;
-
     @Option(names = "--latest-specified", description = "Set to true to download latest transitive dependencies of any " +
             "plugin that is requested to have the latest version. By default, plugin dependency versions will be " +
             "determined by the update center metadata or plugin MANIFEST.MF")
@@ -142,6 +137,17 @@ public class BaseCliOptions {
      * @return a configuration class that can be passed to the PluginManager class
      */
     public Config setup() {
+        return setup(null);
+    }
+
+    /**
+     * Creates a configuration class with configurations specified from the CLI and/or environment variables.
+     *
+     * @param configurator Configurator that sets additional options
+     * @return a configuration class that can be passed to the PluginManager class
+     * @since 3.0
+     */
+    public Config setup(@CheckForNull Config.Configurator configurator) {
         return Config.builder()
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())
@@ -158,12 +164,12 @@ public class BaseCliOptions {
                 .withShowAvailableUpdates(isShowAvailableUpdates())
                 .withOutputFormat(getOutputFormat())
                 .withIsVerbose(isVerbose())
-                .withDoDownload(!isNoDownload())
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
                 .withCredentials(credentials)
                 .withHashFunction(getHashFunction())
+                .configure(configurator)
                 .build();
     }
 
@@ -469,14 +475,6 @@ public class BaseCliOptions {
             }
         }
         return pluginInfo;
-    }
-
-    /**
-     * Returns true if user selected option to not download plugins. By default, isNoDownload is set to false and
-     * plugins will be downloaded.
-     */
-    private boolean isNoDownload() {
-        return isNoDownload;
     }
 
     /**
