@@ -327,6 +327,19 @@ public class Config {
             return this;
         }
 
+        /**
+         * Configures the builder via external configurator.
+         * @param configurator Configurator to be used.
+         *                     Will be no-op if {@code null}.
+         * @since 3.0
+         */
+        public Builder configure(@CheckForNull Configurator configurator) {
+            if (configurator != null) {
+                configurator.configure(this);
+            }
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -353,5 +366,12 @@ public class Config {
             );
         }
 
+    }
+
+    /**
+     * Allows amending {@link Builder} options.
+     */
+    public interface Configurator {
+        void configure(Builder builder);
     }
 }

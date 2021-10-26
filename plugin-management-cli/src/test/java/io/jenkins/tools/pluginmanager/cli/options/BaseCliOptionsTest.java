@@ -1,6 +1,9 @@
-package io.jenkins.tools.pluginmanager.cli;
+package io.jenkins.tools.pluginmanager.cli.options;
 
 import hudson.util.VersionNumber;
+import io.jenkins.tools.pluginmanager.cli.Main;
+import io.jenkins.tools.pluginmanager.cli.commands.AbstractPluginManagerCommand;
+import io.jenkins.tools.pluginmanager.cli.util.CmdLineException;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
@@ -8,42 +11,45 @@ import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
+import picocli.CommandLine;
 
-import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
-import static org.apache.commons.io.IOUtils.toInputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 
-public class CliOptionsTest {
-    private CliOptions options;
+public class BaseCliOptionsTest {
+
+    private BaseCliOptions options;
     private CmdLineParser parser;
     List<Plugin> txtRequestedPlugins;
+
+    public class CmdLineParser {
+        public void parseArgument(String ... args) {
+            AbstractPluginManagerCommand command = new Main().withSkipExecution(true);
+            new CommandLine(command).execute(args);
+            options = command.options;
+        }
+    }
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void createParser() throws CmdLineException {
-        options = new CliOptions();
-        parser = new CmdLineParser(options);
+        CommandLine cl = new CommandLine(new Main().withSkipExecution(true));
+
+        parser = new CmdLineParser();
 
         //corresponds to plugins in plugin.txt
         txtRequestedPlugins = asList(
@@ -249,35 +255,6 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void showVersionTest() throws Exception {
-        CliOptions optionsWithVersion = new CliOptions() {
-            @Override
-            public InputStream getPropertiesInputStream(String path) {
-                return toInputStream("project.version = testVersion\n", UTF_8);
-            }
-        };
-        CmdLineParser parserWithVersion = new CmdLineParser(optionsWithVersion);
-        parserWithVersion.parseArgument("--version");
-
-        String output = tapSystemOutNormalized(optionsWithVersion::showVersion);
-        assertThat(output).isEqualTo("testVersion\n");
-
-        parserWithVersion.parseArgument("-v");
-        String aliasOutput = tapSystemOutNormalized(optionsWithVersion::showVersion);
-        assertThat(aliasOutput).isEqualTo("testVersion\n");
-    }
-
-    @Test
-    public void showVersionErrorTest() throws CmdLineException {
-        CliOptions cliOptionsSpy = spy(options);
-        parser.parseArgument("--version");
-        doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
-
-        assertThatThrownBy(cliOptionsSpy::showVersion)
-                .isInstanceOf(VersionNotFoundException.class);
-    }
-
-    @Test
     public void noDownloadTest() throws CmdLineException {
         parser.parseArgument("--no-download");
         Config cfg = options.setup();
@@ -351,4 +328,5 @@ public class CliOptionsTest {
         Plugin[] expectedPluginsAsArray = expectedPlugins.toArray(new Plugin[0]);
         assertThat(cfg.getPlugins()).containsExactlyInAnyOrder(expectedPluginsAsArray);
     }
+
 }

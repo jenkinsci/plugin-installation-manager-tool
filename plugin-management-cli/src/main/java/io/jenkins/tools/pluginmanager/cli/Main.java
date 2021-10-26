@@ -1,80 +1,49 @@
 package io.jenkins.tools.pluginmanager.cli;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.jenkins.tools.pluginmanager.cli.commands.AbstractPluginManagerCommand;
+import io.jenkins.tools.pluginmanager.cli.commands.ShowUpdatesCommand;
+import io.jenkins.tools.pluginmanager.cli.commands.InstallPluginsCommand;
+import io.jenkins.tools.pluginmanager.cli.commands.PreviewUpdatesCommand;
+import io.jenkins.tools.pluginmanager.cli.commands.VersionCommand;
+import io.jenkins.tools.pluginmanager.cli.util.PIMVersionProvider;
+
 import io.jenkins.tools.pluginmanager.config.Config;
-import io.jenkins.tools.pluginmanager.config.OutputFormat;
-import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
-import io.jenkins.tools.pluginmanager.parsers.StdOutPluginOutputConverter;
-import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
-import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
-import java.io.IOException;
-import java.util.List;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.ParserProperties;
+import picocli.AutoComplete;
+import picocli.CommandLine;
 
-public class Main {
-    @SuppressFBWarnings("DM_EXIT")
-    public static void main(String[] args) throws IOException {
-        CliOptions options = new CliOptions();
-        ParserProperties parserProperties = ParserProperties.defaults().withUsageWidth(150);
-        CmdLineParser parser = new CmdLineParser(options, parserProperties);
+@SuppressFBWarnings("DM_EXIT")
+@CommandLine.Command(
+        versionProvider = PIMVersionProvider.class, sortOptions = false, mixinStandardHelpOptions = true,
+        subcommands = {InstallPluginsCommand.class, PreviewUpdatesCommand.class, ShowUpdatesCommand.class,
+                AutoComplete.GenerateCompletion.class, CommandLine.HelpCommand.class, VersionCommand.class})
+public class Main extends AbstractPluginManagerCommand {
 
-        try {
-            parser.parseArgument(args);
-        } catch (CmdLineException e) {
-            parser.printUsage(System.err);
-            System.err.println(e.getMessage());
-            throw new IOException("Failed to read command-line arguments", e);
+    //TODO: Add "--no-download" option to retain the compatibility?
+
+    public static void main(String[] args) throws Throwable {
+
+        // break for attaching profiler
+        if (Boolean.getBoolean("start.pause")) {
+            System.console().readLine();
         }
 
-        if (args.length == 0) {
-            parser.printUsage(System.out);
-            return;
-        }
-
-        try {
-            if (options.isShowVersion()) {
-                options.showVersion();
-                return;
-            }
-
-            if (options.isShowHelp()) {
-                parser.printUsage(System.out);
-                return;
-            }
-
-            Config cfg = options.setup();
-            try (PluginManager pm = new PluginManager(cfg)) {
-
-                if (options.isShowAvailableUpdates()) {
-                    pm.getUCJson(pm.getJenkinsVersion());
-                    List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
-                    OutputFormat outputFormat = options.getOutputFormat() == null ? OutputFormat.STDOUT : options.getOutputFormat();
-                    String output;
-                    switch (outputFormat) {
-                        case YAML:
-                            output = new YamlPluginOutputConverter().convert(latestVersionsOfPlugins);
-                            break;
-                        case TXT:
-                            output = new TxtOutputConverter().convert(latestVersionsOfPlugins);
-                            break;
-                        default:
-                            output = new StdOutPluginOutputConverter(cfg.getPlugins()).convert(latestVersionsOfPlugins);
-                    }
-                    System.out.println(output);
-                    return;
-                }
-
-                pm.start();
-            }
-        } catch (Exception e) {
-            if (options.isVerbose()) {
-                e.printStackTrace();
-            }
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
+        int exitCode = new CommandLine(new Main()).execute(args);
+        System.exit(exitCode);
     }
+
+    @Override
+    public Integer call(PluginManager pm, Config config) throws Exception {
+        // Same as Install Plugins Command
+        pm.start();
+        return 0;
+    }
+
+    @Override
+    public Config.Configurator getConfigurator() {
+        // Same as Install Plugins Command
+        return (builder) -> {builder.withDoDownload(true);};
+    }
+
 }
