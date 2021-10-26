@@ -119,16 +119,17 @@ public class BaseCliOptions {
     private boolean useLatestSpecified;
 
     @SuppressWarnings("FieldMayBeFinal")
-    @Option(names = "--latest", description = "Set to true to download the latest version of all dependencies, even " +
+    @Option(names = "--latest", defaultValue = "true", description = "Set to true to download the latest version of all dependencies, even " +
             "if the version(s) of the requested plugin(s) are not the latest. By default, plugin dependency versions " +
             "will be determined by the update center metadata or plugin MANIFEST.MF")
-    private boolean useLatestAll = true;
+    private boolean useLatestAll;
 
     @Option(names = "--skip-failed-plugins", description = "Set to true to skip installing plugins that have failed to download. " +
             "By default, if a single plugin is unavailable then all plugins fail to download and install.")
     private boolean skipFailedPlugins;
 
-    @Option(names = "--credentials", description = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','")
+    @Option(names = "--credentials", description = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
+            converter = CredentialsTypeConverter.class)
     private List<Credentials> credentials;
 
     /**
@@ -137,7 +138,7 @@ public class BaseCliOptions {
      * @return a configuration class that can be passed to the PluginManager class
      */
     public Config setup() {
-        return setup(null);
+        return setupWithConfig(null);
     }
 
     /**
@@ -147,7 +148,7 @@ public class BaseCliOptions {
      * @return a configuration class that can be passed to the PluginManager class
      * @since 3.0
      */
-    public Config setup(@CheckForNull Config.Configurator configurator) {
+    public Config setupWithConfig(@CheckForNull Config.Configurator configurator) {
         return Config.builder()
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())

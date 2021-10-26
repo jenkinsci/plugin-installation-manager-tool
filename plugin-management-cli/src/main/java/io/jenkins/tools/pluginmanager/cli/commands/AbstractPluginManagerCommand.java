@@ -9,19 +9,25 @@ import picocli.CommandLine;
 import java.util.concurrent.Callable;
 
 /**
+ * Base command implementation for Plugin Installation Manager.
  * @author Oleg Nenashev
- * @since TODO
+ * @since 3.0
  */
 public abstract class AbstractPluginManagerCommand implements Callable<Integer> {
 
     @CommandLine.Mixin
     public BaseCliOptions options;
 
+    /**
+     * Skips execution, mostly for test purposes
+     */
+    private boolean skipExecution;
+
     protected Config config;
 
     public Config getConfig() {
         if (config == null) {
-            config = options.setup(getConfigurator());
+            config = options.setupWithConfig(getConfigurator());
         }
         return config;
     }
@@ -33,6 +39,10 @@ public abstract class AbstractPluginManagerCommand implements Callable<Integer> 
 
     @Override
     public Integer call() throws Exception {
+        if (skipExecution) {
+            return 0;
+        }
+
         try (PluginManager pm = getPluginManager()) {
             return call(pm, getConfig());
         } catch (Exception e) {
@@ -52,5 +62,14 @@ public abstract class AbstractPluginManagerCommand implements Callable<Integer> 
     @CheckForNull
     public Config.Configurator getConfigurator() {
         return null;
+    }
+
+    public boolean isSkipExecution() {
+        return skipExecution;
+    }
+
+    public AbstractPluginManagerCommand withSkipExecution(boolean skipExecution) {
+        this.skipExecution = skipExecution;
+        return this;
     }
 }

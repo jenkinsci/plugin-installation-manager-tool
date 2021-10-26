@@ -16,7 +16,7 @@ import picocli.CommandLine;
         name = "preview-updates",
         description = "Preview the plugin update without actually installing the plugins",
         mixinStandardHelpOptions = true)
-public class PreviewUpdateCommand extends InstallPluginsCommand {
+public class PreviewUpdatesCommand extends InstallPluginsCommand {
 
     @Override
     public Config.Configurator getConfigurator() {

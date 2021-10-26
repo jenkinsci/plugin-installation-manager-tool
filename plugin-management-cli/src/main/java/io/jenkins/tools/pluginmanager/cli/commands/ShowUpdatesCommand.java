@@ -18,7 +18,7 @@ import java.util.List;
         name = "show-updates",
         description = "Install plugins",
         mixinStandardHelpOptions = true)
-public class CheckUpdatesCommand extends AbstractPluginManagerCommand {
+public class ShowUpdatesCommand extends AbstractPluginManagerCommand {
 
     @Override
     public Integer call(PluginManager pm, Config config) throws Exception {
