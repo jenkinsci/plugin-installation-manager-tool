@@ -9,8 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,7 +73,7 @@ public class PluginManagerIntegrationTest {
         return pluginManager;
     }
 
-    private static void unzipResource(Class clazz, String resourceName, String fileName, File target) throws IOException {
+    private static void unzipResource(Class<?> clazz, String resourceName, String fileName, File target) throws IOException {
         final File archivePath = new File(classTmpDir.getRoot(), target.toPath().getFileName() + ".zip");
         try (InputStream archive = clazz.getResourceAsStream(resourceName)) {
             if (archive == null) {
@@ -154,7 +153,7 @@ public class PluginManagerIntegrationTest {
         plugin3.setDependencies(Arrays.asList(plugin3Dependency1, replacedSecond2));
 
         // Actual
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, plugin3));
+        List<Plugin> requestedPlugins = Arrays.asList(plugin1, plugin2, plugin3);
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins));
         Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
@@ -173,9 +172,9 @@ public class PluginManagerIntegrationTest {
         Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
 
         Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
-        plugin1.setDependencies(singletonList(replaced1));
+        plugin1.setDependencies(Collections.singletonList(replaced1));
 
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, replaced));
+        List<Plugin> requestedPlugins = Arrays.asList(plugin1, replaced);
 
         // when
         PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
@@ -194,15 +193,15 @@ public class PluginManagerIntegrationTest {
         Plugin plugin2 = new Plugin("plugin2", "1.0", null, null);
 
         Plugin replaced1 = new Plugin("replaced", "1.0.1", null, null).withoutDependencies();
-        plugin1.setDependencies(singletonList(replaced1));
-        plugin2.setDependencies(singletonList(replaced1));
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, plugin2, replaced));
+        plugin1.setDependencies(Collections.singletonList(replaced1));
+        plugin2.setDependencies(Collections.singletonList(replaced1));
+        List<Plugin> requestedPlugins = Arrays.asList(plugin1, plugin2, replaced);
 
         // when
         PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
 
         // then
-        assertThatThrownBy(() -> pluginManager.start())
+        assertThatThrownBy(pluginManager::start)
                 .hasMessage("Multiple plugin prerequisites not met:\n" +
                         "Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0,\n" +
                         "Plugin plugin2:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
@@ -216,9 +215,9 @@ public class PluginManagerIntegrationTest {
         Plugin replaced = new Plugin("replaced", "latest", null, null).withoutDependencies();
 
         Plugin replaced1 = new Plugin("replaced", "1.0", null, null).withoutDependencies();
-        plugin1.setDependencies(singletonList(replaced1));
+        plugin1.setDependencies(Collections.singletonList(replaced1));
 
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(plugin1, replaced));
+        List<Plugin> requestedPlugins = Arrays.asList(plugin1, replaced);
 
         // when
         PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
@@ -234,7 +233,7 @@ public class PluginManagerIntegrationTest {
         Plugin mailer = new Plugin("mailer", "1.34", null, null);
         Plugin pinnedDisplayUrlApi = new Plugin("display-url-api", "2.3.4", null, null);
 
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(mailer, pinnedDisplayUrlApi));
+        List<Plugin> requestedPlugins = Arrays.asList(mailer, pinnedDisplayUrlApi);
 
         // when
         PluginManager pluginManager = initPluginManager(
@@ -253,7 +252,7 @@ public class PluginManagerIntegrationTest {
         Plugin testweaver = new Plugin("testweaver", "1.0.1", null, null);
         Plugin pinnedStructs = new Plugin("structs", "1.18", null, null);
 
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(testweaver, pinnedStructs));
+        List<Plugin> requestedPlugins = Arrays.asList(testweaver, pinnedStructs);
 
         // when
         PluginManager pluginManager = initPluginManager(
@@ -272,7 +271,7 @@ public class PluginManagerIntegrationTest {
         Plugin testweaver = new Plugin("testweaver", "latest", null, null);
         Plugin structs = new Plugin("structs", "1.7", null, null);
 
-        List<Plugin> requestedPlugins = new ArrayList<>(Arrays.asList(testweaver));
+        List<Plugin> requestedPlugins = Collections.singletonList(testweaver);
 
         // when
         PluginManager pluginManager = initPluginManager(
@@ -290,9 +289,7 @@ public class PluginManagerIntegrationTest {
 
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
-        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
-                initialTrileadAPI
-        ));
+        List<Plugin> requestedPlugins_1 = Collections.singletonList(initialTrileadAPI);
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
         pluginManager.start();
@@ -301,9 +298,7 @@ public class PluginManagerIntegrationTest {
         // Second cycle, with plugin update and new plugin installation
         Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
         Plugin snakeYamlAPI = new Plugin("snakeyaml-api", "1.27.0", null, null);
-        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
-                trileadAPI, snakeYamlAPI
-        ));
+        List<Plugin> requestedPlugins_2 = Arrays.asList(trileadAPI, snakeYamlAPI);
         PluginManager pluginManager2 = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
         pluginManager2.start();
@@ -322,9 +317,7 @@ public class PluginManagerIntegrationTest {
 
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
-        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
-                initialTrileadAPI
-        ));
+        List<Plugin> requestedPlugins_1 = Collections.singletonList(initialTrileadAPI);
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
         pluginManager.start();
@@ -340,9 +333,7 @@ public class PluginManagerIntegrationTest {
 
         // Second cycle, with plugin update and new plugin installation
         Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
-        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
-                trileadAPI
-        ));
+        List<Plugin> requestedPlugins_2 = Collections.singletonList(trileadAPI);
         PluginManager pluginManager2 = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
         pluginManager2.start();
@@ -358,9 +349,7 @@ public class PluginManagerIntegrationTest {
 
         // First cycle, empty dir
         Plugin initialWorkflowJob = new Plugin("workflow-job", "2.39", null, null);
-        List<Plugin> requestedPlugins_1 = new ArrayList<>(Arrays.asList(
-            initialWorkflowJob
-        ));
+        List<Plugin> requestedPlugins_1 = Collections.singletonList(initialWorkflowJob);
         PluginManager pluginManager = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
         pluginManager.start();
@@ -369,9 +358,7 @@ public class PluginManagerIntegrationTest {
         // Second cycle, with plugin update and new plugin installation
         Plugin workflowJob = new Plugin("workflow-job", "2.40", null, null);
         Plugin utilitySteps = new Plugin("pipeline-utility-steps", "2.6.1", null, null);
-        List<Plugin> requestedPlugins_2 = new ArrayList<>(Arrays.asList(
-                workflowJob, utilitySteps
-        ));
+        List<Plugin> requestedPlugins_2 = Arrays.asList(workflowJob, utilitySteps);
         PluginManager pluginManager2 = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
         pluginManager2.start();

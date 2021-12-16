@@ -7,7 +7,6 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
-import java.net.MalformedURLException;
 import java.util.Collections;
 import org.junit.After;
 import org.junit.Before;
@@ -32,7 +31,7 @@ public class PluginManagerWiremockTest {
     public final TemporaryFolder folder = new TemporaryFolder();
 
     @Before
-    public void proxyToWireMock() throws MalformedURLException {
+    public void proxyToWireMock() {
         archives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
         archives.start();
         protectedArchives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));

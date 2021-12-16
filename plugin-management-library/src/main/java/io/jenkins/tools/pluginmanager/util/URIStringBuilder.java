@@ -11,7 +11,7 @@ import static org.apache.commons.lang3.StringUtils.stripEnd;
 
 public class URIStringBuilder {
     private String baseUrl;
-    private List<String> pathSections = new ArrayList<String>();
+    private List<String> pathSections = new ArrayList<>();
 
     /**
      * Create the builder with the first part of a URL. For example, http://example.com and https://example.com/path/parts
