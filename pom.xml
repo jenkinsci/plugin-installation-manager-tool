@@ -12,8 +12,6 @@
         <revision>2.11.2</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <!-- Version of Maven Components -->
-        <maven.version>3.5.0</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spotbugs.excludeFilterFile>${project.basedir}/../src/spotbugs/spotbugs-excludes.xml</spotbugs.excludeFilterFile>
         <tagNameFormat>@{project.version}</tagNameFormat>
