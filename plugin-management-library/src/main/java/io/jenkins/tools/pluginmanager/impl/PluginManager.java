@@ -743,6 +743,7 @@ public class PluginManager implements Closeable {
      *
      * @param urlString string representing the url from which to get the json object
      * @deprecated see {@link #getJson(URL, String)}
+     * @return JSON object from data provided by the URL at urlString
      */
     @Deprecated
     public JSONObject getJson(String urlString) {
@@ -1440,7 +1441,10 @@ public class PluginManager implements Closeable {
     }
 
     /**
+     * @param file plugin .hpi or .jpi of which to get the version
+     * @param key index key used to find the attribute in file
      * @deprecated Use {@link ManifestTools#getAttributeFromManifest(File, String)}
+     * @return attribute for key as read from file
      */
     @Deprecated
     public String getAttributeFromManifest(File file, String key) {
