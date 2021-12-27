@@ -149,6 +149,8 @@ public final class PluginManagerUtils {
      * Explodes the plugin archive.
      * @param source Source file
      * @param destDir Destination
+     * @return the directory of the exploded plugin
+     * @throws IOException on input / output error
      */
     @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public static File explodePlugin(File source, File destDir) throws IOException {
