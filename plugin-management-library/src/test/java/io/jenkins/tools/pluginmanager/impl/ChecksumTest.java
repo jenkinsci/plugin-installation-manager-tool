@@ -45,9 +45,7 @@ public class ChecksumTest {
         URL mailerHpi = this.getClass().getResource("mailer.hpi");
         File mailerFile = new File(mailerHpi.getFile());
 
-        PluginChecksumMismatchException checksumMismatchException = assertThrows(PluginChecksumMismatchException.class, () -> {
-            pm.verifyChecksum(mailer, mailerFile);
-        });
+        PluginChecksumMismatchException checksumMismatchException = assertThrows(PluginChecksumMismatchException.class, () -> pm.verifyChecksum(mailer, mailerFile));
 
         assertThat(checksumMismatchException.getMessage(),
                 is("Plugin mailer:1.32 invalid checksum, expected: jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=, actual: BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc="));

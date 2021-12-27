@@ -5,16 +5,15 @@
     <parent>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>jenkins</artifactId>
-        <version>1.67</version>
+        <version>1.69</version>
     </parent>
 
     <properties>
         <revision>2.11.2</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <!-- Version of Maven Components -->
-        <maven.version>3.5.0</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spotbugs.excludeFilterFile>${project.basedir}/../src/spotbugs/spotbugs-excludes.xml</spotbugs.excludeFilterFile>
         <tagNameFormat>@{project.version}</tagNameFormat>
     </properties>
 
@@ -88,7 +87,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.0.0</version>
+            <version>4.2.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -104,7 +103,7 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>9.0.1</version>
+                            <version>9.2</version>
                         </dependency>
                     </dependencies>
                 </plugin>

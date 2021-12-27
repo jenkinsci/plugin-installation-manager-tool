@@ -41,7 +41,7 @@ public class CliOptionsTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
-    public void createParser() throws CmdLineException {
+    public void createParser() {
         options = new CliOptions();
         parser = new CmdLineParser(options);
 
@@ -342,7 +342,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void invalidCredentialsTest() throws CmdLineException {
+    public void invalidCredentialsTest() {
         assertThatThrownBy(() -> parser.parseArgument("--credentials", "myhost:myuser,myhost2:1234:myuser2:mypass2"))
         .isInstanceOf(CmdLineException.class).hasMessageContaining("Require at least a value containing 2 colons but found \"myhost:myuser\". The value must adhere to the grammar \"<host>[:port]:<username>:<password>\"");
     }

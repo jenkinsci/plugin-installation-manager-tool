@@ -245,6 +245,7 @@ public class Config {
          * Sets Jenkins version to be used for retrieving compatible plugins.
          * @param jenkinsVersion Jenkins version.
          *        {@code null} to make undefined and to force alternative version retrieval logic.
+         * @return builder for jenkinsVersion
          */
         public Builder withJenkinsVersion(@CheckForNull VersionNumber jenkinsVersion) {
             this.jenkinsVersion = jenkinsVersion;

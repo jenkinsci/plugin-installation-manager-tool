@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.impl;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -947,7 +948,7 @@ public class PluginManagerTest {
         Plugin child1Latest = new Plugin("child1", "1.5", null, null);
         Plugin child1Pinned = new Plugin("child1", "1.2", null, null);
 
-        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        Map<String, Plugin> topLevelDependencies = new HashMap<>();
         topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
 
         grandParent.setDependencies(singletonList(parent));
@@ -988,7 +989,7 @@ public class PluginManagerTest {
         Plugin child2 = new Plugin("child2", "2.3", null, null);
         Plugin child2Latest = new Plugin("child2", "2.5", null, null);
 
-        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        Map<String, Plugin> topLevelDependencies = new HashMap<>();
         topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
 
         grandParent.setDependencies(singletonList(parent));
@@ -1031,7 +1032,7 @@ public class PluginManagerTest {
         Plugin child1Latest = new Plugin("child1", "1.5", null, null);
         Plugin child1Pinned = new Plugin("child1", "1.4", null, null);
 
-        Map<String, Plugin> topLevelDependencies = new HashMap<String, Plugin>();
+        Map<String, Plugin> topLevelDependencies = new HashMap<>();
         topLevelDependencies.put(child1Pinned.getName(), child1Pinned);
 
         grandParent.setDependencies(singletonList(parent));
@@ -1134,7 +1135,7 @@ public class PluginManagerTest {
 
     @Test
     public void getAttributeFromManifestExceptionTest() {
-        assertThatThrownBy(() -> pm.getAttributeFromManifest(new File("non-existing-file.txt"), "Plugin-Dependencies"))
+        assertThatThrownBy(() -> ManifestTools.getAttributeFromManifest(new File("non-existing-file.txt"), "Plugin-Dependencies"))
                 .isInstanceOf(DownloadPluginException.class);
     }
 

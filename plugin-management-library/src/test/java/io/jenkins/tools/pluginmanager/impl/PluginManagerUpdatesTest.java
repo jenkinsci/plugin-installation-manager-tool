@@ -103,7 +103,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void pluginIsFromExperimentalUpdateCenter() throws IOException {
+    public void pluginIsFromExperimentalUpdateCenter() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 plugin("help-editor", "0.1-beta-1"))
         );
