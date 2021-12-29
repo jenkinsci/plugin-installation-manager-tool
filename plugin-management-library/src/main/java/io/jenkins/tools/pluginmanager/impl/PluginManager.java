@@ -1282,7 +1282,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Downloads a plugin from HTTP(s) location
-     * 
+     *
      * @param pluginUrl     location to download plugin to.
      * @param plugin        to download
      * @param pluginFile    location to store the plugin file.
