@@ -21,7 +21,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.CopyOption;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -1244,7 +1243,7 @@ public class PluginManager implements Closeable {
         }
 
         boolean success = true;
-        
+
         if(urlString.startsWith("http://") || urlString.startsWith("https://")){
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
@@ -1283,14 +1282,14 @@ public class PluginManager implements Closeable {
 
     /**
      * Downloads a plugin from HTTP(s) location
-     *
-     * @param pluginUrl     location to download plugin to. 
+     * 
+     * @param pluginUrl     location to download plugin to.
      * @param plugin        to download
      * @param pluginFile    location to store the plugin file.
      *                      If file already exists, it will be overrided.
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
-     * 
+     *
      */
     protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
         boolean success = false;
@@ -1357,7 +1356,7 @@ public class PluginManager implements Closeable {
       /**
      * Downloads a plugin from local folder location
      *
-     * @param pluginUrl location to download plugin to.  
+     * @param pluginUrl location to download plugin to.
      * @param plugin   to download
      * @param pluginFile    location to store the plugin file.
      *                      If file already exists, it will be overrided.
@@ -1382,10 +1381,7 @@ public class PluginManager implements Closeable {
             System.out.println(message);
             success = false;
         }
-
         return success;
-
-        
     }
 
     private CredentialsProvider getCredentialsProvider() {
