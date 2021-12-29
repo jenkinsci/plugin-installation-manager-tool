@@ -1258,8 +1258,6 @@ public class PluginManager implements Closeable {
             success = copyLocalFile(urlString, plugin, pluginFile);
         }
 
-        
-
         if (success) {
             // Check integrity of plugin file
             try (JarFile ignored = new JarFile(pluginFile)) {
@@ -1286,13 +1284,15 @@ public class PluginManager implements Closeable {
     /**
      * Downloads a plugin from HTTP(s) location
      *
-     * @param urlString     location to download plugin to. 
+     * @param pluginUrl     location to download plugin to. 
      * @param plugin        to download
      * @param pluginFile    location to store the plugin file.
      *                      If file already exists, it will be overrided.
+     * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
+     * 
      */
-    protected boolean downloadHttpToFile(String urlString, Plugin plugin, File pluginFile, int maxRetries){
+    protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
         boolean success = false;
         for (int i = 0; i < maxRetries; i++) {
             success = true;
@@ -1309,12 +1309,12 @@ public class PluginManager implements Closeable {
             if (credentialsProvider != null) {
                 context.setCredentialsProvider(credentialsProvider);
             }
-            HttpGet httpGet = new HttpGet(urlString);
+            HttpGet httpGet = new HttpGet(pluginUrl);
             try {
                 httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
             } catch (IOException e) {
                 String message = String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s",
-                        urlString, plugin.getName(), e.getMessage());
+                pluginUrl, plugin.getName(), e.getMessage());
                 if (i >= maxRetries -1) {
                     System.out.println(message);
                 } else {
@@ -1357,16 +1357,16 @@ public class PluginManager implements Closeable {
       /**
      * Downloads a plugin from local folder location
      *
+     * @param pluginUrl location to download plugin to.  
      * @param plugin   to download
-     * @param location location to download plugin to. 
      * @param pluginFile    location to store the plugin file.
      *                      If file already exists, it will be overrided.
      * @return boolean signifying if plugin was successfully downloaded
      */
-    protected boolean copyLocalFile(String urlString, Plugin plugin, File pluginFile){
+    protected boolean copyLocalFile(String pluginUrl, Plugin plugin, File pluginFile){
         boolean success = false;
         try {
-            File originFile = new File(new URI(urlString));
+            File originFile = new File(new URI(pluginUrl));
             if(originFile.exists()){
                 Files.copy(originFile.toPath(), pluginFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 success = true;
@@ -1378,7 +1378,7 @@ public class PluginManager implements Closeable {
             System.out.println("ERROR " + e.getClass().toGenericString() );
 
             String message = String.format("Unable to resolve plugin URL %s, or copy plugin %s to file: %s",
-            urlString, plugin.getName(), e.getMessage());
+            pluginUrl, plugin.getName(), e.getMessage());
             System.out.println(message);
             success = false;
         }
