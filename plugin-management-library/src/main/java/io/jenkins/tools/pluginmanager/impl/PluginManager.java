@@ -1289,7 +1289,6 @@ public class PluginManager implements Closeable {
      *                      If file already exists, it will be overrided.
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
-     *
      */
     protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
         boolean success = false;
