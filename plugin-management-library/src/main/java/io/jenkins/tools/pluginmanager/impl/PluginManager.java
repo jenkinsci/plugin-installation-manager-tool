@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
@@ -1123,11 +1124,12 @@ public class PluginManager implements Closeable {
 
     /**
      * Downloads a plugin, skipping if already installed or bundled in the war. A plugin's dependencies will be
-     * resolved after the plugin is downloaded.
+     * resolved after the plugin is downloaded/copied.
      *
      * @param plugin   to download
      * @param location location to download plugin to. If location is set to {@code null}, will download to the plugin folder
      *                 otherwise will download to the temporary location specified.
+     *                 Location can be in form of a http://, https:// or file:// URI
      * @return boolean signifying if plugin was successful
      */
     public boolean downloadPlugin(Plugin plugin, @CheckForNull File location) {
@@ -1241,6 +1243,55 @@ public class PluginManager implements Closeable {
         }
 
         boolean success = true;
+
+        if(urlString.startsWith("http://") || urlString.startsWith("https://")){
+            success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
+
+            if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
+                System.out.println("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+                // as fallback try to directly download from Jenkins server (only if mirrors fail)
+                urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
+                return downloadToFile(urlString, plugin, fileLocation, 1);
+            }
+        } else if (urlString.startsWith("file://")){
+            success = copyLocalFile(urlString, plugin, pluginFile);
+        }
+
+        if (success) {
+            // Check integrity of plugin file
+            try (JarFile ignored = new JarFile(pluginFile)) {
+                verifyChecksum(plugin, pluginFile);
+                plugin.setFile(pluginFile);
+            } catch (IOException e) {
+                failedPlugins.add(plugin);
+                System.out.println("Downloaded file is not a valid ZIP");
+                if (verbose) {
+                    e.printStackTrace();
+                }
+                return false;
+            } catch (PluginChecksumMismatchException e) {
+                failedPlugins.add(plugin);
+                System.out.println(e.getMessage());
+                return false;
+            }
+        } else {
+            failedPlugins.add(plugin);
+        }
+        return success;
+    }
+
+    /**
+     * Downloads a plugin from HTTP(s) location
+     *
+     * @param pluginUrl     location to download plugin to.
+     * @param plugin        to download
+     * @param pluginFile    location to store the plugin file.
+     *                      If file already exists, it will be overrided.
+     * @param maxRetries   Maximum number of times to retry the download before failing
+     * @return              boolean signifying if plugin was successfully downloaded
+     */
+    protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
+        boolean success = false;
         for (int i = 0; i < maxRetries; i++) {
             success = true;
             try {
@@ -1256,12 +1307,12 @@ public class PluginManager implements Closeable {
             if (credentialsProvider != null) {
                 context.setCredentialsProvider(credentialsProvider);
             }
-            HttpGet httpGet = new HttpGet(urlString);
+            HttpGet httpGet = new HttpGet(pluginUrl);
             try {
                 httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
             } catch (IOException e) {
                 String message = String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s",
-                        urlString, plugin.getName(), e.getMessage());
+                pluginUrl, plugin.getName(), e.getMessage());
                 if (i >= maxRetries -1) {
                     System.out.println(message);
                 } else {
@@ -1298,33 +1349,36 @@ public class PluginManager implements Closeable {
                 }
             }
         }
+        return success;
+    }
 
-        if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
-            System.out.println("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
-            // as fallback try to directly download from Jenkins server (only if mirrors fail)
-            urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
-            return downloadToFile(urlString, plugin, fileLocation, 1);
-        }
-
-        if (success) {
-            // Check integrity of plugin file
-            try (JarFile ignored = new JarFile(pluginFile)) {
-                verifyChecksum(plugin, pluginFile);
-                plugin.setFile(pluginFile);
-            } catch (IOException e) {
-                failedPlugins.add(plugin);
-                System.out.println("Downloaded file is not a valid ZIP");
-                if (verbose) {
-                    e.printStackTrace();
-                }
-                return false;
-            } catch (PluginChecksumMismatchException e) {
-                failedPlugins.add(plugin);
-                System.out.println(e.getMessage());
-                return false;
+      /**
+     * Downloads a plugin from local folder location
+     *
+     * @param pluginUrl location to download plugin to.
+     * @param plugin   to download
+     * @param pluginFile    location to store the plugin file.
+     *                      If file already exists, it will be overrided.
+     * @return boolean signifying if plugin was successfully downloaded
+     */
+    protected boolean copyLocalFile(String pluginUrl, Plugin plugin, File pluginFile){
+        boolean success = false;
+        try {
+            File originFile = new File(new URI(pluginUrl));
+            if(originFile.exists()){
+                Files.copy(originFile.toPath(), pluginFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                success = true;
+            } else {
+                String message = String.format("Unable to copy plugin URL %s, original file does not exists or is not accessible", originFile.getAbsolutePath());
+                System.out.println(message);
             }
-        } else {
-            failedPlugins.add(plugin);
+        } catch (URISyntaxException | InvalidPathException | IOException e) {
+            System.out.println("ERROR " + e.getClass().toGenericString() );
+
+            String message = String.format("Unable to resolve plugin URL %s, or copy plugin %s to file: %s",
+            pluginUrl, plugin.getName(), e.getMessage());
+            System.out.println(message);
+            success = false;
         }
         return success;
     }

@@ -41,6 +41,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 public class PluginManagerTest {
     private PluginManager pm;
@@ -1183,6 +1185,18 @@ public class PluginManagerTest {
                         new Plugin("github-branch-source", "1.8", null, null));
     }
 
+
+    @Test
+    public void getPluginFromLocalFolderTest() {
+        PluginManager pluginManagerSpy = spy(pm);
+        Plugin testPlugin = new Plugin("test", "latest", "file:///tmp/test.jar", null);
+
+        pluginManagerSpy.downloadToFile(testPlugin.getUrl(), testPlugin, new File("/tmp/test.jar"));
+
+        verify(pluginManagerSpy, times(1)).copyLocalFile(any(String.class), any(Plugin.class), any(File.class));
+
+    }
+
     private JSONObject setTestUcJson() {
         JSONObject latestUcJson = new JSONObject();
 
@@ -1316,6 +1330,8 @@ public class PluginManagerTest {
         pm.setExperimentalUcJson(latestUcJson);
         return latestUcJson;
     }
+
+
 
     private JSONArray array(
             JSONObject... objects) {
