@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.config;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
@@ -7,7 +8,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.CheckForNull;
 
 /**
  * Configuration for the plugin installation manager tool.
