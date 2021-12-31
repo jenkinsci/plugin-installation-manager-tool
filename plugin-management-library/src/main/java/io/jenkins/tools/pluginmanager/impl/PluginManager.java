@@ -1290,6 +1290,7 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
      */
+    @SuppressFBWarnings({"HTTP_PARAMETER_POLLUTION"})
     protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
         boolean success = false;
         for (int i = 0; i < maxRetries; i++) {
@@ -1361,6 +1362,7 @@ public class PluginManager implements Closeable {
      *                      If file already exists, it will be overrided.
      * @return boolean signifying if plugin was successfully downloaded
      */
+    @SuppressFBWarnings({"PATH_TRAVERSAL_IN"})
     protected boolean copyLocalFile(String pluginUrl, Plugin plugin, File pluginFile){
         boolean success = false;
         try {
