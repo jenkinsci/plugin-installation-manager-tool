@@ -1135,6 +1135,56 @@ public class PluginManagerTest {
         assertThat(result).isEqualTo("https://jenkins-updates.cloudbees.com/download/plugins/the-plugin/1.0/the-plugin.hpi");
     }
 
+    /**
+     * Test configuring custom update center mirror configuration (i.e. Artifactory).
+     */
+    @Test
+    public void getDownloadPluginUrlCustomUcUrls() throws IOException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withJenkinsUc(new URL("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/update-center-actual.json?version=2.319.1"))
+                .withJenkinsUcExperimental(new URL("https://private-mirror.com/jenkins-updated-center/experimental/update-center.actual.json"))
+                .withJenkinsIncrementalsRepoMirror(new URL("https://private-mirror.com/jenkins-updated-center/incrementals"))
+                .withJenkinsPluginInfo(new URL("https://private-mirror.com/jenkins-updated-center/current/plugin-versions.json"))
+                .build();
+
+        environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        // set empty latest and experimental jsons to test branches that use configured urls above
+        JSONObject ucJson =new JSONObject();
+        ucJson.put("plugins", new JSONObject());
+        pluginManager.setLatestUcJson(ucJson);
+        pluginManager.setExperimentalUcJson(ucJson);
+
+        // with non-latest version
+        Plugin plugin = new Plugin("pluginName", "1.0.0", null, null);
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+
+        // lastest version
+        plugin = new Plugin("pluginName", "latest", null, null);
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
+
+        // experimental version
+        plugin = new Plugin("pluginName", "experimental", null, null);
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/experimental/latest/pluginName.hpi");
+
+        // incremental
+        plugin = new Plugin("pluginName", "1.0.0", null, "com.cloudbees.jenkins");
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/incrementals/com/cloudbees/jenkins/pluginName/1.0.0/pluginName-1.0.0.hpi");
+
+        // explicit url
+        plugin = new Plugin("pluginName", "1.0.0", "https://other-mirror.com/plugins/custom-url.hpi", null);
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://other-mirror.com/plugins/custom-url.hpi");
+    }
+
     @Test
     public void getAttributeFromManifestExceptionTest() {
         assertThatThrownBy(() -> ManifestTools.getAttributeFromManifest(new File("non-existing-file.txt"), "Plugin-Dependencies"))
