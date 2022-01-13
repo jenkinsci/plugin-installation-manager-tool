@@ -1175,10 +1175,6 @@ public class PluginManager implements Closeable {
         String jenkinsUcDownloadUrl = System.getenv("JENKINS_UC_DOWNLOAD_URL");
         if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
-        } else if (StringUtils.isNotEmpty(jenkinsUcDownloadUrl)) {
-            urlString = appendPathOntoUrl(jenkinsUcDownloadUrl, pluginName, pluginVersion, pluginName + ".hpi");
-        } else if (StringUtils.isNotEmpty(jenkinsUcDownload)) {
-            urlString = appendPathOntoUrl(jenkinsUcDownload, "/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             JSONObject plugins = latestUcJson.getJSONObject("plugins");
             if (plugins.has(plugin.getName())) {
@@ -1200,6 +1196,10 @@ public class PluginManager implements Closeable {
             groupId = groupId.replace(".", "/");
             String incrementalsVersionPath = String.format("%s/%s/%s-%s.hpi", pluginName, pluginVersion, pluginName, pluginVersion);
             urlString = appendPathOntoUrl(cfg.getJenkinsIncrementalsRepoMirror(), groupId, incrementalsVersionPath);
+        } else if (StringUtils.isNotEmpty(jenkinsUcDownloadUrl)) {
+            urlString = appendPathOntoUrl(jenkinsUcDownloadUrl, pluginName, pluginVersion, pluginName + ".hpi");
+        } else if (StringUtils.isNotEmpty(jenkinsUcDownload)) {
+            urlString = appendPathOntoUrl(jenkinsUcDownload, "/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         } else {
             urlString = appendPathOntoUrl(removePath(cfg.getJenkinsUc()), "/download/plugins", pluginName, pluginVersion, pluginName + ".hpi");
         }
