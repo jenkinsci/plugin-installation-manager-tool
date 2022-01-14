@@ -1175,7 +1175,7 @@ public class PluginManagerTest {
         assertThat(pluginManager.getPluginDownloadUrl(plugin))
                 .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
 
-        // lastest version with resolved version
+        // latest version with resolved version
         // when `--latest-specified` or `--latest` is enabled the plugin version string will be updated to a specific
         // version and the latest flag set to true. The resolved download url should resolve to JENKINS_UC_DOWNLOAD_URL
         plugin = new Plugin("pluginName", "1.0.0", null, null);
