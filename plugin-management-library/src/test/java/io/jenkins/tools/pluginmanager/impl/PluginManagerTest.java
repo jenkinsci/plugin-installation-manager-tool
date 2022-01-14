@@ -1153,9 +1153,15 @@ public class PluginManagerTest {
 
         PluginManager pluginManager = new PluginManager(config);
 
-        // set empty latest and experimental jsons to test branches that use configured urls above
-        JSONObject ucJson =new JSONObject();
-        ucJson.put("plugins", new JSONObject());
+        // set latest and experimental jsons. The plugin url configured here is NOT expected to be used during
+        // download url resolution.
+        JSONObject ucJson = new JSONObject();
+        JSONObject plugins = new JSONObject();
+        JSONObject somePlugin = new JSONObject();
+        somePlugin.put("version", "1.0.0");
+        somePlugin.put("url", "https://updates.jenkins.io/downloads/plugins/pluginName/1.0.0/pluginName.hpi");
+        plugins.put("pluginName", somePlugin);
+        ucJson.put("plugins", plugins);
         pluginManager.setLatestUcJson(ucJson);
         pluginManager.setExperimentalUcJson(ucJson);
 
@@ -1169,10 +1175,28 @@ public class PluginManagerTest {
         assertThat(pluginManager.getPluginDownloadUrl(plugin))
                 .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
 
+        // lastest version with resolved version
+        // when `--latest-specified` or `--latest` is enabled the plugin version string will be updated to a specific
+        // version and the latest flag set to true. The resolved download url should resolve to JENKINS_UC_DOWNLOAD_URL
+        plugin = new Plugin("pluginName", "1.0.0", null, null);
+        plugin.setLatest(true);
+        assertThat(plugin.isLatest()).isTrue();
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+
         // experimental version
         plugin = new Plugin("pluginName", "experimental", null, null);
         assertThat(pluginManager.getPluginDownloadUrl(plugin))
                 .isEqualTo("https://private-mirror.com/jenkins-updated-center/experimental/latest/pluginName.hpi");
+
+        // experimental version with resolved version
+        // if an experimental plugin is resolved to specific version the "is experimental" property remains "true"
+        // but download url should resolve to configured JENKINS_UC_DOWNLOAD_URL
+        plugin = new Plugin("pluginName", "experimental", null, null);
+        plugin.setVersion(new VersionNumber("1.0.0"));
+        assertThat(plugin.isExperimental()).isTrue();
+        assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
 
         // incremental
         plugin = new Plugin("pluginName", "1.0.0", null, "com.cloudbees.jenkins");

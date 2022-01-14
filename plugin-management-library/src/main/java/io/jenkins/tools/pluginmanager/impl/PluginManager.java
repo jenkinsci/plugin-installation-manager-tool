@@ -78,7 +78,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossi
 import static java.util.Comparator.comparing;
 
 public class PluginManager implements Closeable {
-    private static final VersionNumber LATEST = new VersionNumber("latest");
+    private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
     private List<Plugin> failedPlugins;
     /**
      * Directory where the plugins will be downloaded
@@ -441,7 +441,7 @@ public class PluginManager implements Closeable {
         return plugins.stream()
                 .map(plugin -> {
                     String pluginVersion = plugin.getVersion().toString();
-                    if (plugin.getUrl() != null || plugin.getGroupId() != null || pluginVersion.equals("latest")) {
+                    if (plugin.getUrl() != null || plugin.getGroupId() != null || pluginVersion.equals(Plugin.LATEST)) {
                         return plugin;
                     }
                     if (latestPlugins == null) {
@@ -903,8 +903,8 @@ public class PluginManager implements Closeable {
                 throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
             }
 
-            if (plugin.getVersion().toString().equals("latest") ||
-                    plugin.getVersion().toString().equals("experimental")) {
+            if (plugin.getVersion().toString().equals(Plugin.LATEST) ||
+                    plugin.getVersion().toString().equals(Plugin.EXPERIMENTAL)) {
                 String version = getAttributeFromManifest(tempFile, "Plugin-Version");
                 if (!StringUtils.isEmpty(version)) {
                     plugin.setVersion(new VersionNumber(version));
@@ -1010,9 +1010,9 @@ public class PluginManager implements Closeable {
         if (!StringUtils.isEmpty(plugin.getUrl()) || !StringUtils.isEmpty(plugin.getGroupId())) {
             dependentPlugins = resolveDependenciesFromManifest(plugin);
             return dependentPlugins;
-        } else if (version.equals("latest")) {
+        } else if (version.equals(Plugin.LATEST)) {
             dependentPlugins = resolveDependenciesFromJson(plugin, latestUcJson);
-        } else if (version.equals("experimental")) {
+        } else if (version.equals(Plugin.EXPERIMENTAL)) {
             dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
         } else {
             dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
@@ -1168,29 +1168,17 @@ public class PluginManager implements Closeable {
         String urlString;
 
         if (StringUtils.isEmpty(pluginVersion)) {
-            pluginVersion = "latest";
+            pluginVersion = Plugin.LATEST;
         }
 
         String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
         String jenkinsUcDownloadUrl = System.getenv("JENKINS_UC_DOWNLOAD_URL");
         if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
-        } else if ((pluginVersion.equals("latest") || plugin.isLatest()) && !StringUtils.isEmpty(jenkinsUcLatest)) {
-            JSONObject plugins = latestUcJson.getJSONObject("plugins");
-            if (plugins.has(plugin.getName())) {
-                JSONObject pluginJson = plugins.getJSONObject(plugin.getName());
-                urlString = pluginJson.getString("url");
-            } else {
-                urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
-            }
-        } else if (pluginVersion.equals("experimental") || plugin.isExperimental()) {
-            JSONObject plugins = experimentalUcJson.getJSONObject("plugins");
-            if (plugins.has(plugin.getName())) {
-                JSONObject pluginJson = plugins.getJSONObject(plugin.getName());
-                urlString = pluginJson.getString("url");
-            } else {
-                urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUcExperimental()), "/latest", pluginName + ".hpi");
-            }
+        } else if (pluginVersion.equals(Plugin.LATEST) && !StringUtils.isEmpty(jenkinsUcLatest)) {
+            urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
+        } else if (pluginVersion.equals(Plugin.EXPERIMENTAL)) {
+            urlString = appendPathOntoUrl(dirName(cfg.getJenkinsUcExperimental()), "/latest", pluginName + ".hpi");
         } else if (!StringUtils.isEmpty(plugin.getGroupId())) {
             String groupId = plugin.getGroupId();
             groupId = groupId.replace(".", "/");

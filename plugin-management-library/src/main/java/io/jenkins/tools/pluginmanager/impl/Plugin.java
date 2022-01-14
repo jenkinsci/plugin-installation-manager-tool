@@ -9,6 +9,8 @@ import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 public class Plugin {
+    public static final String LATEST = "latest";
+    public static final String EXPERIMENTAL = "experimental";
     private String name;
     private VersionNumber version;
     private String groupId;
@@ -28,7 +30,7 @@ public class Plugin {
     public Plugin(String name, String version, String url, String groupId) {
         this.name = name;
         if (StringUtils.isEmpty(version)) {
-            version = "latest";
+            version = Plugin.LATEST;
         }
         this.version = new VersionNumber(version);
         this.url = url;
@@ -36,10 +38,10 @@ public class Plugin {
         this.parent = this;
         this.groupId = groupId;
         this.securityWarnings = new ArrayList<>();
-        if (version.equals("latest")) {
+        if (version.equals(Plugin.LATEST)) {
             latest = true;
         }
-        if (version.equals("experimental")) {
+        if (version.equals(Plugin.EXPERIMENTAL)) {
             experimental = true;
         }
     }
