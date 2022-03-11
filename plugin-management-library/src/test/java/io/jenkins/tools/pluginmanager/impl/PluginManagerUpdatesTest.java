@@ -8,9 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,7 +19,7 @@ public class PluginManagerUpdatesTest {
 
     private PluginManager pm;
 
-    @Before
+    @BeforeEach
     public void before() throws IOException {
         Config cfg = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
@@ -63,7 +63,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    @Ignore("Need another source of data for incrementals, add later")
+    @Disabled("Need another source of data for incrementals, add later")
     public void updateIncremental() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 pluginIncremental("mailer", "org.jenkins-ci.plugins", "1.31-rc315.eb08e134da74")
@@ -145,4 +145,5 @@ public class PluginManagerUpdatesTest {
     private Plugin pluginIncremental(String name, String groupId, String version) {
         return new Plugin(name, version, null, groupId);
     }
+
 }
