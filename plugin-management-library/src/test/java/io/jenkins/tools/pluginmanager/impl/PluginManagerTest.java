@@ -30,6 +30,7 @@ import static java.nio.file.Files.createDirectory;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -45,13 +46,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 
 public class PluginManagerTest {
+
     private PluginManager pm;
     private Config cfg;
     private List<Plugin> directDependencyExpectedPlugins;
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
-
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
@@ -164,20 +165,22 @@ public class PluginManagerTest {
 
         Map<String, Plugin> effectivePlugins = pm.findEffectivePlugins(requestedPlugins);
 
-        assertThat(effectivePlugins.get("git").getVersion())
-                .hasToString("1.3");
-        assertThat(effectivePlugins.get("scm-api").getVersion())
-                .hasToString("2.2.3");
-        assertThat(effectivePlugins.get("aws-credentials").getVersion())
-                .hasToString("1.24");
-        assertThat(effectivePlugins.get("p4").getVersion())
-                .hasToString("1.3.3");
-        assertThat(effectivePlugins.get("script-security").getVersion())
-                .hasToString("1.26");
-        assertThat(effectivePlugins.get("credentials").getVersion())
-                .hasToString("2.1.11");
-        assertThat(effectivePlugins.get("ace-editor").getVersion())
-                .hasToString("1.0.1");
+        assertAll(
+                () -> assertThat(effectivePlugins.get("git").getVersion())
+                        .hasToString("1.3"),
+                () -> assertThat(effectivePlugins.get("scm-api").getVersion())
+                        .hasToString("2.2.3"),
+                () -> assertThat(effectivePlugins.get("aws-credentials").getVersion())
+                        .hasToString("1.24"),
+                () -> assertThat(effectivePlugins.get("p4").getVersion())
+                        .hasToString("1.3.3"),
+                () -> assertThat(effectivePlugins.get("script-security").getVersion())
+                        .hasToString("1.26"),
+                () -> assertThat(effectivePlugins.get("credentials").getVersion())
+                        .hasToString("2.1.11"),
+                () -> assertThat(effectivePlugins.get("ace-editor").getVersion())
+                        .hasToString("1.0.1")
+        );
     }
 
     @Test
@@ -195,8 +198,6 @@ public class PluginManagerTest {
 
         assertThat(output).isEmpty();
     }
-
-
 
     @Test
     public void listPluginsOutputTest() throws Exception {
@@ -378,21 +379,27 @@ public class PluginManagerTest {
 
         pm.setPluginInfoJson(pluginVersionJson);
 
-        Plugin browserStackPlugin1 = new Plugin("browserstack-integration", "1.0.0", null, null);
-        browserStackPlugin1.setChecksum("1234");
-        JSONArray browserStackPluginJson1 = pm.getPluginDependencyJsonArray(browserStackPlugin1, pluginVersionJson);
-        assertThat(browserStackPluginJson1)
-                .hasToString(dependencies1.toString());
-
-        Plugin browserStackPlugin111 = new Plugin("browserstack-integration", "1.1.1", null, null);
-        JSONArray browserStackPluginJson111 = pm.getPluginDependencyJsonArray(browserStackPlugin111, pluginVersionJson);
-        assertThat(browserStackPluginJson111)
-                .hasToString(dependencies111.toString());
-
-        Plugin browserStackPlugin112 = new Plugin("browserstack-integration", "1.1.2", null, null);
-        JSONArray browserStackPluginJson112 = pm.getPluginDependencyJsonArray(browserStackPlugin112, pluginVersionJson);
-        assertThat(browserStackPluginJson112)
-                .hasToString(dependencies112.toString());
+        assertAll(
+                () -> {
+                    Plugin browserStackPlugin100 = new Plugin("browserstack-integration", "1.0.0", null, null);
+                    browserStackPlugin100.setChecksum("1234");
+                    JSONArray browserStackPluginJson1 = pm.getPluginDependencyJsonArray(browserStackPlugin100, pluginVersionJson);
+                    assertThat(browserStackPluginJson1)
+                            .hasToString(dependencies1.toString());
+                },
+                () -> {
+                    Plugin browserStackPlugin111 = new Plugin("browserstack-integration", "1.1.1", null, null);
+                    JSONArray browserStackPluginJson111 = pm.getPluginDependencyJsonArray(browserStackPlugin111, pluginVersionJson);
+                    assertThat(browserStackPluginJson111)
+                            .hasToString(dependencies111.toString());
+                },
+                () -> {
+                    Plugin browserStackPlugin112 = new Plugin("browserstack-integration", "1.1.2", null, null);
+                    JSONArray browserStackPluginJson112 = pm.getPluginDependencyJsonArray(browserStackPlugin112, pluginVersionJson);
+                    assertThat(browserStackPluginJson112)
+                            .hasToString(dependencies112.toString());
+                }
+        );
     }
 
     @Test
@@ -474,15 +481,17 @@ public class PluginManagerTest {
         Plugin sshAgents1 = new Plugin("ssh-slaves", "0.9", null, null);
         Plugin sshAgents2 = new Plugin("ssh-slaves", "9.2", null, null);
 
-        assertThat(pm.warningExists(scriptler)).isTrue();
-        assertThat(pm.warningExists(lockableResource)).isTrue();
-        assertThat(pm.warningExists(lockableResource2)).isFalse();
-        assertThat(pm.warningExists(cucumberReports1)).isFalse();
-        assertThat(pm.warningExists(cucumberReports2)).isTrue();
-        //assertThat(pm.warningExists(cucumberReports3)).isFalse();
-        // currently fails since 2.5.3 matches pattern even though 2.5.1 is last effected version
-        assertThat(pm.warningExists(sshAgents1)).isTrue();
-        assertThat(pm.warningExists(sshAgents2)).isFalse();
+        assertAll(
+                () -> assertThat(pm.warningExists(scriptler)).isTrue(),
+                () -> assertThat(pm.warningExists(lockableResource)).isTrue(),
+                () -> assertThat(pm.warningExists(lockableResource2)).isFalse(),
+                () -> assertThat(pm.warningExists(cucumberReports1)).isFalse(),
+                () -> assertThat(pm.warningExists(cucumberReports2)).isTrue(),
+                //() -> assertThat(pm.warningExists(cucumberReports3)).isFalse(),
+                // currently fails since 2.5.3 matches pattern even though 2.5.1 is last effected version
+                () -> assertThat(pm.warningExists(sshAgents1)).isTrue(),
+                () -> assertThat(pm.warningExists(sshAgents2)).isFalse()
+        );
     }
 
     @Test
@@ -755,7 +764,6 @@ public class PluginManagerTest {
         assertThat(testPlugin.getJenkinsVersion()).hasToString("1.2.0");
     }
 
-
     @Test
     public void resolveDependenciesFromInvalidManifest() {
         PluginManager pluginManagerSpy = spy(pm);
@@ -819,7 +827,6 @@ public class PluginManagerTest {
         assertThat(actualPlugins).isEqualTo(directDependencyExpectedPlugins);
     }
 
-
     @Test
     public void resolveDirectDependenciesManifestTest2() {
         PluginManager pluginManagerSpy = spy(pm);
@@ -848,7 +855,6 @@ public class PluginManagerTest {
 
         assertThat(actualPlugins).isEqualTo(directDependencyExpectedPlugins);
     }
-
 
     @Test
     public void resolveDirectDependenciesLatest() {
@@ -1165,48 +1171,58 @@ public class PluginManagerTest {
         pluginManager.setLatestUcJson(ucJson);
         pluginManager.setExperimentalUcJson(ucJson);
 
-        // with non-latest version
-        Plugin plugin = new Plugin("pluginName", "1.0.0", null, null);
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
-
-        // lastest version
-        plugin = new Plugin("pluginName", "latest", null, null);
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
-
-        // latest version with resolved version
-        // when `--latest-specified` or `--latest` is enabled the plugin version string will be updated to a specific
-        // version and the latest flag set to true. The resolved download url should resolve to JENKINS_UC_DOWNLOAD_URL
-        plugin = new Plugin("pluginName", "1.0.0", null, null);
-        plugin.setLatest(true);
-        assertThat(plugin.isLatest()).isTrue();
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
-
-        // experimental version
-        plugin = new Plugin("pluginName", "experimental", null, null);
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/experimental/latest/pluginName.hpi");
-
-        // experimental version with resolved version
-        // if an experimental plugin is resolved to specific version the "is experimental" property remains "true"
-        // but download url should resolve to configured JENKINS_UC_DOWNLOAD_URL
-        plugin = new Plugin("pluginName", "experimental", null, null);
-        plugin.setVersion(new VersionNumber("1.0.0"));
-        assertThat(plugin.isExperimental()).isTrue();
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
-
-        // incremental
-        plugin = new Plugin("pluginName", "1.0.0", null, "com.cloudbees.jenkins");
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://private-mirror.com/jenkins-updated-center/incrementals/com/cloudbees/jenkins/pluginName/1.0.0/pluginName-1.0.0.hpi");
-
-        // explicit url
-        plugin = new Plugin("pluginName", "1.0.0", "https://other-mirror.com/plugins/custom-url.hpi", null);
-        assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                .isEqualTo("https://other-mirror.com/plugins/custom-url.hpi");
+        assertAll(
+                () -> {
+                    // with non-latest version
+                    Plugin plugin = new Plugin("pluginName", "1.0.0", null, null);
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+                },
+                () -> {
+                    // lastest version
+                    Plugin plugin = new Plugin("pluginName", "latest", null, null);
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
+                },
+                () -> {
+                    // latest version with resolved version
+                    // when `--latest-specified` or `--latest` is enabled the plugin version string will be updated to a specific
+                    // version and the latest flag set to true. The resolved download url should resolve to JENKINS_UC_DOWNLOAD_URL
+                    Plugin plugin = new Plugin("pluginName", "1.0.0", null, null);
+                    plugin.setLatest(true);
+                    assertThat(plugin.isLatest()).isTrue();
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+                },
+                () -> {
+                    // experimental version
+                    Plugin plugin = new Plugin("pluginName", "experimental", null, null);
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/experimental/latest/pluginName.hpi");
+                },
+                () -> {
+                    // experimental version with resolved version
+                    // if an experimental plugin is resolved to specific version the "is experimental" property remains "true"
+                    // but download url should resolve to configured JENKINS_UC_DOWNLOAD_URL
+                    Plugin plugin = new Plugin("pluginName", "experimental", null, null);
+                    plugin.setVersion(new VersionNumber("1.0.0"));
+                    assertThat(plugin.isExperimental()).isTrue();
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+                },
+                () -> {
+                    // incremental
+                    Plugin plugin = new Plugin("pluginName", "1.0.0", null, "com.cloudbees.jenkins");
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/incrementals/com/cloudbees/jenkins/pluginName/1.0.0/pluginName-1.0.0.hpi");
+                },
+                () -> {
+                    // explicit url
+                    Plugin plugin = new Plugin("pluginName", "1.0.0", "https://other-mirror.com/plugins/custom-url.hpi", null);
+                    assertThat(pluginManager.getPluginDownloadUrl(plugin))
+                            .isEqualTo("https://other-mirror.com/plugins/custom-url.hpi");
+                }
+        );
     }
 
     @Test
@@ -1258,7 +1274,6 @@ public class PluginManagerTest {
                         new Plugin("display-url-api","2.0", null, null),
                         new Plugin("github-branch-source", "1.8", null, null));
     }
-
 
     @Test
     public void getPluginFromLocalFolderTest() {
@@ -1405,8 +1420,6 @@ public class PluginManagerTest {
         return latestUcJson;
     }
 
-
-
     private JSONArray array(
             JSONObject... objects) {
         return new JSONArray(objects);
@@ -1421,4 +1434,5 @@ public class PluginManagerTest {
                 .put("optional", optional)
                 .put("version", version);
     }
+
 }
