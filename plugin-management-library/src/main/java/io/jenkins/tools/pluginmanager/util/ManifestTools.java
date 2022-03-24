@@ -19,8 +19,6 @@ public class ManifestTools {
     public static Plugin readPluginFromFile(File file) throws IOException {
         Plugin plugin = new Plugin(file.getName(), "undefined", null, null);
 
-
-        // TODO: refactor code so that we read the manifest only once
         String version = getAttributeFromManifest(file, "Plugin-Version");
         if (!StringUtils.isEmpty(version)) {
             plugin.setVersion(new VersionNumber(version));

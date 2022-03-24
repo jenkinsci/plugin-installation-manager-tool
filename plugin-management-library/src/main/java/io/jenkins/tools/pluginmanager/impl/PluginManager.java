@@ -178,7 +178,7 @@ public class PluginManager implements Closeable {
      *
      * @param downloadUc {@code false} to disable Update Center and other external resources download.
      *                   In such case the update center metadata should be provided by API.
-     * @since TODO
+     * @since 
      */
     public void start(boolean downloadUc) {
         if (cfg.isCleanPluginDir() && pluginDir.exists()) {
@@ -647,11 +647,11 @@ public class PluginManager implements Closeable {
         for (Plugin requestedPlugin : requestedPlugins) {
             calculateChecksum(requestedPlugin);
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
-            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies, exceptions);
+            Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies);
 
             for (Plugin dependentPlugin : dependencies.values()) {
                 String dependencyName = dependentPlugin.getName();
-                VersionNumber dependencyVersion = dependentPlugin.getVersion();
+                dependentPlugin.getVersion();
                 calculateChecksum(requestedPlugin);
                 if (!allPluginDependencies.containsKey(dependencyName)) {
                     allPluginDependencies.put(dependencyName, dependentPlugin);
@@ -891,7 +891,6 @@ public class PluginManager implements Closeable {
      * @return list of dependencies that were parsed from the plugin's manifest file
      */
     public List<Plugin> resolveDependenciesFromManifest(Plugin plugin) {
-        // TODO(oleg_nenashev): refactor to use ManifestTools. This logic not only resolves dependencies, but also modifies the plugin's metadata
         List<Plugin> dependentPlugins = new ArrayList<>();
         try {
             File tempFile = Files.createTempFile(FilenameUtils.getName(plugin.getName()), ".jpi").toFile();
@@ -1033,19 +1032,19 @@ public class PluginManager implements Closeable {
      * the requested plugin itself
      */
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin) {
-        return resolveRecursiveDependencies(plugin, null, null);
+        return resolveRecursiveDependencies(plugin, null);
     }
 
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies) {
-        return resolveRecursiveDependencies(plugin, topLevelDependencies, null);
+        return resolveRecursiveDependencies(plugin, topLevelDependencies);
     }
 
     // A full dependency graph resolution and removal of non-needed dependency trees is required
-    public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
+    public Map<String, Plugin> resolveRecursiveDependencies(Plugin b, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
-        queue.add(plugin);
-        recursiveDependencies.put(plugin.getName(), plugin);
+        queue.add(b);
+        recursiveDependencies.put(b.getName(), b);
 
         while (queue.size() != 0) {
             Plugin dependency = queue.poll();
@@ -1545,25 +1544,26 @@ public class PluginManager implements Closeable {
             try (FileSystem warFS = FileSystems.newFileSystem(jenkinsWarUri, Collections.emptyMap())) {
                 Path warPath = warFS.getPath("/").getRoot();
                 PathMatcher matcher = warFS.getPathMatcher("regex:.*[^detached-]plugins.*\\.\\w+pi");
-                Stream<Path> walk = Files.walk(warPath);
-                for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
-                    Path file = it.next();
-                    if (matcher.matches(file)) {
-                        Path fileName = file.getFileName();
-                        if (fileName != null) {
-                            // Because can't convert a ZipPath to a file with file.toFile()
-                            InputStream in = Files.newInputStream(file);
-                            final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
-                            try (FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
-                                IOUtils.copy(in, out);
+                try (Stream<Path> walk = Files.walk(warPath)) {
+                    for (Iterator<Path> it = walk.iterator(); it.hasNext(); ) {
+                        Path file = it.next();
+                        if (matcher.matches(file)) {
+                            Path fileName = file.getFileName();
+                            if (fileName != null) {
+                                // Because can't convert a ZipPath to a file with file.toFile()
+                                InputStream in = Files.newInputStream(file);
+                                final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
+                                try (FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
+                                    IOUtils.copy(in, out);
+                                }
+
+                                String pluginVersion = getPluginVersion(tempFile.toFile());
+
+                                Files.delete(tempFile);
+                                String pluginName = FilenameUtils.getBaseName(fileName.toString());
+                                bundledPlugins
+                                        .put(pluginName, new Plugin(pluginName, pluginVersion, null, null));
                             }
-
-                            String pluginVersion = getPluginVersion(tempFile.toFile());
-
-                            Files.delete(tempFile);
-                            String pluginName = FilenameUtils.getBaseName(fileName.toString());
-                            bundledPlugins
-                                    .put(pluginName, new Plugin(pluginName, pluginVersion, null, null));
                         }
                     }
                 }

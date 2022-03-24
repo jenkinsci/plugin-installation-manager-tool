@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.config;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
@@ -48,7 +49,6 @@ public class Config {
     private boolean useLatestSpecified;
     private boolean useLatestAll;
     private boolean skipFailedPlugins;
-    private final OutputFormat outputFormat;
     private final List<Credentials> credentials;
 
     private Config(
@@ -91,7 +91,6 @@ public class Config {
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
         this.skipFailedPlugins = skipFailedPlugins;
-        this.outputFormat = outputFormat;
         this.credentials = credentials;
         this.hashFunction = hashFunction;
     }

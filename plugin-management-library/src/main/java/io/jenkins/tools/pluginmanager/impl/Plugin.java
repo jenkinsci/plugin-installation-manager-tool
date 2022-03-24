@@ -17,7 +17,6 @@ public class Plugin {
     private String url;
     private File file;
     private List<Plugin> dependencies;
-    //TODO(oleg_nenashev): better to use nullable API
     private boolean dependenciesSpecified;
     private Plugin parent;
     private List<SecurityWarning> securityWarnings;

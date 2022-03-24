@@ -48,8 +48,6 @@ public class PluginManagerIntegrationTest {
     public static File jenkinsWar;
     public static File cacheDir;
     public File pluginsDir;
-
-    // TODO: Convert to a rule
     public interface Configurator {
         void configure(Config.Builder configBuilder);
     }
@@ -104,7 +102,7 @@ public class PluginManagerIntegrationTest {
         pluginVersionsFile = new File(classTmpDir.getRoot(), "plugin-versions.json");
         unzipResource(PluginManagerIntegrationTest.class, "plugin-versions.zip", "plugin-versions.json", pluginVersionsFile);
 
-        //TODO: Use real 2.222.1 war instead
+        
         jenkinsWar = new File(classTmpDir.getRoot(), "jenkins.war");
         try (InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
             Files.copy(war, jenkinsWar.toPath());
@@ -342,7 +340,6 @@ public class PluginManagerIntegrationTest {
         assertPluginInstalled(trileadAPI);
     }
 
-    //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
     @Test
     @Ignore
     public void verifyDownloads_withDependencies() throws Exception {
