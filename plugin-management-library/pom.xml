@@ -80,6 +80,11 @@
               <groupId>com.fasterxml.jackson.core</groupId>
               <artifactId>jackson-annotations</artifactId>
             </exclusion>
+            <exclusion>
+              <!-- Rely on jackson-databind from jackson-dataformat-yaml -->
+              <groupId>com.fasterxml.jackson.core</groupId>
+              <artifactId>jackson-databind</artifactId>
+            </exclusion>
           </exclusions>
         </dependency>
         <dependency>
