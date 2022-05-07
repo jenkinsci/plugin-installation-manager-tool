@@ -747,7 +747,8 @@ public class PluginManagerTest {
     public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         setTestUcJson();
-        assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
+        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin)).isInstanceOf(DownloadPluginException.class)
+        .hasMessageContaining("Unable to resolve dependencies");
     }
 
     @Test
