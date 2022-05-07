@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -60,10 +61,12 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
@@ -781,10 +784,19 @@ public class PluginManager implements Closeable {
                 System.out.println("Cache miss for: " + cacheKey);
             }
         }
-
+        final String response;
         try {
-            String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            String result = removePossibleWrapperText(urlText);
+            if (url.getProtocol().equalsIgnoreCase("http") || url.getProtocol().equalsIgnoreCase("https")) {
+                response = getViaHttpWithResponseHandler(
+                  url.toString(),
+                  new BasicResponseHandler(),
+                  cacheKey,
+                  e -> String.format("Unable to retrieve JSON from %s: %s", url, e.getMessage()),
+                  3);
+            } else {
+                response = IOUtils.toString(url, StandardCharsets.UTF_8);
+            }
+            String result = removePossibleWrapperText(response);
             JSONObject json = new JSONObject(result);
             cm.addToCache(cacheKey, json);
             return json;
@@ -899,7 +911,7 @@ public class PluginManager implements Closeable {
                     String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
-                Files.delete(tempFile.toPath());
+                Files.deleteIfExists(tempFile.toPath());
                 throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
             }
 
@@ -1278,41 +1290,59 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
      */
-    @SuppressFBWarnings({"HTTP_PARAMETER_POLLUTION"})
     protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
+        try {
+            getViaHttpWithResponseHandler(pluginUrl, new FileDownloadResponseHandler(pluginFile), plugin.getName(),
+                    e -> String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s", pluginUrl,
+                            plugin.getName(), e.getMessage()),
+                    maxRetries);
+
+            // Check if plugin is a proper ZIP file
+            try (JarFile ignored = new JarFile(pluginFile)) {
+                plugin.setFile(pluginFile);
+                logVerbose("Downloaded and validated plugin " + plugin.getName());
+            } catch (IOException e) {
+                throw new IOException("Downloaded file for " + plugin.getName() + " is not a valid ZIP", e);
+            }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            if (verbose) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    @SuppressFBWarnings({"HTTP_PARAMETER_POLLUTION"})
+    private <T> T getViaHttpWithResponseHandler(String url, ResponseHandler<? extends T> responseHandler, String resourceName, Function<IOException, String> ioExceptionMessageSupplier, int maxRetries) throws IOException {
+        HttpClient httpClient = getHttpClient();
+        HttpClientContext context = HttpClientContext.create();
+        CredentialsProvider credentialsProvider = getCredentialsProvider();
+        if (credentialsProvider != null) {
+            context.setCredentialsProvider(credentialsProvider);
+        }
+        HttpGet httpGet = new HttpGet(url);
         boolean success = false;
+        // TODO: retry logic should rather be implemented via DefaultHttpRequestRetruHandler, there is no need for an additional retry
         for (int i = 0; i < maxRetries; i++) {
-            success = true;
             try {
-                if (pluginFile.exists()) {
-                    Files.delete(pluginFile.toPath());
-                }
+                T response = httpClient.execute(httpGet, responseHandler, context);
+                return response;
             } catch (IOException e) {
-                logVerbose(String.format("Unable to delete %s before retry %d", pluginFile, i + 1));
-            }
-            HttpClient httpClient = getHttpClient();
-            HttpClientContext context = HttpClientContext.create();
-            CredentialsProvider credentialsProvider = getCredentialsProvider();
-            if (credentialsProvider != null) {
-                context.setCredentialsProvider(credentialsProvider);
-            }
-            HttpGet httpGet = new HttpGet(pluginUrl);
-            try {
-                httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
-            } catch (IOException e) {
-                String message = String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s",
-                pluginUrl, plugin.getName(), e.getMessage());
-                if (i >= maxRetries -1) {
+                String message = ioExceptionMessageSupplier.apply(e);
+                if (i < maxRetries - 1) {
                     System.out.println(message);
                 } else {
-                    logVerbose(message);
+                    throw new IOException(message, e);
                 }
-                success = false;
             } finally {
                 // get final URI (after all redirects)
                 List<URI> locations = context.getRedirectLocations();
                 if (locations != null) {
-                    String message = String.format("%s %s from %s (attempt %d of %d)", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1), i+1, maxRetries);
+                    String message = String.format("%s %s from %s (attempt %d of %d)",
+                            success ? "Downloaded" : "Tried downloading", resourceName,
+                            locations.get(locations.size() - 1), i + 1, maxRetries);
                     if (success) {
                         logVerbose(message);
                     } else {
@@ -1320,28 +1350,11 @@ public class PluginManager implements Closeable {
                     }
                 }
             }
-
-            // Check if plugin is a proper ZIP file
-            if (success) {
-                try (JarFile ignored = new JarFile(pluginFile)) {
-                    plugin.setFile(pluginFile);
-                    logVerbose("Downloaded and validated plugin " + plugin.getName());
-                    break;
-                } catch (IOException e) {
-                    System.out.println("Downloaded file for " + plugin.getName() + " is not a valid ZIP");
-                    if (i >= maxRetries -1) {
-                        if (verbose) {
-                            e.printStackTrace();
-                        }
-                    }
-                    success = false;
-                }
-            }
         }
-        return success;
+        throw new IllegalStateException("Reached maximum number of retries without triggering IOException");
     }
 
-      /**
+    /**
      * Downloads a plugin from local folder location
      *
      * @param pluginUrl location to download plugin to.

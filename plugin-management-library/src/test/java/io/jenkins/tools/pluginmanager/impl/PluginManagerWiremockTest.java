@@ -7,6 +7,8 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collections;
 import org.junit.After;
 import org.junit.Before;
@@ -78,4 +80,12 @@ public class PluginManagerWiremockTest {
         int wireMockPort = archives.port(); // no credentials configured for this port
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/protectedplugins/mailer/1.32/mailer.hpi", plugin, null)).isFalse();
     }
+
+    @Test
+    public void getJsonWithBasicAuth() throws IOException{
+        int wireMockPort = protectedArchives.port();
+        pm.setCm(new CacheManager(folder.newFolder().toPath(), false));
+        assertThat(pm.getJson(new URL("http://localhost:" + wireMockPort + "/update-center.json"), "cache-key")).isNotNull();
+    }
+
 }
