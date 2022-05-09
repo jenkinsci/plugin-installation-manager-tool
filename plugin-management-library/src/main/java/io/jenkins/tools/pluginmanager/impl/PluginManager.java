@@ -1328,6 +1328,7 @@ public class PluginManager implements Closeable {
         for (int i = 0; i < maxRetries; i++) {
             try {
                 T response = httpClient.execute(httpGet, responseHandler, context);
+                success = true;
                 return response;
             } catch (IOException e) {
                 String message = ioExceptionMessageSupplier.apply(e);
