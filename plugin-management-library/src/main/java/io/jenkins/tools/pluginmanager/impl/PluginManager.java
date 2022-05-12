@@ -62,6 +62,8 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
@@ -156,12 +158,16 @@ public class PluginManager implements Closeable {
     }
     private HttpClient getHttpClient() {
         if (httpClient == null) {
+            RequestConfig globalConfig = RequestConfig.custom()
+                .setCookieSpec(CookieSpecs.STANDARD) // use modern cookie policy (RFC 6265)
+                .build();
             httpClient = HttpClients.custom().useSystemProperties()
                 // there is a more complex retry handling in downloadToFile(...) on the whole flow
                 // this affects only the single request
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .setUserAgent(userAgentInformation)
+                .setDefaultRequestConfig(globalConfig)
                 .build();
         }
         return httpClient;
