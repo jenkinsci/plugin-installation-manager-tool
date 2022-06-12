@@ -815,6 +815,7 @@ public class PluginManager implements Closeable {
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
      * @param jenkinsVersion the version of Jenkins to use
      */
+    @SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification="Cannot do anything with a malformed URL")
     public void getUCJson(VersionNumber jenkinsVersion) {
         logVerbose("\nRetrieving update center information");
         cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
@@ -831,6 +832,10 @@ public class PluginManager implements Closeable {
 
             latestUcJson = getJson(url, "update-center" + cacheSuffix);
         } catch (MalformedURLException | URISyntaxException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
         latestPlugins = latestUcJson.getJSONObject("plugins");
@@ -1059,6 +1064,8 @@ public class PluginManager implements Closeable {
     }
 
     // A full dependency graph resolution and removal of non-needed dependency trees is required
+    @SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
+                        justification="Cannot do anything with unexpected runtime exceptions except record them in the exceptions list or throw them")
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
@@ -1079,6 +1086,12 @@ public class PluginManager implements Closeable {
                 if (exceptions != null) {
                     exceptions.add(e);
                 } else {
+                    /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+                     * but the program cannot do anything with unexpected runtime
+                     * exceptions except throw them or record them in the list of
+                     * exceptions for processing by the caller.
+                     * Spotbugs warning is ignored.
+                     */
                     throw e;
                 }
                 continue;

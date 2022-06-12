@@ -344,6 +344,7 @@ class CliOptions {
      *
      * @return the update center url
      */
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getUpdateCenter() {
         URL jenkinsUpdateCenter;
         try {
@@ -368,6 +369,10 @@ class CliOptions {
                 }
             }
         } catch (MalformedURLException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
         return jenkinsUpdateCenter;
@@ -386,6 +391,7 @@ class CliOptions {
      *
      * @return the experimental update center url
      */
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getExperimentalUpdateCenter() {
         URL experimentalUpdateCenter;
         try {
@@ -410,6 +416,10 @@ class CliOptions {
                 }
             }
         } catch (MalformedURLException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
         return experimentalUpdateCenter;
@@ -421,6 +431,7 @@ class CliOptions {
      *
      * @return the incrementals repository mirror url
      */
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getIncrementalsMirror() {
         URL jenkinsIncrementalsRepo;
         if (jenkinsIncrementalsRepoMirror != null) {
@@ -432,6 +443,10 @@ class CliOptions {
             try {
                 jenkinsIncrementalsRepo = new URL(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"));
             } catch (MalformedURLException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
                 throw new RuntimeException(e);
             }
             if (verbose) {
@@ -454,6 +469,7 @@ class CliOptions {
      *
      * @return the plugin information url
      */
+    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getPluginInfo() {
         URL pluginInfo;
         if (jenkinsPluginInfo != null) {
@@ -465,6 +481,10 @@ class CliOptions {
             try {
                 pluginInfo = new URL(System.getenv("JENKINS_PLUGIN_INFO"));
             } catch (MalformedURLException e) {
+                /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+                 * but the program cannot do anything with a malformed URL.
+                 * Spotbugs warning is ignored.
+                 */
                 throw new RuntimeException(e);
             }
             if (verbose) {
