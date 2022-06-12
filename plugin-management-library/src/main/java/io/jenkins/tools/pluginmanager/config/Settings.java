@@ -1,10 +1,12 @@
 package io.jenkins.tools.pluginmanager.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification="Cannot do anything with a malformed URL")
 public class Settings {
     public static final String DEFAULT_PLUGIN_DIR_LOCATION;
     public static final String DEFAULT_WAR;
@@ -39,6 +41,10 @@ public class Settings {
             DEFAULT_INCREMENTALS_REPO_MIRROR = new URL(DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
             DEFAULT_PLUGIN_INFO = new URL(DEFAULT_PLUGIN_INFO_LOCATION);
         } catch (MalformedURLException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
 
