@@ -189,3 +189,35 @@ Support for downloading plugins from maven is not currently supported. [JENKINS-
 When using `--latest` you may run into a scenario where the jenkins update mirror contains the directory of the newer version of a plugin(release in progress), regardless of if there is a jpi to download, which results in a download failure. It's recommended that you pin your plugin requirement versions until the mirror has been updated to more accurately represent what is available. More information on this challenge can be found [here](https://groups.google.com/forum/#!topic/jenkins-infra/R7QqpgoSkbI), and [here](https://github.com/jenkinsci/plugin-installation-manager-tool/issues/87).
 
 The version-pinning behavior of this plugin installer has changed compared to the previous Jenkins plugin installer. By default, `--latest` option defaults to `true`, which means that even if you pass a list of pinned versions, these may fail to be installed correctly if they or some other dependency has a newer latest version available. In order to use *only* pinned versions of plugins, you must pass `--latest=false`. **NOTE:** When a new dependency is added to a plugin, it won’t get updated until you notice that it’s missing from your plugin list. (Details here: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/250)
+
+### Development
+
+Information on developing and contributing to this project.
+
+#### System Output
+
+**Send output to stdout**. The primary output for your command should go to stdout. Anything that is machine readable 
+should also go to stdout—this is where piping sends things by default.
+
+**Send messaging to stderr**. Log messages, errors, and so on should all be sent to stderr. This means that when commands 
+are piped together, these messages are displayed to the user and not fed into the next command.
+
+For more information on basic cli best practices see [clig.dev](https://clig.dev/)
+
+#### Building and Testing
+
+Use maven to build and test locally.
+```shell
+mvn clean install
+```
+
+To test changes in a Jenkins Docker image run the following changes.
+```shell
+# build the plugin to generate cli jar in plugin-management-cli/target
+mvn clean install
+# build jenkins image with updated cli jar
+docker build -t jnks-plugin-tool -f plugin-management-cli/src/test/docker/Dockerfile plugin-management-cli/
+# run the image
+docker run --rm -it --entrypoint bash jnks-plugin-tool
+jenkins@9aa5a8051b4d:~$ jenkins-plugin-cli --help
+```

@@ -60,12 +60,12 @@ public class PluginManagerIntegrationTest {
                 .withPluginDir(pluginsDir)
                 .withShowAvailableUpdates(true)
                 .withIsVerbose(true)
-                .withDoDownload(false);
+                .withDoDownload(false)
+                .withCachePath(cacheDir.toPath());
         configurator.configure(configBuilder);
         Config config = configBuilder.build();
 
         PluginManager pluginManager = new PluginManager(config);
-        pluginManager.setCm(new CacheManager(cacheDir.toPath(), true, false));
         pluginManager.setLatestUcJson(latestUcJson);
         pluginManager.setLatestUcPlugins(latestUcJson.getJSONObject("plugins"));
         pluginManager.setPluginInfoJson(pluginManager.getJson(pluginVersionsFile.toURI().toURL(), "plugin-versions"));

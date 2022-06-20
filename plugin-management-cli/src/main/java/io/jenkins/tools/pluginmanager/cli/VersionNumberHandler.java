@@ -20,7 +20,7 @@ public class VersionNumberHandler extends OneArgumentOptionHandler<VersionNumber
         try {
             return new VersionNumber(argument);
         } catch (Exception ex) {
-            throw new CmdLineException("Failed to parse the version number", ex);
+            throw new CmdLineException(owner, "Failed to parse the version number", ex);
         }
     }
 

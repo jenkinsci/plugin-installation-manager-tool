@@ -33,7 +33,7 @@ public class PluginManagerWiremockTest {
     public final TemporaryFolder folder = new TemporaryFolder();
 
     @Before
-    public void proxyToWireMock() {
+    public void proxyToWireMock() throws IOException {
         archives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
         archives.start();
         protectedArchives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
@@ -42,6 +42,7 @@ public class PluginManagerWiremockTest {
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withCredentials(Collections.singletonList(new Credentials("myuser", "mypassword", "localhost", protectedArchives.port())))
+                .withCachePath(folder.newFolder().toPath())
                 .build();
         pm = new PluginManager(cfg);
 
@@ -84,7 +85,6 @@ public class PluginManagerWiremockTest {
     @Test
     public void getJsonWithBasicAuth() throws IOException{
         int wireMockPort = protectedArchives.port();
-        pm.setCm(new CacheManager(folder.newFolder().toPath(), false));
         assertThat(pm.getJson(new URL("http://localhost:" + wireMockPort + "/update-center.json"), "cache-key")).isNotNull();
     }
 
