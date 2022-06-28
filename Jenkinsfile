@@ -2,7 +2,6 @@
 // allowing easy windows / linux testing and producing incrementals
 // the only feature that buildPlugin has that relates to plugins is allowing you to test against multiple jenkins versions
 buildPlugin(configurations: [
-        [ platform: "linux", jdk: "8", jenkins: null ],
         [ platform: "linux", jdk: "11", jenkins: null ],
         [ platform: "windows", jdk: "11", jenkins: null ]
     ])
