@@ -74,7 +74,7 @@ class CliOptions {
     private boolean showAvailableUpdates;
 
     @Option(name = "--output", usage = "Output format for available updates",   aliases = "-o")
-    private OutputFormat outputFormat;
+    private OutputFormat outputFormat = OutputFormat.STDOUT;
 
     @Option(name = "--view-security-warnings",
             usage = "Show if any security warnings exist for the requested plugins",
@@ -177,6 +177,7 @@ class CliOptions {
                 .build();
     }
 
+    @NonNull
     public OutputFormat getOutputFormat() {
         return outputFormat;
     }
@@ -189,14 +190,10 @@ class CliOptions {
      */
     private File getPluginFile() {
         if (pluginFile == null) {
-            if (verbose) {
-                System.out.println("No .txt or .yaml file containing list of plugins to be downloaded entered.");
-            }
+            logVerbose("No .txt or .yaml file containing list of plugins to be downloaded entered.");
         } else {
             if (Files.exists(pluginFile.toPath())) {
-                if (verbose) {
-                    System.out.println("File containing list of plugins to be downloaded: " + pluginFile);
-                }
+                logVerbose("File containing list of plugins to be downloaded: " + pluginFile);
             } else {
                 throw new PluginInputException("File containing list of plugins does not exist " + pluginFile.toPath());
             }
@@ -210,21 +207,14 @@ class CliOptions {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     private File getPluginDir() {
         if (pluginDir != null) {
-            if (verbose) {
-                System.out.println("Plugin download location: " + pluginDir);
-            }
+            logVerbose("Plugin download location: " + pluginDir);
             return pluginDir;
         } else if (!StringUtils.isEmpty(System.getenv("PLUGIN_DIR"))) {
-            if (verbose) {
-                System.out.println("No directory to download plugins entered. " +
-                        "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
-            }
+            logVerbose("No directory to download plugins entered. " +
+                    "Will use location specified in PLUGIN_DIR environment variable: " + System.getenv("PLUGIN_DIR"));
             return new File(System.getenv("PLUGIN_DIR"));
         }
-        if (verbose) {
-            System.out.println("No directory to download plugins entered. " +
-                    "Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
-        }
+        logVerbose("No directory to download plugins entered. Will use default of " + Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         return new File(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
     }
 
@@ -255,14 +245,10 @@ class CliOptions {
      */
     private String getJenkinsWar() {
         if (jenkinsWarFile == null) {
-            if (verbose) {
-                System.out.println("No war entered. Will use default of " + Settings.DEFAULT_WAR);
-            }
+            logVerbose("No war entered. Will use default of " + Settings.DEFAULT_WAR);
             return Settings.DEFAULT_WAR;
         } else {
-            if (verbose) {
-                System.out.println("Will use war file: " + jenkinsWarFile);
-            }
+            logVerbose("Will use war file: " + jenkinsWarFile);
             return jenkinsWarFile;
         }
     }
@@ -350,22 +336,15 @@ class CliOptions {
         try {
             if (jenkinsUc != null) {
                 jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUc.toString()));
-                if (verbose) {
-                    System.out.println("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
-                }
+                logVerbose("Using update center " + jenkinsUpdateCenter + " specified with CLI option");
             } else {
                 String jenkinsUcFromEnv = System.getenv("JENKINS_UC");
                 if (!StringUtils.isEmpty(jenkinsUcFromEnv)) {
                     jenkinsUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcFromEnv));
-                    if (verbose) {
-                        System.out.println("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
-                    }
+                    logVerbose("Using update center " + jenkinsUpdateCenter + " from JENKINS_UC environment variable");
                 } else {
                     jenkinsUpdateCenter = Settings.DEFAULT_UPDATE_CENTER;
-                    if (verbose) {
-                        System.out.println("No CLI option or environment variable set for update center, using default of " +
-                                jenkinsUpdateCenter);
-                    }
+                    logVerbose("No CLI option or environment variable set for update center, using default of " + jenkinsUpdateCenter);
                 }
             }
         } catch (MalformedURLException e) {
@@ -397,23 +376,14 @@ class CliOptions {
         try {
             if (jenkinsUcExperimental != null) {
                 experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(jenkinsUcExperimental.toString()));
-                if (verbose) {
-                    System.out.println(
-                            "Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
-                }
+                logVerbose("Using experimental update center " + experimentalUpdateCenter + " specified with CLI option");
             } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_EXPERIMENTAL"))) {
                 experimentalUpdateCenter = new URL(appendFilePathIfNotPresent(System.getenv("JENKINS_UC_EXPERIMENTAL")));
-                if (verbose) {
-                    System.out.println("Using experimental update center " + experimentalUpdateCenter +
-                            " from JENKINS_UC_EXPERIMENTAL environment variable");
-                }
+                logVerbose("Using experimental update center " + experimentalUpdateCenter + " from JENKINS_UC_EXPERIMENTAL environment variable");
             } else {
                 experimentalUpdateCenter = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
-                if (verbose) {
-                    System.out.println(
-                            "No CLI option or environment variable set for experimental update center, using default of " +
-                                    experimentalUpdateCenter);
-                }
+                logVerbose("No CLI option or environment variable set for experimental update center, using default of " +
+                        experimentalUpdateCenter);
             }
         } catch (MalformedURLException e) {
             /* Spotbugs 4.7.0 warns when throwing a runtime exception,
@@ -436,9 +406,7 @@ class CliOptions {
         URL jenkinsIncrementalsRepo;
         if (jenkinsIncrementalsRepoMirror != null) {
             jenkinsIncrementalsRepo = jenkinsIncrementalsRepoMirror;
-            if (verbose) {
-                System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo + " specified with CLI option");
-            }
+            logVerbose("Using incrementals mirror " + jenkinsIncrementalsRepo + " specified with CLI option");
         } else if (!StringUtils.isEmpty(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"))) {
             try {
                 jenkinsIncrementalsRepo = new URL(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"));
@@ -449,16 +417,13 @@ class CliOptions {
              */
                 throw new RuntimeException(e);
             }
-            if (verbose) {
-                System.out.println("Using incrementals mirror " + jenkinsIncrementalsRepo +
-                        " from JENKINS_INCREMENTALS_REPO_MIRROR environment variable");
-            }
+
+            logVerbose("Using incrementals mirror " + jenkinsIncrementalsRepo +
+                    " from JENKINS_INCREMENTALS_REPO_MIRROR environment variable");
         } else {
             jenkinsIncrementalsRepo = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
-            if (verbose) {
-                System.out.println("No CLI option or environment variable set for incrementals mirror, using default of " +
-                        jenkinsIncrementalsRepo);
-            }
+            logVerbose("No CLI option or environment variable set for incrementals mirror, using default of " +
+                    jenkinsIncrementalsRepo);
         }
         return jenkinsIncrementalsRepo;
     }
@@ -474,9 +439,7 @@ class CliOptions {
         URL pluginInfo;
         if (jenkinsPluginInfo != null) {
             pluginInfo = jenkinsPluginInfo;
-            if (verbose) {
-                System.out.println("Using plugin info " + jenkinsPluginInfo + " specified with CLI option");
-            }
+            logVerbose("Using plugin info " + jenkinsPluginInfo + " specified with CLI option");
         } else if (!StringUtils.isEmpty(System.getenv("JENKINS_PLUGIN_INFO"))) {
             try {
                 pluginInfo = new URL(System.getenv("JENKINS_PLUGIN_INFO"));
@@ -487,16 +450,11 @@ class CliOptions {
                  */
                 throw new RuntimeException(e);
             }
-            if (verbose) {
-                System.out.println("Using plugin info " + pluginInfo +
-                        " from JENKINS_PLUGIN_INFO environment variable");
-            }
+
+            logVerbose("Using plugin info " + pluginInfo + " from JENKINS_PLUGIN_INFO environment variable");
         } else {
             pluginInfo = Settings.DEFAULT_PLUGIN_INFO;
-            if (verbose) {
-                System.out.println("No CLI option or environment variable set for plugin info, using default of " +
-                        pluginInfo);
-            }
+            logVerbose("No CLI option or environment variable set for plugin info, using default of " + pluginInfo);
         }
         return pluginInfo;
     }
@@ -597,6 +555,18 @@ class CliOptions {
             return HashFunction.valueOf(fromEnv.toUpperCase());
         } else {
             return Settings.DEFAULT_HASH_FUNCTION;
+        }
+    }
+
+    /**
+     * Outputs information to the console (std err) if verbose option was set to true
+     *
+     * @param message informational string to output
+     */
+    private void logVerbose(String message) {
+        if (verbose) {
+            // log to stderr to not interfere with primary cli output sent to stdout
+            System.err.println(message);
         }
     }
 

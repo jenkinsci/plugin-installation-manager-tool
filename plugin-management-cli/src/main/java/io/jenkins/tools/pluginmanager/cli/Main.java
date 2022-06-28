@@ -2,12 +2,9 @@ package io.jenkins.tools.pluginmanager.cli;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.jenkins.tools.pluginmanager.config.Config;
-import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.impl.PluginManager;
-import io.jenkins.tools.pluginmanager.parsers.StdOutPluginOutputConverter;
-import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
-import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
+import io.jenkins.tools.pluginmanager.parsers.AvailableUpdatesStdOutPluginOutputConverter;
 import java.io.IOException;
 import java.util.List;
 import org.kohsuke.args4j.CmdLineException;
@@ -47,27 +44,13 @@ public class Main {
 
             Config cfg = options.setup();
             try (PluginManager pm = new PluginManager(cfg)) {
-
                 if (options.isShowAvailableUpdates()) {
                     pm.getUCJson(pm.getJenkinsVersion());
                     List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
-                    OutputFormat outputFormat = options.getOutputFormat() == null ? OutputFormat.STDOUT : options.getOutputFormat();
-                    String output;
-                    switch (outputFormat) {
-                        case YAML:
-                            output = new YamlPluginOutputConverter().convert(latestVersionsOfPlugins);
-                            break;
-                        case TXT:
-                            output = new TxtOutputConverter().convert(latestVersionsOfPlugins);
-                            break;
-                        default:
-                            output = new StdOutPluginOutputConverter(cfg.getPlugins()).convert(latestVersionsOfPlugins);
-                    }
-                    System.out.println(output);
-                    return;
+                    pm.outputPluginList(latestVersionsOfPlugins, () -> new AvailableUpdatesStdOutPluginOutputConverter(cfg.getPlugins()));
+                } else {
+                    pm.start();
                 }
-
-                pm.start();
             }
         } catch (Exception e) {
             if (options.isVerbose()) {

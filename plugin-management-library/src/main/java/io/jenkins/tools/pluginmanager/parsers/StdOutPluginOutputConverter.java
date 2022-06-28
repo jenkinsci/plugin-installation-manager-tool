@@ -1,39 +1,33 @@
 package io.jenkins.tools.pluginmanager.parsers;
 
-import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+
+import static java.util.Comparator.comparing;
 
 public class StdOutPluginOutputConverter implements PluginOutputConverter {
 
-    private final List<Plugin> originalPlugins;
+    private final String heading;
 
-    public StdOutPluginOutputConverter(List<Plugin> originalPlugins) {
-        this.originalPlugins = originalPlugins;
+    public StdOutPluginOutputConverter(String heading) {
+        this.heading = heading;
     }
 
     @Override
     public String convert(List<Plugin> plugins) {
-
-        Map<String, Plugin> pluginsAsMap = plugins.stream()
-                .collect(Collectors.toMap(Plugin::getName, plugin -> plugin));
-
-        StringBuilder builder = new StringBuilder("Available updates:\n");
-        for (Plugin plugin : originalPlugins) {
-            VersionNumber originalVersion = plugin.getVersion();
-            VersionNumber newVersion = pluginsAsMap.get(plugin.getName()).getVersion();
-            if (originalVersion.isOlderThan(newVersion)) {
-                builder.append(String.format("%s (%s) has an available update: %s%n", plugin.getName(),
-                        plugin.getVersion(), newVersion));
-            }
+        StringWriter writer = new StringWriter();
+        PrintWriter pw = new PrintWriter(writer);
+        pw.println(heading);
+        if (plugins.isEmpty()) {
+            pw.println("-none-");
+        } else {
+            plugins.stream()
+                    .sorted(comparing(Plugin::getName).thenComparing(Plugin::getVersion))
+                    .forEach(pw::println);
         }
 
-        String result = builder.toString();
-        if (!result.contains("has an")) {
-            return "No available updates\n";
-        }
-        return result;
+        return writer.toString();
     }
 }
