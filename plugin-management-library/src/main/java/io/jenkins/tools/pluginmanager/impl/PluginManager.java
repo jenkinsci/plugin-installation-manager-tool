@@ -634,10 +634,14 @@ public class PluginManager implements Closeable {
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
                 File finalPath = new File(pluginDir, archiveName);
+                File backupPath = new File(pluginDir, plugin.getBackupFileName());
                 if (finalPath.isDirectory()) {
                     // Jenkins supports storing plugins as unzipped files with ".jpi" extension
                     FileUtils.cleanDirectory(finalPath);
                     Files.delete(finalPath.toPath());
+                }
+                if (finalPath.exists()) {
+                    Files.move(finalPath.toPath(), backupPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 }
                 Files.move(downloadedPlugin.toPath(), finalPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {

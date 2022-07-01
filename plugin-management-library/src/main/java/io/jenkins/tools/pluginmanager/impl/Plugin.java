@@ -98,6 +98,8 @@ public class Plugin {
         return name + ".jpi";
     }
 
+    public String getBackupFileName() { return name + ".bak"; }
+
     public File getFile() {
         return file;
     }

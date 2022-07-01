@@ -29,6 +29,7 @@ import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -340,6 +341,33 @@ public class PluginManagerIntegrationTest {
 
         // Ensure that the plugins are actually in place
         assertPluginInstalled(trileadAPI);
+    }
+
+    @Test
+    public void verifyBackups() throws Exception {
+
+        // First cycle, empty dir
+        Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
+        File pluginArchive = new File(pluginsDir, initialTrileadAPI.getArchiveFileName());
+        File pluginBackup = new File(pluginsDir, initialTrileadAPI.getBackupFileName());
+        List<Plugin> requestedPlugins_1 = Collections.singletonList(initialTrileadAPI);
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_1).withDoDownload(true));
+        pluginManager.start();
+        assertPluginInstalled(initialTrileadAPI);
+        assertFalse(pluginBackup.exists());
+
+
+        // Second cycle, with plugin update and new plugin installation
+        Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
+        List<Plugin> requestedPlugins_2 = Collections.singletonList(trileadAPI);
+        PluginManager pluginManager2 = initPluginManager(
+                configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
+        pluginManager2.start();
+
+        // Ensure that the plugins are actually in place and backup now exists
+        assertPluginInstalled(trileadAPI);
+        assertTrue(pluginBackup.exists());
     }
 
     //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
