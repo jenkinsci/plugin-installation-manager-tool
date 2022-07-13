@@ -175,7 +175,7 @@ Proxy support is available using standard [Java networking system properties](ht
 
 ```bash
 # Example using proxy system properties
-java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -jar jenkins-plugin-manager-*.jar
+java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -Dhttps.proxyPort=3128 -Dhttps.proxyHost=myproxy.example.com -jar jenkins-plugin-manager-*.jar
 ```
 
 
