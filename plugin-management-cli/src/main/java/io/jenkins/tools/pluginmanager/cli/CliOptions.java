@@ -116,12 +116,12 @@ class CliOptions {
     @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
     private boolean showVersion;
 
-    @Option(name = "--no-download", usage = "Set true to avoid downloading plugins; can be used in combination with " +
+    @Option(name = "--no-download", usage = "Avoid downloading plugins; can be used in combination with " +
             "other options to see information about plugins and their dependencies",
             handler = BooleanOptionHandler.class)
     private boolean isNoDownload;
 
-    @Option(name = "--latest-specified", usage = "Set to true to download latest transitive dependencies of any " +
+    @Option(name = "--latest-specified", usage = "Download latest transitive dependencies of any " +
             "plugin that is requested to have the latest version. By default, plugin dependency versions will be " +
             "determined by the update center metadata or plugin MANIFEST.MF",
             handler = BooleanOptionHandler.class)
@@ -137,7 +137,7 @@ class CliOptions {
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
 
-    @Option(name = "--skip-failed-plugins", usage = "Set to true to skip installing plugins that have failed to download. " +
+    @Option(name = "--skip-failed-plugins", usage = "Skip installing plugins that have failed to download. " +
             "By default, if a single plugin is unavailable then all plugins fail to download and install.",
             handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;

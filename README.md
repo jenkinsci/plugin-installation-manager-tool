@@ -48,19 +48,19 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
   The argument can be also set using the `JENKINS_VERSION` environment variable.
 * `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--list` or `-l`: (optional) Lists plugin names and versions of: installed plugins (plugins that already exist in the plugin directory), bundled plugins (non-detached plugins that exist in the war file), plugins that will be downloaded (highest required versions of the requested plugins and dependencies that are not already installed), and the effective plugin set (the highest versions of all plugins that are already installed or will be installed)
-* `--verbose`: (optional) Set to true to show additional information about plugin dependencies and the download process
-* `--view-security-warnings`: (optional) Set to true to show if any of the user specified plugins have security warnings
-* `--view-all-security-warnings`: (optional) Set to true to show all plugins that have security warnings.
-* `--available-updates`: (optional) Set to true to show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
+* `--verbose`: (optional) Show additional information about plugin dependencies and the download process
+* `--view-security-warnings`: (optional) Show if any of the user specified plugins have security warnings
+* `--view-all-security-warnings`: (optional) Show all plugins that have security warnings.
+* `--available-updates`: (optional) Show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
 * `--output {stdout,yaml,txt}`: (optional) Format to output plugin updates file in, stdout is the default.
-* `--latest false`: (optional) Set to false to download the minimum required version of all dependencies.
-* `--latest-specified`: (optional) (advanced) Set to true to download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
+* `--latest {true,false}`: (optional) Set to false to download the minimum required version of all dependencies.
+* `--latest-specified`: (optional) (advanced) Download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
 * `--jenkins-update-center`: (optional) Sets the main update center filename, which can also be set via the JENKINS_UC environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/update-center.actual.json
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental/update-center.actual.json
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
 * `--jenkins-plugin-info`: (optional) Sets the location of plugin information, which can also be set via the JENKINS_PLUGIN_INFO environment variable. If a CLI option is provided, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/current/plugin-versions.json.
 * `--version` or `-v`: (optional) Displays the plugin management tool version and exits.
-* `--no-download`: (optional) Set to true to not download plugins. By default it is set to false and plugins will be downloaded.
+* `--no-download`: (optional) Do not download plugins. By default plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
 Jenkins in a broken state.
 * `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports). Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
