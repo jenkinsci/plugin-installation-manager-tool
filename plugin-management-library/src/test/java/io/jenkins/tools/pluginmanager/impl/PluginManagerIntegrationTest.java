@@ -298,7 +298,7 @@ public class PluginManagerIntegrationTest {
 
         // Second cycle, with plugin update and new plugin installation
         Plugin trileadAPI = new Plugin("trilead-api", "1.0.13", null, null);
-        Plugin snakeYamlAPI = new Plugin("snakeyaml-api", "1.27.0", null, null);
+        Plugin snakeYamlAPI = new Plugin("snakeyaml-api", "1.31-84.ve43da_fb_49d0b", null, null);
         List<Plugin> requestedPlugins_2 = Arrays.asList(trileadAPI, snakeYamlAPI);
         PluginManager pluginManager2 = initPluginManager(
                 configBuilder -> configBuilder.withPlugins(requestedPlugins_2).withDoDownload(true));
