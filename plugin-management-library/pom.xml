@@ -13,6 +13,17 @@
     <version>${revision}${changelist}</version>
     <packaging>jar</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- TODO: Remove when jackson dataformat snakeyaml dependency is at least 1.32 -->
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>1.32</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci</groupId>
