@@ -18,7 +18,7 @@ jobs:
         id: set-version
         run: |
           version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "::set-output name=project-version::$version"
+          echo "project-version=$version" >> $GITHUB_OUTPUT
       - name: Fetch artifact
         id: fetch-artifact
         run: |
@@ -27,7 +27,7 @@ jobs:
           FILE_NAME=jenkins-plugin-manager
           PROJECT_VERSION=${{ steps.set-version.outputs.project-version }}
           echo $PROJECT_VERSION
-          echo "::set-output name=file-name::$FILE_NAME"
+          echo "file-name=$FILE_NAME" >> $GITHUB_OUTPUT
           wget -q https://repo.jenkins-ci.org/releases/$GROUP_ID/$ARTIFACT_ID/$PROJECT_VERSION/$ARTIFACT_ID-$PROJECT_VERSION.jar \
             -O $FILE_NAME-$PROJECT_VERSION.jar
       - name: Upload Release Asset
