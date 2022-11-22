@@ -1266,7 +1266,7 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
+    @SuppressFBWarnings({"PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
@@ -1563,7 +1563,7 @@ public class PluginManager implements Closeable {
      *
      * @return list of names of plugins that are currently installed in the war
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
 
