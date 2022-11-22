@@ -1,12 +1,10 @@
 package io.jenkins.tools.pluginmanager.config;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification="Cannot do anything with a malformed URL")
 public class Settings {
     public static final String DEFAULT_PLUGIN_DIR_LOCATION;
     public static final String DEFAULT_WAR;

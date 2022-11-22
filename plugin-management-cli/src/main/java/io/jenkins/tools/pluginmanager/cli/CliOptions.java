@@ -330,7 +330,6 @@ class CliOptions {
      *
      * @return the update center url
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getUpdateCenter() {
         URL jenkinsUpdateCenter;
         try {
@@ -370,7 +369,6 @@ class CliOptions {
      *
      * @return the experimental update center url
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getExperimentalUpdateCenter() {
         URL experimentalUpdateCenter;
         try {
@@ -401,7 +399,6 @@ class CliOptions {
      *
      * @return the incrementals repository mirror url
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getIncrementalsMirror() {
         URL jenkinsIncrementalsRepo;
         if (jenkinsIncrementalsRepoMirror != null) {
@@ -434,7 +431,6 @@ class CliOptions {
      *
      * @return the plugin information url
      */
-    @SuppressFBWarnings(value = "THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification = "Cannot do anything with a malformed URL")
     private URL getPluginInfo() {
         URL pluginInfo;
         if (jenkinsPluginInfo != null) {
