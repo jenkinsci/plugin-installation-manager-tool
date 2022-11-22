@@ -838,7 +838,6 @@ public class PluginManager implements Closeable {
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
      * @param jenkinsVersion the version of Jenkins to use
      */
-    @SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION", justification="Cannot do anything with a malformed URL")
     public void getUCJson(VersionNumber jenkinsVersion) {
         logVerbose("\nRetrieving update center information");
         cm.createCache();
@@ -1082,8 +1081,6 @@ public class PluginManager implements Closeable {
     }
 
     // A full dependency graph resolution and removal of non-needed dependency trees is required
-    @SuppressFBWarnings(value="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION",
-                        justification="Cannot do anything with unexpected runtime exceptions except record them in the exceptions list or throw them")
     public Map<String, Plugin> resolveRecursiveDependencies(Plugin plugin, @CheckForNull Map<String, Plugin> topLevelDependencies, @CheckForNull List<Exception> exceptions) {
         Deque<Plugin> queue = new LinkedList<>();
         Map<String, Plugin> recursiveDependencies = new HashMap<>();
@@ -1269,7 +1266,7 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
+    @SuppressFBWarnings({"PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
@@ -1566,7 +1563,7 @@ public class PluginManager implements Closeable {
      *
      * @return list of names of plugins that are currently installed in the war
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
 
