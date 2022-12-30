@@ -33,7 +33,7 @@ mvn clean install
 java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
-If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins), the plugin manager can be invoked inside the container via the bundled `jenkins-plugin-cli` shell script:
+If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins), the plugin manager can be invoked inside the running container via the bundled `jenkins-plugin-cli` shell script. (Note that jenkins Docker container can be accessed using a command like docker exec -it <container_name> /bin/bash)
 
 ```
 jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
