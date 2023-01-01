@@ -42,7 +42,7 @@ class CliOptions {
     private File pluginDir;
 
     @Option(name = "--clean-download-directory",
-            usage = "If sets, cleans the plugin download directory before plugin installation. " +
+            usage = "If set, cleans the plugin download directory before plugin installation. " +
                     "Otherwise the tool performs plugin download and reports compatibility issues, if any.")
     private boolean cleanPluginDir;
 
