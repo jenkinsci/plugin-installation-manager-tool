@@ -1,5 +1,4 @@
 package io.jenkins.tools.pluginmanager.cli;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -12,7 +11,6 @@ import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import io.jenkins.tools.pluginmanager.util.PluginListParser;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +20,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.args4j.Option;
@@ -144,7 +141,7 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;
 
-    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ',' --Mukund Edited",
+    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
             handler = MultiCredentialsOptionHandler.class)
     private List<Credentials> credentials;
 
