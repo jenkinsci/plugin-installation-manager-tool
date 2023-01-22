@@ -41,6 +41,9 @@ public class Main {
                 parser.printUsage(System.out);
                 return;
             }
+            if(options.isVersionMadeBy()){
+                parser.printUsage(System.out);
+            }
 
             Config cfg = options.setup();
             try (PluginManager pm = new PluginManager(cfg)) {
