@@ -144,12 +144,10 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean skipFailedPlugins;
 
-    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
+    @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ',' --Mukund Edited",
             handler = MultiCredentialsOptionHandler.class)
     private List<Credentials> credentials;
 
-    @Option(name = "--mukund", usage = "This version made by mukund", handler = ExperimentalHandler.class)
-    private boolean versionMadeBy;
 
 
     /**
