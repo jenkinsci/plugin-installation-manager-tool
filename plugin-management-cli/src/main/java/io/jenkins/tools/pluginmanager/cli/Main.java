@@ -22,7 +22,6 @@ public class Main {
             parser.parseArgument(args);
         } catch (CmdLineException e) {
             parser.printUsage(System.err);
-            System.err.println("Wrong argument");
             System.err.println(e.getMessage());
             throw new IOException("Failed to read command-line arguments", e);
         }
