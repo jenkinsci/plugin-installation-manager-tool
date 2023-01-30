@@ -122,6 +122,10 @@ public class PluginManager implements Closeable {
     private static final int DEFAULT_MAX_RETRIES = 3;
     private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
 
+    private static final String [] DEFAULT_PATH_FOR_WAR_FILE = {"/usr/share/jenkins/jenkins.war",
+            "/usr/share/java/jenkins.war",
+            "C:\\ProgramData\\Jenkins\\jenkins.war"};
+
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
         this.cfg = cfg;
@@ -1496,13 +1500,29 @@ public class PluginManager implements Closeable {
      */
     @CheckForNull
     public VersionNumber getJenkinsVersionFromWar() {
+
+        File lookForJenkinsWarInDefaultDirectories = null;
+
         if (jenkinsWarFile == null) {
-            logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
-            return null;
+
+            for(int i=0; i<DEFAULT_PATH_FOR_WAR_FILE.length; i++){
+                File file = new File(DEFAULT_PATH_FOR_WAR_FILE[i]);
+                if(file.exists()){
+                    lookForJenkinsWarInDefaultDirectories = file;
+                }
+            }
+            if(lookForJenkinsWarInDefaultDirectories==null){
+                logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
+                return null;
+            }
+            lookForJenkinsWarInDefaultDirectories = jenkinsWarFile;
+
         }
-        String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
+
+
+        String version = getAttributeFromManifest(lookForJenkinsWarInDefaultDirectories, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
-            logMessage("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
+            logMessage("Unable to get Jenkins version from the WAR file " + lookForJenkinsWarInDefaultDirectories.getPath());
             return null;
         }
         logVerbose("Jenkins version: " + version);
