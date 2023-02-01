@@ -438,7 +438,9 @@ public class PluginManager implements Closeable {
      * Prints out all security warnings if isShowAllWarnings is set to true in the config file
      */
     public void showAllSecurityWarnings() {
-        if (cfg.isShowAllWarnings()) {
+        // NOTE: By default, the plugin installation manager tool will show all security warnings.
+        // see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
+        if (!cfg.isHideAllWarnings()) {
             allSecurityWarnings.values()
                     .stream()
                     .flatMap(List::stream)
@@ -456,7 +458,9 @@ public class PluginManager implements Closeable {
      */
 
     public void showSpecificSecurityWarnings(List<Plugin> plugins) {
-        if (cfg.isShowWarnings()) {
+        // NOTE: By default, the plugin installation manager tool will show security warnings.
+        // see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
+        if (!cfg.isHideWarnings()) {
             logMessage("\nSecurity warnings:");
             for (Plugin plugin : plugins) {
                 if (warningExists(plugin)) {

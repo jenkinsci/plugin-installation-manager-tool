@@ -50,8 +50,8 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 * `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--list` or `-l`: (optional) Lists plugin names and versions of: installed plugins (plugins that already exist in the plugin directory), bundled plugins (non-detached plugins that exist in the war file), plugins that will be downloaded (highest required versions of the requested plugins and dependencies that are not already installed), and the effective plugin set (the highest versions of all plugins that are already installed or will be installed)
 * `--verbose`: (optional) Show additional information about plugin dependencies and the download process
-* `--view-security-warnings`: (optional) Show if any of the user specified plugins have security warnings
-* `--view-all-security-warnings`: (optional) Show all plugins that have security warnings.
+* `--hide-security-warnings`: (optional) Hide if any of the user specified plugins have security warnings
+* `--hide-all-security-warnings`: (optional) Hide all plugins that have security warnings.
 * `--available-updates`: (optional) Show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
 * `--output {stdout,yaml,txt}`: (optional) Format to output plugin updates file in, stdout is the default.
 * `--latest {true,false}`: (optional) Set to false to download the minimum required version of all dependencies.

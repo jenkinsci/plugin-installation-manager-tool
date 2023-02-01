@@ -25,7 +25,9 @@ public class Config {
     private final File pluginDir;
     private final boolean cleanPluginDir;
     private final boolean showWarnings;
+    private final boolean hideWarnings;
     private final boolean showAllWarnings;
+    private final boolean hideAllWarnings;
     private final boolean showAvailableUpdates;
     private final boolean showPluginsToBeDownloaded;
 
@@ -78,7 +80,9 @@ public class Config {
             OutputFormat outputFormat,
             HashFunction hashFunction,
             List<Credentials> credentials,
-            Path cachePath) {
+            Path cachePath,
+            boolean hideWarnings,
+            boolean hideAllWarnings) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -102,6 +106,8 @@ public class Config {
         this.hashFunction = hashFunction;
         this.cachePath = cachePath;
         this.logOutput = new LogOutput(verbose);
+        this.hideWarnings = hideWarnings;
+        this.hideAllWarnings = hideAllWarnings;
     }
 
     public File getPluginDir() {
@@ -116,8 +122,16 @@ public class Config {
         return showWarnings;
     }
 
+    public boolean isHideWarnings() {
+        return hideWarnings;
+    }
+
     public boolean isShowAllWarnings() {
         return showAllWarnings;
+    }
+
+    public boolean isHideAllWarnings() {
+        return hideAllWarnings;
     }
 
     public boolean isShowAvailableUpdates() {
@@ -210,7 +224,9 @@ public class Config {
         private File pluginDir;
         private boolean cleanPluginDir;
         private boolean showWarnings;
+        private boolean hideWarnings;
         private boolean showAllWarnings;
+        private boolean hideAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
         private boolean verbose;
@@ -248,8 +264,18 @@ public class Config {
             return this;
         }
 
+        public Builder withHideWarnings(boolean hideWarnings) {
+            this.hideWarnings = hideWarnings;
+            return this;
+        }
+
         public Builder withShowAllWarnings(boolean showAllWarnings) {
             this.showAllWarnings = showAllWarnings;
+            return this;
+        }
+
+        public Builder withHideAllWarnings(boolean hideAllWarnings) {
+            this.hideAllWarnings = hideAllWarnings;
             return this;
         }
 
@@ -378,7 +404,9 @@ public class Config {
                     outputFormat,
                     hashFunction,
                     credentials,
-                    cachePath
+                    cachePath,
+                    hideWarnings,
+                    hideAllWarnings
             );
         }
 
