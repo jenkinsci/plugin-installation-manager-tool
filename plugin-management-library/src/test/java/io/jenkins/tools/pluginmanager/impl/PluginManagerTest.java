@@ -1458,6 +1458,37 @@ public class PluginManagerTest {
 
     }
 
+    @Test
+    public void defaultPathForWarFile() {
+        /* Use default test configuration explicitly sets the location of Jenkins war */
+        boolean defaultWarFileExists = (new File(Settings.DEFAULT_WAR)).exists();
+        if (defaultWarFileExists) {
+            assertThat(pm.getJenkinsVersionFromWar()).isNotNull();
+        } else {
+            assertThat(pm.getJenkinsVersionFromWar()).isNull();
+        }
+    }
+
+    @Test
+    public void alternateDefaultPathForWarFile() {
+        /* Use a custom configuration that does not set location of Jenkins war */
+        Config config = Config.builder().build();
+        PluginManager pluginManager = new PluginManager(config);
+        boolean defaultWarFileExists = false;
+        for (String fileName : PluginManager.DEFAULT_PATH_FOR_WAR_FILE) {
+            File warFile = new File(fileName);
+            if (warFile.exists()) {
+                defaultWarFileExists = true;
+                break;
+            }
+        }
+        if (defaultWarFileExists) {
+            assertThat(pluginManager.getJenkinsVersionFromWar()).isNotNull();
+        } else {
+            assertThat(pluginManager.getJenkinsVersionFromWar()).isNull();
+        }
+    }
+
     private JSONObject setTestUcJson() {
         JSONObject latestUcJson = new JSONObject();
 
