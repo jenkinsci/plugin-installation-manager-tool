@@ -122,7 +122,8 @@ public class PluginManager implements Closeable {
     private static final int DEFAULT_MAX_RETRIES = 3;
     private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
 
-    private static final String [] DEFAULT_PATH_FOR_WAR_FILE = {"/usr/share/jenkins/jenkins.war",
+    /* Package protected for testing */
+    static final String [] DEFAULT_PATH_FOR_WAR_FILE = {"/usr/share/jenkins/jenkins.war",
             "/usr/share/java/jenkins.war",
             "C:\\ProgramData\\Jenkins\\jenkins.war"};
 
@@ -1501,24 +1502,23 @@ public class PluginManager implements Closeable {
     @CheckForNull
     public VersionNumber getJenkinsVersionFromWar() {
 
-        File lookForJenkinsWarInDefaultDirectories = null;
+        File lookForJenkinsWarInDefaultDirectories = jenkinsWarFile;
 
-        if (jenkinsWarFile == null) {
-
-            for(int i=0; i<DEFAULT_PATH_FOR_WAR_FILE.length; i++){
-                File file = new File(DEFAULT_PATH_FOR_WAR_FILE[i]);
-                if(file.exists()){
+        /* If jenkinsWarFile was not set, search the other locations */
+        if (lookForJenkinsWarInDefaultDirectories == null) {
+            for (String fileName : DEFAULT_PATH_FOR_WAR_FILE) {
+                File file = new File(fileName);
+                if (file.exists()) {
                     lookForJenkinsWarInDefaultDirectories = file;
+                    break; // Use the first war file we find
                 }
             }
-            if(lookForJenkinsWarInDefaultDirectories==null){
-                logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
-                return null;
-            }
-            lookForJenkinsWarInDefaultDirectories = jenkinsWarFile;
-
         }
 
+        if (lookForJenkinsWarInDefaultDirectories==null) {
+            logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
+            return null;
+        }
 
         String version = getAttributeFromManifest(lookForJenkinsWarInDefaultDirectories, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
