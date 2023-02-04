@@ -238,7 +238,7 @@ public class PluginManager implements Closeable {
             downloadPlugins(pluginsToBeDownloaded);
         }
         StringBuffer urlList = new StringBuffer();
-        for (String plugin : effectivePlugins.keySet()) {
+        for ( var plugin : effectivePlugins.entrySet()) {
             String pluginUrl = effectivePlugins.get(plugin).getUrl();
             urlList.append(pluginUrl);
             urlList.append(System.lineSeparator());
