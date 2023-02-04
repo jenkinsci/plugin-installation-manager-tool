@@ -36,8 +36,7 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.url = url;
-        LogOutput testLogger = new LogOutput(true);
-        testLogger.printVerboseMessage("The url is : " + url);
+
         this.dependencies = new ArrayList<>();
         this.parent = this;
         this.groupId = groupId;

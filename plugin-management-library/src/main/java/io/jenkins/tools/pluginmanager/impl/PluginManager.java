@@ -14,14 +14,8 @@ import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
 import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
+
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,6 +51,7 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -151,7 +146,7 @@ public class PluginManager implements Closeable {
         Properties properties = new Properties();
         try (InputStream propertiesStream = this.getClass().getClassLoader().getResourceAsStream("version.properties")) {
             properties.load(propertiesStream);
-            userAgentInformation =  "JenkinsPluginManager/" + properties.getProperty("project.version");
+            userAgentInformation = "JenkinsPluginManager/" + properties.getProperty("project.version");
         } catch (IOException e) {
             logVerbose("Not able to load/detect version.properties file");
         }
@@ -167,16 +162,16 @@ public class PluginManager implements Closeable {
     private HttpClient getHttpClient() {
         if (httpClient == null) {
             RequestConfig globalConfig = RequestConfig.custom()
-                .setCookieSpec(CookieSpecs.STANDARD) // use modern cookie policy (RFC 6265)
-                .build();
+                    .setCookieSpec(CookieSpecs.STANDARD) // use modern cookie policy (RFC 6265)
+                    .build();
             httpClient = HttpClients.custom().useSystemProperties()
-                // there is a more complex retry handling in downloadToFile(...) on the whole flow
-                // this affects only the single request
-                .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
-                .setConnectionManager(new PoolingHttpClientConnectionManager())
-                .setUserAgent(userAgentInformation)
-                .setDefaultRequestConfig(globalConfig)
-                .build();
+                    // there is a more complex retry handling in downloadToFile(...) on the whole flow
+                    // this affects only the single request
+                    .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
+                    .setConnectionManager(new PoolingHttpClientConnectionManager())
+                    .setUserAgent(userAgentInformation)
+                    .setDefaultRequestConfig(globalConfig)
+                    .build();
         }
         return httpClient;
     }
@@ -242,7 +237,16 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
+        StringBuffer urlList = new StringBuffer();
+        for (String plugin : effectivePlugins.keySet()) {
+            String pluginUrl = effectivePlugins.get(plugin).getUrl();
+            urlList.append(pluginUrl);
+            urlList.append(System.lineSeparator());
+        }
+        logMessage(urlList.toString());
         logMessage("Done");
+
+
     }
 
     void createPluginDir(boolean failIfExists) {
@@ -361,7 +365,8 @@ public class PluginManager implements Closeable {
 
     /**
      * Generate plugin list in the format requested by the user and output to standard out.
-     * @param plugins plugins to include in the list
+     *
+     * @param plugins         plugins to include in the list
      * @param stdOutConverter if the output format is STDOUT, use the supplied converter.
      */
     public void outputPluginList(@NonNull List<Plugin> plugins, @NonNull Supplier<PluginOutputConverter> stdOutConverter) {
@@ -370,7 +375,8 @@ public class PluginManager implements Closeable {
 
     /**
      * Generate plugin list in the format requested by the user.
-     * @param plugins plugins to include in the list
+     *
+     * @param plugins         plugins to include in the list
      * @param stdOutConverter if the output format is STDOUT, use the supplied converter.
      */
     private String formatPluginsList(@NonNull List<Plugin> plugins, @NonNull Supplier<PluginOutputConverter> stdOutConverter) {
@@ -464,7 +470,7 @@ public class PluginManager implements Closeable {
                     logMessage(plugin.getSecurityWarnings().stream()
                             .map(warning -> String.format("%s (%s): %s %s %s", pluginName,
                                     plugin.getVersion(), warning.getId(), warning.getMessage(), warning.getUrl())).
-                                    collect(Collectors.joining("\n")));
+                            collect(Collectors.joining("\n")));
                 }
             }
         }
@@ -473,6 +479,7 @@ public class PluginManager implements Closeable {
     /**
      * Takes a list of plugins and returns the latest version
      * Returns existing version if no update
+     *
      * @param plugins updated list of plugins
      * @return latest plugin versions
      */
@@ -541,7 +548,7 @@ public class PluginManager implements Closeable {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
-     * @param jenkinsVersion the current version of Jenkins
+     * @param jenkinsVersion        the current version of Jenkins
      * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
      */
     public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded) {
@@ -552,15 +559,15 @@ public class PluginManager implements Closeable {
      * Checks that required Jenkins version of all plugins to be downloaded is less than the Jenkins version in the
      * user specified Jenkins war file
      *
-     * @param jenkinsVersion the current version of Jenkins
+     * @param jenkinsVersion        the current version of Jenkins
      * @param pluginsToBeDownloaded list of plugins to check version compatibility with the Jenkins version
-     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     * @param exceptions            if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
      */
     public void checkVersionCompatibility(VersionNumber jenkinsVersion, List<Plugin> pluginsToBeDownloaded, @CheckForNull List<Exception> exceptions) {
         if (jenkinsVersion != null && !StringUtils.isEmpty(jenkinsVersion.toString())) {
             for (Plugin p : pluginsToBeDownloaded) {
                 final VersionNumber pluginJenkinsVersion = p.getJenkinsVersion();
-                if (pluginJenkinsVersion!= null) {
+                if (pluginJenkinsVersion != null) {
                     if (pluginJenkinsVersion.isNewerThan(jenkinsVersion)) {
                         VersionCompatibilityException exception = new VersionCompatibilityException(
                                 String.format("%n%s (%s) requires a greater version of Jenkins (%s) than %s",
@@ -675,7 +682,7 @@ public class PluginManager implements Closeable {
      * versions of the same plugin, the higher version required will replace the lower version dependency
      *
      * @param requestedPlugins list of plugins to find all dependencies for
-     * @param exceptions if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
+     * @param exceptions       if not null populated with the list of exception which occurred during this call, otherwise the exception is not caught
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins, @CheckForNull List<Exception> exceptions) {
@@ -779,8 +786,8 @@ public class PluginManager implements Closeable {
      * Gets the json object at the given url
      *
      * @param urlString string representing the url from which to get the json object
-     * @deprecated see {@link #getJson(URL, String)}
      * @return JSON object from data provided by the URL at urlString
+     * @deprecated see {@link #getJson(URL, String)}
      */
     @Deprecated
     public JSONObject getJson(String urlString) {
@@ -801,7 +808,7 @@ public class PluginManager implements Closeable {
     /**
      * Retrieves JSON from a URL and caches it
      *
-     * @param url the url to retrieve json from
+     * @param url      the url to retrieve json from
      * @param cacheKey a key to use for caching i.e. 'update-center'
      * @return the JSON
      */
@@ -817,11 +824,11 @@ public class PluginManager implements Closeable {
         try {
             if (url.getProtocol().equalsIgnoreCase("http") || url.getProtocol().equalsIgnoreCase("https")) {
                 response = getViaHttpWithResponseHandler(
-                  url.toString(),
-                  new BasicResponseHandler(),
-                  cacheKey,
-                  e -> String.format("Unable to retrieve JSON from %s: %s", url, e.getMessage()),
-                  3);
+                        url.toString(),
+                        new BasicResponseHandler(),
+                        cacheKey,
+                        e -> String.format("Unable to retrieve JSON from %s: %s", url, e.getMessage()),
+                        3);
             } else {
                 response = IOUtils.toString(url, StandardCharsets.UTF_8);
             }
@@ -836,6 +843,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Gets update center json, which is later used to determine plugin dependencies and security warnings
+     *
      * @param jenkinsVersion the version of Jenkins to use
      */
     public void getUCJson(VersionNumber jenkinsVersion) {
@@ -904,7 +912,7 @@ public class PluginManager implements Closeable {
      * Retrieves the latest available version of a specified plugin.
      *
      * @param dependendantPlugin the plugin depending on the given plugin
-     * @param pluginName the name of the plugin
+     * @param pluginName         the name of the plugin
      * @return latest version of the specified plugin
      * @throws IllegalStateException Update Center JSON has not been retrieved yet
      */
@@ -1127,7 +1135,7 @@ public class PluginManager implements Closeable {
                         }
                     } else {
                         logVerbose(String.format("Skipping dependency %s:%s and its sub-dependencies, because there is a higher version defined on the top level - %s:%s",
-                                        p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
+                                p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion()));
                         continue;
                     }
                 } else if (useLatestSpecified && dependency.isLatest() || useLatestAll) {
@@ -1140,9 +1148,9 @@ public class PluginManager implements Closeable {
                             throw e;
                         }
                         logVerbose(String.format(
-                                    "%s unable to find optional plugin %s in update center %s. " +
-                                    "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
-                                    dependencyName, jenkinsUcLatest));
+                                "%s unable to find optional plugin %s in update center %s. " +
+                                        "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
+                                dependencyName, jenkinsUcLatest));
                     }
                 }
 
@@ -1217,7 +1225,7 @@ public class PluginManager implements Closeable {
             pluginVersion = Plugin.LATEST;
         }
 
-        String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
+        String jenkinsUcDownload = System.getenv("JENKINS_UC_DOWNLOAD");
         String jenkinsUcDownloadUrl = System.getenv("JENKINS_UC_DOWNLOAD_URL");
         if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
@@ -1278,7 +1286,7 @@ public class PluginManager implements Closeable {
 
         boolean success = true;
 
-        if(urlString.startsWith("http://") || urlString.startsWith("https://")){
+        if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
             if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
@@ -1287,7 +1295,7 @@ public class PluginManager implements Closeable {
                 urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
             }
-        } else if (urlString.startsWith("file://")){
+        } else if (urlString.startsWith("file://")) {
             success = copyLocalFile(urlString, plugin, pluginFile);
         }
 
@@ -1315,14 +1323,14 @@ public class PluginManager implements Closeable {
     /**
      * Downloads a plugin from HTTP(s) location
      *
-     * @param pluginUrl     location to download plugin to.
-     * @param plugin        to download
-     * @param pluginFile    location to store the plugin file.
-     *                      If file already exists, it will be overrided.
-     * @param maxRetries   Maximum number of times to retry the download before failing
-     * @return              boolean signifying if plugin was successfully downloaded
+     * @param pluginUrl  location to download plugin to.
+     * @param plugin     to download
+     * @param pluginFile location to store the plugin file.
+     *                   If file already exists, it will be overrided.
+     * @param maxRetries Maximum number of times to retry the download before failing
+     * @return boolean signifying if plugin was successfully downloaded
      */
-    protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
+    protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries) {
         try {
             getViaHttpWithResponseHandler(pluginUrl, new FileDownloadResponseHandler(pluginFile), plugin.getName(),
                     e -> String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s", pluginUrl,
@@ -1388,18 +1396,18 @@ public class PluginManager implements Closeable {
     /**
      * Downloads a plugin from local folder location
      *
-     * @param pluginUrl location to download plugin to.
-     * @param plugin   to download
-     * @param pluginFile    location to store the plugin file.
-     *                      If file already exists, it will be overrided.
+     * @param pluginUrl  location to download plugin to.
+     * @param plugin     to download
+     * @param pluginFile location to store the plugin file.
+     *                   If file already exists, it will be overrided.
      * @return boolean signifying if plugin was successfully downloaded
      */
     @SuppressFBWarnings({"PATH_TRAVERSAL_IN"})
-    protected boolean copyLocalFile(String pluginUrl, Plugin plugin, File pluginFile){
+    protected boolean copyLocalFile(String pluginUrl, Plugin plugin, File pluginFile) {
         boolean success = false;
         try {
             File originFile = new File(new URI(pluginUrl));
-            if(originFile.exists()){
+            if (originFile.exists()) {
                 Files.copy(originFile.toPath(), pluginFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 success = true;
             } else {
@@ -1410,7 +1418,7 @@ public class PluginManager implements Closeable {
             logMessage("ERROR " + e.getClass().toGenericString());
 
             String message = String.format("Unable to resolve plugin URL %s, or copy plugin %s to file: %s",
-            pluginUrl, plugin.getName(), e.getMessage());
+                    pluginUrl, plugin.getName(), e.getMessage());
             logMessage(message);
             success = false;
         }
@@ -1475,6 +1483,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Gets Jenkins version using one of the available methods.
+     *
      * @return Jenkins version or {@code null} if it cannot be determined
      */
     @CheckForNull
@@ -1526,9 +1535,9 @@ public class PluginManager implements Closeable {
 
     /**
      * @param file plugin .hpi or .jpi of which to get the version
-     * @param key index key used to find the attribute in file
-     * @deprecated Use {@link ManifestTools#getAttributeFromManifest(File, String)}
+     * @param key  index key used to find the attribute in file
      * @return attribute for key as read from file
+     * @deprecated Use {@link ManifestTools#getAttributeFromManifest(File, String)}
      */
     @Deprecated
     public String getAttributeFromManifest(File file, String key) {
@@ -1726,6 +1735,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Sets the json object containing latest plugin information
+     *
      * @param latestPlugins JSONObject containing info for latest plugins
      */
     public void setLatestUcPlugins(JSONObject latestPlugins) {
@@ -1734,6 +1744,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Sets the json object containing latest experimental plugin information
+     *
      * @param experimentalUcJson JSONObject containing info for latest and experimental plugins
      */
     public void setExperimentalUcJson(JSONObject experimentalUcJson) {
@@ -1742,6 +1753,7 @@ public class PluginManager implements Closeable {
 
     /**
      * Sets the json object containing latest experimental plugin information
+     *
      * @param experimentalPlugins JSONObject containing info for latest experimental plugins
      */
     public void setExperimentalPlugins(JSONObject experimentalPlugins) {
