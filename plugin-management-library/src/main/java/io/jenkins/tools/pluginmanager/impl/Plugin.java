@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+
+import io.jenkins.tools.pluginmanager.config.LogOutput;
 import org.apache.commons.lang3.StringUtils;
 
 public class Plugin {
@@ -34,6 +36,8 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.url = url;
+        LogOutput testLogger = new LogOutput(true);
+        testLogger.printVerboseMessage("The url is : " + url);
         this.dependencies = new ArrayList<>();
         this.parent = this;
         this.groupId = groupId;
