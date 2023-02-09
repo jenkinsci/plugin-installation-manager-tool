@@ -44,6 +44,7 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 * `--plugin-file` or `-f`: (optional) Path to the plugins.txt, or plugins.yaml file, which contains a list of plugins to install. If this file does not exist, or if the file exists, but does not have a .txt or .yaml/.yml extension, then an error will be thrown. 
 * `--plugin-download-directory` or `-d`: (optional) Directory in which to install plugins. This configuration can also be made via the PLUGIN_DIR environment variable. The directory will be first deleted, then recreated. If no directory configuration is provided, the defaults are C:\ProgramData\Jenkins\Reference\Plugins if the detected operating system is Microsoft Windows, or /usr/share/jenkins/ref/plugins otherwise.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space.
+* `--clean-download-directory`: (optional) If sets, cleans the plugin download directory before plugin installation. Otherwise the tool performs plugin download and reports compatibility issues, if any.
 * `--jenkins-version`: (optional) Version of Jenkins to be used.
   If not specified, the plugin manager will try to extract it from the WAR file or other sources.
   The argument can be also set using the `JENKINS_VERSION` environment variable.
