@@ -2,6 +2,7 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
@@ -238,12 +239,16 @@ public class PluginManager implements Closeable {
             downloadPlugins(pluginsToBeDownloaded);
         }
         StringBuffer urlList = new StringBuffer();
-        for ( var plugin : effectivePlugins.entrySet()) {
-            String pluginUrl = effectivePlugins.get(plugin).getUrl();
-            urlList.append(pluginUrl);
-            urlList.append(System.lineSeparator());
+        try {
+            for (var plugin : effectivePlugins.entrySet()) {
+                String pluginUrl = effectivePlugins.get(plugin).getUrl();
+                urlList.append(pluginUrl);
+                urlList.append(System.lineSeparator());
+            }
+            logMessage(urlList.toString());
+        }catch (NullPointerException ex){
+                throw new DownloadPluginException("Ni such download");
         }
-        logMessage(urlList.toString());
         logMessage("Done");
 
 
