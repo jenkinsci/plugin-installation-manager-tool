@@ -90,19 +90,10 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean hideWarnings;
 
-    /**
-     * Deprecated, see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
-     */
     @Option(name = "--view-all-security-warnings",
             usage = "Set to true to show all plugins that have security warnings",
             handler = BooleanOptionHandler.class)
-    @Deprecated
     private boolean showAllWarnings;
-
-    @Option(name = "--hide-all-security-warnings",
-            usage = "Set to true to hide all plugins that have security warnings",
-            handler = BooleanOptionHandler.class)
-    private boolean hideAllWarnings;
 
     @Option(name = "--jenkins-update-center",
             usage = "Sets main update center; will override JENKINS_UC environment variable. If not set via CLI " +
@@ -193,7 +184,6 @@ class CliOptions {
                 .withSkipFailedPlugins(isSkipFailedPlugins())
                 .withCredentials(credentials)
                 .withHashFunction(getHashFunction())
-                .withHideAllWarnings(isHideAllWarnings())
                 .build();
     }
 
@@ -339,15 +329,6 @@ class CliOptions {
      */
     private boolean isShowAllWarnings() {
         return showAllWarnings;
-    }
-
-    /**
-     * Gets the value corresponding to if the user selected to hide security warnings for all plugins
-     *
-     * @return true if user selected CLI Option to hide warnings for all plugins
-     */
-    private boolean isHideAllWarnings() {
-        return hideAllWarnings;
     }
 
     private boolean isShowPluginsToBeDownloaded() {

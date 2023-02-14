@@ -27,7 +27,6 @@ public class Config {
     private final boolean showWarnings;
     private final boolean hideWarnings;
     private final boolean showAllWarnings;
-    private final boolean hideAllWarnings;
     private final boolean showAvailableUpdates;
     private final boolean showPluginsToBeDownloaded;
 
@@ -81,8 +80,7 @@ public class Config {
             HashFunction hashFunction,
             List<Credentials> credentials,
             Path cachePath,
-            boolean hideWarnings,
-            boolean hideAllWarnings) {
+            boolean hideWarnings) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -107,7 +105,6 @@ public class Config {
         this.cachePath = cachePath;
         this.logOutput = new LogOutput(verbose);
         this.hideWarnings = hideWarnings;
-        this.hideAllWarnings = hideAllWarnings;
     }
 
     public File getPluginDir() {
@@ -128,10 +125,6 @@ public class Config {
 
     public boolean isShowAllWarnings() {
         return showAllWarnings;
-    }
-
-    public boolean isHideAllWarnings() {
-        return hideAllWarnings;
     }
 
     public boolean isShowAvailableUpdates() {
@@ -226,7 +219,6 @@ public class Config {
         private boolean showWarnings;
         private boolean hideWarnings;
         private boolean showAllWarnings;
-        private boolean hideAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
         private boolean verbose;
@@ -271,11 +263,6 @@ public class Config {
 
         public Builder withShowAllWarnings(boolean showAllWarnings) {
             this.showAllWarnings = showAllWarnings;
-            return this;
-        }
-
-        public Builder withHideAllWarnings(boolean hideAllWarnings) {
-            this.hideAllWarnings = hideAllWarnings;
             return this;
         }
 
@@ -405,8 +392,7 @@ public class Config {
                     hashFunction,
                     credentials,
                     cachePath,
-                    hideWarnings,
-                    hideAllWarnings
+                    hideWarnings
             );
         }
 
