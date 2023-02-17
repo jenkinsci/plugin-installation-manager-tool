@@ -62,6 +62,12 @@
                 <artifactId>assertj-core</artifactId>
                 <version>3.24.2</version>
             </dependency>
+            <!-- Resolve new checks added by enforcer plugin in parent pom 1.95 -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.12.22</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     
