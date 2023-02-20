@@ -238,18 +238,10 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
-        StringBuffer urlList = new StringBuffer();
-        try {
-            for (var plugin : effectivePlugins.entrySet()) {
-                String pluginUrl = effectivePlugins.get(plugin).getUrl();
-                urlList.append(pluginUrl);
-                urlList.append(System.lineSeparator());
-            }
-            logMessage(urlList.toString());
-        }catch (NullPointerException ex){
-                throw new DownloadPluginException("Ni such download");
+        //TODO List the plugin urls as a verbose message
+        for(Plugin p : cfg.getPlugins()){
+            logOutput.printMessage(p.getUrl() + ": is the URL for : "+ p.getName());
         }
-        logMessage("Done");
 
 
     }
