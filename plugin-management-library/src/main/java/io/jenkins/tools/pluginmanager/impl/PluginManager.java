@@ -117,7 +117,7 @@ public class PluginManager implements Closeable {
 
     private static final int DEFAULT_MAX_RETRIES = 3;
     private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
-
+    //See how the cfg files work
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
         this.cfg = cfg;
@@ -238,11 +238,9 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
-        //TODO List the plugin urls as a verbose message
-        for(Plugin p : cfg.getPlugins()){
-            logOutput.printMessage(p.getUrl() + ": is the URL for : "+ p.getName());
-        }
-
+        String noPlugins = "No new plugins";
+        if(cfg.getPlugins().isEmpty())
+            logVerbose(noPlugins);
 
     }
 
