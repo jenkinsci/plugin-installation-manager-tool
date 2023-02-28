@@ -1,11 +1,11 @@
 # Contributing
 ================================
 
-### Development
+## Development
 
 Information on developing and contributing to this project.
 
-#### System Output
+## System Output
 
 **Send output to stdout**. The primary output for your command should go to stdout. Anything that is machine readable 
 should also go to stdout—this is where piping sends things by default.
@@ -15,7 +15,7 @@ are piped together, these messages are displayed to the user and not fed into th
 
 For more information on basic cli best practices see [clig.dev](https://clig.dev/)
 
-#### Building and Testing
+## Building and Testing
 
 Use maven to build and test locally.
 ```shell
