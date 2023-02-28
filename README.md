@@ -196,4 +196,4 @@ The version-pinning behavior of this plugin installer has changed compared to th
 Thanks to all our contributors! Check out our [CONTRIBUTING](CONTRIBUTING.md) file to learn how to get started with issues.
 
 * Feel free to pick a task from the [Issues](https://github.com/jenkinsci/plugin-installation-manager-tool/issues?q=is%3Aissue+is%3Aopen+) and get started.
-* [Open an issue](https://github.com/jenkinsci/plugin-installation-manager-tool/issues/new/choose): we aim to respond to all issues within 48 hours.
+* [Open an issue](https://github.com/jenkinsci/plugin-installation-manager-tool/issues/new/choose).
