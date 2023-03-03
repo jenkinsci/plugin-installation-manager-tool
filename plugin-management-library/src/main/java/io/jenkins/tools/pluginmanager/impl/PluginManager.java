@@ -459,9 +459,13 @@ public class PluginManager implements Closeable {
         // NOTE: By default, the plugin installation manager tool will show security warnings.
         // see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
         if (!cfg.isHideWarnings()) {
-            logMessage("\nSecurity warnings:");
+            boolean headingDisplayed = false;
             for (Plugin plugin : plugins) {
                 if (warningExists(plugin)) {
+                    if (!headingDisplayed) {
+                        logMessage("\nSecurity warnings:");
+                        headingDisplayed = true;
+                    }
                     String pluginName = plugin.getName();
                     logMessage(plugin.getSecurityWarnings().stream()
                             .map(warning -> String.format("%s (%s): %s %s %s", pluginName,
