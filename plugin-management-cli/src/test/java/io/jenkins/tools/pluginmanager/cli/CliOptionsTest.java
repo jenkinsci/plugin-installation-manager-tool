@@ -82,6 +82,7 @@ public class CliOptionsTest {
         assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
         assertThat(cfg.isShowAllWarnings()).isFalse();
         assertThat(cfg.isShowWarnings()).isFalse();
+        assertThat(cfg.isHideWarnings()).isFalse();
         assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
@@ -252,6 +253,13 @@ public class CliOptionsTest {
         Config cfg = options.setup();
         assertThat(cfg.isShowAllWarnings()).isTrue();
         assertThat(cfg.isShowWarnings()).isTrue();
+    }
+
+    @Test
+    public void setupHideSecurityWarningsTest() throws CmdLineException {
+        parser.parseArgument("--hide-security-warnings");
+        Config cfg = options.setup();
+        assertThat(cfg.isHideWarnings()).isTrue();
     }
 
     @Test
