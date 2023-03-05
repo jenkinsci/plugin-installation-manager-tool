@@ -5,12 +5,12 @@
     <parent>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>jenkins</artifactId>
-        <version>1.94</version>
+        <version>1.95</version>
         <relativePath />
     </parent>
 
     <properties>
-        <revision>2.12.10</revision>
+        <revision>2.12.12</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/plugin-installation-manager-tool</gitHubRepo>
         <tagNameFormat>@{project.version}</tagNameFormat>
@@ -61,6 +61,12 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>3.24.2</version>
+            </dependency>
+            <!-- Resolve new checks added by enforcer plugin in parent pom 1.95 -->
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.14.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
