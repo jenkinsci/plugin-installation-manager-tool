@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErr;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -56,13 +57,29 @@ public class PluginManagerIntegrationTest {
     }
 
     public PluginManager initPluginManager(Configurator configurator) throws IOException {
+        return initPluginManagerWithSecurityWarning(false, configurator);
+    }
+
+    public PluginManager initPluginManagerWithSecurityWarning(boolean showSecurityWarnings, Configurator configurator) throws IOException {
         Config.Builder configBuilder = Config.builder()
                 .withJenkinsWar(jenkinsWar.getAbsolutePath())
                 .withPluginDir(pluginsDir)
-                .withShowAvailableUpdates(true)
                 .withIsVerbose(true)
                 .withDoDownload(false)
                 .withCachePath(cacheDir.toPath());
+        if (showSecurityWarnings) {
+            // if showing security warnings, do not show available updates
+            configBuilder
+                .withHideWarnings(false)
+                .withShowWarnings(true)
+                .withShowAvailableUpdates(false);
+        } else {
+            // if showing available updates, do not show security warnings
+            configBuilder
+                .withHideWarnings(true)
+                .withShowWarnings(false)
+                .withShowAvailableUpdates(true);
+        }
         configurator.configure(configBuilder);
         Config config = configBuilder.build();
 
@@ -131,6 +148,28 @@ public class PluginManagerIntegrationTest {
         String output = tapSystemOut(
                 () -> pluginManager.start(false));
         assertThat(output).doesNotContain("uithemes");
+    }
+
+    @Test
+    public void securityWarningsShownByDefaultTest() throws Exception {
+        Plugin pluginScriptSecurityWithSecurityWarning = new Plugin("script-security", "1.30", null, null);
+        PluginManager pluginManager = initPluginManagerWithSecurityWarning(true,
+                configBuilder -> configBuilder.withPlugins(Arrays.asList(pluginScriptSecurityWithSecurityWarning)));
+
+        String output = tapSystemErr(
+                () -> pluginManager.start(false));
+        assertThat(output).contains("Security warnings");
+    }
+
+    @Test
+    public void securityWarningsNotShownTest() throws Exception {
+        Plugin pluginScriptSecurityWithSecurityWarning = new Plugin("script-security", "1.30", null, null);
+        PluginManager pluginManager = initPluginManagerWithSecurityWarning(false,
+                configBuilder -> configBuilder.withPlugins(Arrays.asList(pluginScriptSecurityWithSecurityWarning)));
+
+        String output = tapSystemErr(
+                () -> pluginManager.start(false));
+        assertThat(output).doesNotContain("Security warnings");
     }
 
     @Test

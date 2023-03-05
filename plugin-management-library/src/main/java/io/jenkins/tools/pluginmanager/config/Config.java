@@ -25,6 +25,7 @@ public class Config {
     private final File pluginDir;
     private final boolean cleanPluginDir;
     private final boolean showWarnings;
+    private final boolean hideWarnings;
     private final boolean showAllWarnings;
     private final boolean showAvailableUpdates;
     private final boolean showPluginsToBeDownloaded;
@@ -78,7 +79,8 @@ public class Config {
             OutputFormat outputFormat,
             HashFunction hashFunction,
             List<Credentials> credentials,
-            Path cachePath) {
+            Path cachePath,
+            boolean hideWarnings) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -102,6 +104,7 @@ public class Config {
         this.hashFunction = hashFunction;
         this.cachePath = cachePath;
         this.logOutput = new LogOutput(verbose);
+        this.hideWarnings = hideWarnings;
     }
 
     public File getPluginDir() {
@@ -114,6 +117,10 @@ public class Config {
 
     public boolean isShowWarnings() {
         return showWarnings;
+    }
+
+    public boolean isHideWarnings() {
+        return hideWarnings;
     }
 
     public boolean isShowAllWarnings() {
@@ -210,6 +217,7 @@ public class Config {
         private File pluginDir;
         private boolean cleanPluginDir;
         private boolean showWarnings;
+        private boolean hideWarnings;
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
@@ -245,6 +253,11 @@ public class Config {
 
         public Builder withShowWarnings(boolean showWarnings) {
             this.showWarnings = showWarnings;
+            return this;
+        }
+
+        public Builder withHideWarnings(boolean hideWarnings) {
+            this.hideWarnings = hideWarnings;
             return this;
         }
 
@@ -378,7 +391,8 @@ public class Config {
                     outputFormat,
                     hashFunction,
                     credentials,
-                    cachePath
+                    cachePath,
+                    hideWarnings
             );
         }
 
