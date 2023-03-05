@@ -2,7 +2,6 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
@@ -15,7 +14,6 @@ import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
 import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -52,7 +50,6 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
