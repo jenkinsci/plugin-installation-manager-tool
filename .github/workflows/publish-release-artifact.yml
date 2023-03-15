@@ -33,11 +33,9 @@ jobs:
             -O $FILE_NAME-$PROJECT_VERSION.jar
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        uses: actions/upload-asset@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }} 
-          asset_path: ./${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
-          asset_name: ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
-          asset_content_type: application/java-archive
+          path: ./${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
+          name: ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
