@@ -1,0 +1,4 @@
+plugins:
+  - artifactId: git
+  - artifactId: junit
+  - artifactId: javadoc
