@@ -167,7 +167,11 @@ public class PluginListParser {
         if (pluginInfo.length >= 3) {
             if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
-            } else {
+            }
+            else if(isHpi(pluginUrl)){
+                System.err.println(pluginName + " was supplied with a .hpi file");
+            }
+            else {
                 System.err.println("Invalid URL " + pluginInfo[2] + " , will ignore");
             }
         }
@@ -181,5 +185,12 @@ public class PluginListParser {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static boolean isHpi(String url){
+        if(url.endsWith("hpi")){
+            return true;
+        }
+        return false;
     }
 }
