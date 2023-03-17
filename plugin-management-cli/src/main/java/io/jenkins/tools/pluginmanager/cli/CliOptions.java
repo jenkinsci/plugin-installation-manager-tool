@@ -274,7 +274,7 @@ class CliOptions {
         PluginListParser pluginParser = new PluginListParser(verbose);
         List<Plugin> requestedPlugins = new ArrayList<>(pluginParser.parsePluginsFromCliOption(plugins));
         for(Plugin plugin:requestedPlugins){
-            logVerbose(plugin.getName());
+            System.out.println(plugin.getName());
         }
 
         File pluginFile = getPluginFile();
