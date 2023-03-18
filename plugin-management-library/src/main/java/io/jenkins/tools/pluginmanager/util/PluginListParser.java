@@ -188,9 +188,14 @@ public class PluginListParser {
     }
 
     public static boolean isHpi(String url){
-        if(url.endsWith("hpi")){
+        try{
+            if(url.endsWith("hpi")){
             return true;
         }
         return false;
+    }catch(NullPointerException notAnHPI){
+        return false;
+    }
+        
     }
 }
