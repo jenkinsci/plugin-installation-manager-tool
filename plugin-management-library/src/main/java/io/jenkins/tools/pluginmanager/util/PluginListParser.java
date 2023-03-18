@@ -107,6 +107,9 @@ public class PluginListParser {
                         if (!isURL(url)) {
                             url = null;
                         }
+                        else if(isHpi(url)){
+                            System.out.println(url+" is a local .hpi file");
+                        }
                         plugin = new Plugin(name, version, url, groupId);
                     }
                     pluginsFromYaml.add(plugin);
