@@ -169,7 +169,7 @@ public class PluginListParser {
                 pluginUrl = pluginInfo[2];
             }
             else if(isHpi(pluginUrl)){
-                System.err.println(pluginName + " was supplied with a .hpi file");
+                System.out.println(pluginName + " was supplied with a .hpi file");
             }
             else {
                 System.err.println("Invalid URL " + pluginInfo[2] + " , will ignore");
@@ -193,9 +193,8 @@ public class PluginListParser {
             return true;
         }
         return false;
-    }catch(NullPointerException notAnHPI){
+    }catch(Exception notAnHPI){
         return false;
     }
-        
     }
 }
