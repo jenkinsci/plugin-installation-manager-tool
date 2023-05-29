@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>jenkins</artifactId>
-        <version>1.98</version>
+        <version>1.99</version>
         <relativePath />
     </parent>
 
@@ -74,7 +74,7 @@
     <dependencies>
         <dependency>
             <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
+            <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
