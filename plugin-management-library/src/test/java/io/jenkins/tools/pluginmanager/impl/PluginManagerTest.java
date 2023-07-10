@@ -363,10 +363,22 @@ public class PluginManagerTest {
                         "plugin2 2.0\n\n");
 
         assertThat(stdOutput).isEqualTo("plugins:\n" +
-                "- artifactId: \"installed2\"\n" +
+                "- artifactId: \"bundled1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"bundled2\"\n" +
                 "  source:\n" +
                 "    version: \"2.0\"\n" +
-                "- artifactId: \"bundled2\"\n" +
+                "- artifactId: \"dependency1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0.0\"\n" +
+                "- artifactId: \"dependency2\"\n" +
+                "  source:\n" +
+                "    version: \"1.0.0\"\n" +
+                "- artifactId: \"installed1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"installed2\"\n" +
                 "  source:\n" +
                 "    version: \"2.0\"\n" +
                 "- artifactId: \"plugin1\"\n" +
@@ -375,18 +387,7 @@ public class PluginManagerTest {
                 "- artifactId: \"plugin2\"\n" +
                 "  source:\n" +
                 "    version: \"2.0\"\n" +
-                "- artifactId: \"bundled1\"\n" +
-                "  source:\n" +
-                "    version: \"1.0\"\n" +
-                "- artifactId: \"installed1\"\n" +
-                "  source:\n" +
-                "    version: \"1.0\"\n" +
-                "- artifactId: \"dependency2\"\n" +
-                "  source:\n" +
-                "    version: \"1.0.0\"\n" +
-                "- artifactId: \"dependency1\"\n" +
-                "  source:\n" +
-                "    version: \"1.0.0\"\n\n");
+                "\n");
     }
 
     @Test

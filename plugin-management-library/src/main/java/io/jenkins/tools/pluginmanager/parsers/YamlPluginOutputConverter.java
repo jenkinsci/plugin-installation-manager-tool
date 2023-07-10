@@ -12,6 +12,8 @@ import io.jenkins.tools.pluginmanager.util.Source;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Comparator.comparing;
+
 public class YamlPluginOutputConverter implements PluginOutputConverter {
     @Override
     public String convert(List<Plugin> plugins) {
@@ -28,6 +30,7 @@ public class YamlPluginOutputConverter implements PluginOutputConverter {
 
     private Plugins mapToOutputFormat(List<Plugin> plugins) {
         List<PluginInfo> convertedPlugins = plugins.stream()
+                .sorted(comparing(Plugin::getName).thenComparing(Plugin::getVersion))
                 .map(this::toPluginHolder)
                 .collect(Collectors.toList());
 
