@@ -33,9 +33,6 @@ jobs:
             -O $FILE_NAME-$PROJECT_VERSION.jar
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: actions/upload-asset@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          path: ./${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
-          name: ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
+        run: gh release upload ${{ steps.set-version.outputs.project-version }} ./${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
