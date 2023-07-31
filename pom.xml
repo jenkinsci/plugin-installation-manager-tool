@@ -156,7 +156,7 @@
                             <excludes>
                                 <exclude>**/Messages.class</exclude>
                                 <!-- https://github.com/HtmlUnit/htmlunit-cssparser/issues/4 -->
-                                <exclude>com/gargoylesoftware/**</exclude>
+                                <exclude>org/htmlunit/**</exclude>
                             </excludes>
                         </configuration>
                         <executions>
