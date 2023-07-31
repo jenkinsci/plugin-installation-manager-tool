@@ -21,9 +21,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
@@ -56,9 +56,6 @@ public class PluginManagerTest {
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
-
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Before
     public void setUp() throws IOException {
@@ -1291,10 +1288,6 @@ public class PluginManagerTest {
         String otherURL = dirName(cfg.getJenkinsUc().toString()) +
                 "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertThat(pm.getPluginDownloadUrl(pluginOtherVersion)).isEqualTo(otherURL);
-
-        environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://server.com/jenkins-plugins");
-        assertThat(pm.getPluginDownloadUrl(pluginOtherVersion))
-                .isEqualTo("https://server.com/jenkins-plugins/pluginName/otherversion/pluginName.hpi");
     }
 
     @Test
@@ -1317,6 +1310,7 @@ public class PluginManagerTest {
     /**
      * Test configuring custom update center mirror configuration (i.e. Artifactory).
      */
+    @Ignore("setting environment variables is not supported in Java 17")
     @Test
     public void getDownloadPluginUrlCustomUcUrls() throws IOException {
         Config config = Config.builder()
@@ -1328,7 +1322,7 @@ public class PluginManagerTest {
                 .withJenkinsPluginInfo(new URL("https://private-mirror.com/jenkins-updated-center/current/plugin-versions.json"))
                 .build();
 
-        environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
+        //environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
 
         PluginManager pluginManager = new PluginManager(config);
 

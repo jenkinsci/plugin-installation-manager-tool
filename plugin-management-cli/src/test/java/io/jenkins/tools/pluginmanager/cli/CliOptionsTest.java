@@ -23,7 +23,6 @@ import org.kohsuke.args4j.CmdLineParser;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.IOUtils.toInputStream;
@@ -71,12 +70,7 @@ public class CliOptionsTest {
     public void setupDefaultsTest() throws Exception {
         parser.parseArgument();
 
-        Config cfg = withEnvironmentVariable("JENKINS_UC", "")
-            .and("JENKINS_UC_EXPERIMENTAL", "")
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", "")
-            .and("JENKINS_PLUGIN_INFO", "")
-            .and("JENKINS_UC_HASH_FUNCTION", "")
-            .execute(options::setup);
+        Config cfg = options.setup();
 
         assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
@@ -215,36 +209,12 @@ public class CliOptionsTest {
                 "--jenkins-incrementals-repo-mirror", incrementalsCli,
                 "--jenkins-plugin-info", pluginInfoCli);
 
-        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
-            .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
-            .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(options::setup);
+        Config cfg = options.setup();
 
-        // Cli options should override environment variables
         assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
-    }
-
-    @Test
-    public void setupUpdateCenterEnvVarTest() throws Exception {
-        String ucEnvVar = "https://updates.jenkins.io/env";
-        String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
-        String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
-        String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
-
-        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
-            .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
-            .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(options::setup);
-
-        assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar + "/update-center.json");
-        assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar + "/update-center.json");
-        assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
-        assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
     }
 
     @Test
