@@ -216,7 +216,6 @@ public class CliOptionsTest {
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
     }
-
     @Test
     public void setupSecurityWarningsTest() throws CmdLineException {
         parser.parseArgument("--view-all-security-warnings", "--view-security-warnings");

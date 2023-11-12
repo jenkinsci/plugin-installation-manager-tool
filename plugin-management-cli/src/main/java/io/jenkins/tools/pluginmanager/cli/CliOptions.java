@@ -269,11 +269,14 @@ class CliOptions {
      *
      * @return list of plugins representing user-specified input
      */
+
+   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "URLCONNECTION_SSRF_FD"}, justification = "User provided values for running the program.")
     private List<Plugin> getPlugins() {
         PluginListParser pluginParser = new PluginListParser(verbose);
         List<Plugin> requestedPlugins = new ArrayList<>(pluginParser.parsePluginsFromCliOption(plugins));
 
         File pluginFile = getPluginFile();
+
         if (pluginFile != null) {
             if (isFileExtension(pluginFile, "yaml", "yml")) {
                 requestedPlugins.addAll(pluginParser.parsePluginYamlFile(pluginFile));
@@ -283,7 +286,27 @@ class CliOptions {
                 throw new PluginInputException("Unknown file type, file must have .yaml/.yml or .txt extension");
             }
         }
-        return requestedPlugins;
+         List<String> pluginNames = new ArrayList<>();
+
+         File dr = new File(String.valueOf(pluginDir));
+
+         File[] directoryListing = dr.listFiles();
+            if (directoryListing != null) {
+                for (File child : directoryListing) {
+                    pluginNames.add(child.getName());
+                }
+            }
+
+         for(Plugin plugin: requestedPlugins){
+            for(String names:pluginNames) {
+                if ( names.indexOf( plugin.getName() )!= -1) {
+                       logVerbose("Plugin " + plugin.getName() + " is already present in the dir");
+                }
+            }
+        }
+
+         return requestedPlugins;
+
     }
 
     /**
