@@ -23,21 +23,21 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 Download the latest jenkins-plugin-manager jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
 
 ```bash
-java -jar jenkins-plugin-manager-*.jar --war /your/path/to/jenkins.war --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar jenkins-plugin-manager-*.jar --war /your/path/to/jenkins.war --plugin-download-directory /path/where/to/download/plugin --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 Alternatively, build and run the plugin manager yourself from source:
 
 ```bash
 mvn clean install 
-java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-download-directory /path/where/to/download/plugin --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins) the plugin manager can be invoked inside the running container via the bundled `jenkins-plugin-cli` shell script:
 
 ```bash
 docker exec -it <container_name> /bin/bash
-jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+jenkins-plugin-cli --plugin-download-directory /path/where/to/download/plugin --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 ## CLI Options
