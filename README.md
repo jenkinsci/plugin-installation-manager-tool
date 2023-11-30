@@ -38,7 +38,8 @@ If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins) th
 ```bash
 docker cp /your/path/to/plugins.txt <container_name>:/tmp/plugins.txt
 docker exec -it <container_name> /bin/bash
-jenkins-plugin-cli --plugin-download-directory /your/path/to/plugins/ --plugin-file /tmp/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+jenkins-plugin-cli --plugin-file /tmp/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+cp -r -p /usr/share/jenkins/ref/plugins/. /var/jenkins_home/plugins/.
 exit
 ```
 
