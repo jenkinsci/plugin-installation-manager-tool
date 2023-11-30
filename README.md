@@ -36,8 +36,10 @@ java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/
 If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins) the plugin manager can be invoked inside the running container via the bundled `jenkins-plugin-cli` shell script:
 
 ```bash
+docker cp /your/path/to/plugins.txt <container_name>:/tmp/plugins.txt
 docker exec -it <container_name> /bin/bash
-jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+jenkins-plugin-cli --plugin-download-directory /your/path/to/plugins/ --plugin-file /tmp/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+exit
 ```
 
 ## CLI Options
