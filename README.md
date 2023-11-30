@@ -30,7 +30,7 @@ Alternatively, build and run the plugin manager yourself from source:
 
 ```bash
 mvn clean install 
-java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-download-directory /your/path/to/plugins/ --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins) the plugin manager can be invoked inside the running container via the bundled `jenkins-plugin-cli` shell script:
