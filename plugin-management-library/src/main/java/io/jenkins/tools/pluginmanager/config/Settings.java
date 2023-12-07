@@ -50,7 +50,7 @@ public class Settings {
             DEFAULT_WAR = "C:\\ProgramData\\Jenkins\\jenkins.war";
             DEFAULT_PLUGIN_DIR_LOCATION = "C:\\ProgramData\\Jenkins\\Reference\\Plugins";
         } else {
-            DEFAULT_WAR = "/usr/share/jenkins/jenkins.war";
+            DEFAULT_WAR = "/usr/share/java/jenkins.war";
             DEFAULT_PLUGIN_DIR_LOCATION = "/usr/share/jenkins/ref/plugins";
         }
     }
