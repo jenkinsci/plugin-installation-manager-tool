@@ -13,6 +13,10 @@ import org.kohsuke.args4j.ParserProperties;
 
 public class Main {
     @SuppressFBWarnings("DM_EXIT")
+    /*  The @SuppressFBWarnings("DM_EXIT") annotation is used to
+        suppress FindBugs warnings related to direct use of System.exit().
+        Since the purpose of its usage is deliberate by the developer.
+    */
     public static void main(String[] args) throws IOException {
         CliOptions options = new CliOptions();
         ParserProperties parserProperties = ParserProperties.defaults().withUsageWidth(150);
