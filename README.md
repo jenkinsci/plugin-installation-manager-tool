@@ -51,7 +51,7 @@ exit
 * `--jenkins-version`: (optional) Version of Jenkins to be used.
   If not specified, the plugin manager will try to extract it from the WAR file or other sources.
   The argument can be also set using the `JENKINS_VERSION` environment variable.
-* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
+* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, it will default to a specific location based on user's OS. In case of Windows, it will default to C:\ProgramData\Jenkins\jenkins.war and in case of OS other than Windows, it will default to /usr/share/java/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--list` or `-l`: (optional) Lists plugin names and versions of: installed plugins (plugins that already exist in the plugin directory), bundled plugins (non-detached plugins that exist in the war file), plugins that will be downloaded (highest required versions of the requested plugins and dependencies that are not already installed), and the effective plugin set (the highest versions of all plugins that are already installed or will be installed)
 * `--verbose`: (optional) Show additional information about plugin dependencies and the download process
 * `--hide-security-warnings`: (optional) Hide if any of the user specified plugins have security warnings
