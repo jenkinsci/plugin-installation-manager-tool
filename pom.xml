@@ -10,7 +10,7 @@
     </parent>
 
     <properties>
-        <revision>2.12.14</revision>
+        <revision>2.12.15</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/plugin-installation-manager-tool</gitHubRepo>
         <tagNameFormat>@{project.version}</tagNameFormat>
