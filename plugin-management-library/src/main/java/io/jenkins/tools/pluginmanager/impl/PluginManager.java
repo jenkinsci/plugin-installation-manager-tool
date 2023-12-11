@@ -242,6 +242,18 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
+        if(cfg.isSkipBroken()){
+            List<Plugin> failedPlugins = getFailedPlugins();
+            if(failedPlugins.isEmpty()){
+                System.out.println("No plugin is skipped");
+            }
+            else{
+                System.out.println("Following plugins are skipped due to failure:");
+                for(Plugin failedPlugin: failedPlugins){
+                    System.out.println(failedPlugin.getName());
+                }
+            }
+        }
         logMessage("Done");
     }
 
