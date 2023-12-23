@@ -14,14 +14,17 @@ import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
 import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -90,6 +93,8 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossi
 public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
     private final List<Plugin> failedPlugins;
+    private final Path pluginFilePath;
+    private File pluginLockFile;
     /**
      * Directory where the plugins will be downloaded
      */
@@ -126,6 +131,7 @@ public class PluginManager implements Closeable {
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         logOutput = cfg.getLogOutput();
+        pluginFilePath = cfg.getPluginFilePath();
         pluginDir = cfg.getPluginDir();
         jenkinsVersion = cfg.getJenkinsVersion();
         final String warArg = cfg.getJenkinsWar();
@@ -198,6 +204,8 @@ public class PluginManager implements Closeable {
      * @since TODO
      */
     public void start(boolean downloadUc) {
+        //creating a plugin-lock.txt file if the --plugin-file option is passed
+        createPluginLockFile();
         if (cfg.isCleanPluginDir() && pluginDir.exists()) {
             try {
                 logVerbose("Cleaning up the target plugin directory: " + pluginDir);
@@ -234,6 +242,8 @@ public class PluginManager implements Closeable {
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
+        // Writing to plugin lock file
+        writePluginLockFile(pluginsToBeDownloaded);
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
         if (!exceptions.isEmpty()) {
@@ -243,6 +253,31 @@ public class PluginManager implements Closeable {
             downloadPlugins(pluginsToBeDownloaded);
         }
         logMessage("Done");
+    }
+
+    void createPluginLockFile() {
+        if (pluginFilePath != null) {
+            Path pluginLockFilePath = pluginFilePath.resolveSibling("plugins-lock.txt");
+            pluginLockFile = pluginLockFilePath.toFile();
+
+            try {
+                if (!pluginLockFile.exists()) {
+                    boolean created = pluginLockFile.createNewFile();
+                    if (created) {
+                        logVerbose("Plugin lock file created successfully: " + pluginLockFile.getAbsolutePath());
+                    } else {
+                        logVerbose("Plugin lock file already exists: " + pluginLockFile.getAbsolutePath());
+                    }
+                } else {
+                    logVerbose("Plugin lock file already exists: " + pluginLockFile.getAbsolutePath());
+                }
+            } catch (IOException e) {
+                logVerbose("Error creating plugin lock file: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            logVerbose("Error: pluginFilePath is null. Cannot create plugin lock file.");
+        }
     }
 
     void createPluginDir(boolean failIfExists) {
@@ -331,6 +366,30 @@ public class PluginManager implements Closeable {
                     .isOlderThan(installedEntry.getValue().getVersion())) {
                 effectivePlugins.replace(installedEntry.getKey(), installedEntry.getValue());
             }
+        }
+    }
+
+    /**
+     * Writes the plugins and their versions to a plugin-lock.txt file.
+     *
+     * @param pluginsToDownload List of plugins that will be downloaded.
+     */
+    public void writePluginLockFile(List<Plugin> pluginsToDownload) {
+        if (pluginLockFile != null) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(pluginLockFile,StandardCharsets.UTF_8))) {
+                for (Plugin plugin : pluginsToDownload) {
+                    String pluginLine = String.format("%s:%s", plugin.getName(), plugin.getVersion());
+                    writer.write(pluginLine);
+                    writer.newLine();
+                }
+                logVerbose("Plugin lock file (" + pluginLockFile + ") has been successfully created.");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("pluginLockFile is null");
         }
     }
 
