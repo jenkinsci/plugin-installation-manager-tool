@@ -13,6 +13,10 @@
         <revision>2.12.15</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/plugin-installation-manager-tool</gitHubRepo>
+        <!-- TODO: Remove when parent pom is using this version or newer -->
+        <!-- https://github.com/jenkinsci/pom/pull/510 -->
+        <spotbugs-maven-plugin.version>4.8.2.0</spotbugs-maven-plugin.version>
+        <spotbugs.omitVisitors>FindReturnRef,ConstructorThrow</spotbugs.omitVisitors>
         <tagNameFormat>@{project.version}</tagNameFormat>
     </properties>
 
