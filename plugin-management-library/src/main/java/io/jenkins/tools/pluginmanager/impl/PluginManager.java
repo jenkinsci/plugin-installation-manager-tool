@@ -236,12 +236,6 @@ public class PluginManager implements Closeable {
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
-        if (!exceptions.isEmpty()) {
-            throw new AggregatePluginPrerequisitesNotMetException(exceptions);
-        }
-        if (cfg.doDownload()) {
-            downloadPlugins(pluginsToBeDownloaded);
-        }
         if(cfg.isSkipBroken()){
             List<Plugin> failedPlugins = getFailedPlugins();
             if(failedPlugins.isEmpty()){
@@ -253,6 +247,12 @@ public class PluginManager implements Closeable {
                     System.out.println(failedPlugin.getName());
                 }
             }
+        }
+        if (!exceptions.isEmpty()) {
+            throw new AggregatePluginPrerequisitesNotMetException(exceptions);
+        }
+        if (cfg.doDownload()) {
+            downloadPlugins(pluginsToBeDownloaded);
         }
         logMessage("Done");
     }
