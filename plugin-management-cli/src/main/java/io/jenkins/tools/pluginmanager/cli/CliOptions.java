@@ -76,10 +76,19 @@ class CliOptions {
     @Option(name = "--output", usage = "Output format for available updates",   aliases = "-o")
     private OutputFormat outputFormat = OutputFormat.STDOUT;
 
+    /**
+     * Deprecated, see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
+     */
     @Option(name = "--view-security-warnings",
             usage = "Show if any security warnings exist for the requested plugins",
             handler = BooleanOptionHandler.class)
+    @Deprecated
     private boolean showWarnings;
+
+    @Option(name = "--hide-security-warnings",
+            usage = "Hide if any security warnings exist for the requested plugins",
+            handler = BooleanOptionHandler.class)
+    private boolean hideWarnings;
 
     @Option(name = "--view-all-security-warnings",
             usage = "Set to true to show all plugins that have security warnings",
@@ -163,6 +172,7 @@ class CliOptions {
                 .withJenkinsVersion(getJenkinsVersion())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
+                .withHideWarnings(isHideWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
                 .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
                 .withShowAvailableUpdates(isShowAvailableUpdates())
@@ -301,6 +311,15 @@ class CliOptions {
      */
     private boolean isShowWarnings() {
         return showWarnings;
+    }
+
+    /**
+     * Gets the value corresponding to if user selected to hide warnings for specified plugins
+     *
+     * @return true if user selected CLI Option to hide warnings for specified plugins
+     */
+    private boolean isHideWarnings() {
+        return hideWarnings;
     }
 
     /**

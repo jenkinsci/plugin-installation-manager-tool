@@ -7,7 +7,7 @@ Plugin Installation Manager Tool for Jenkins
 
 The plugin manager downloads plugins and their dependencies into a folder so that they can be easily imported into an instance of Jenkins. The goal of this tool is to replace the [Docker install-plugins.sh script](https://github.com/jenkinsci/docker/blob/master/install-plugins.sh) and the many other implementations of plugin management that have been recreated across Jenkins. The tool also allows users to see more information about the plugins they are downloading, such as available updates and security warnings. By default, plugins will be downloaded; the user can specify not to download plugins using the --no-download option.
 
-### Usage
+## Usage
 
 - [Getting Started](#getting-started)
 - [CLI Options](#cli-options)
@@ -18,39 +18,43 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 - [Proxy Support](#proxy-support)
 - [Other Information](#other-information)
 
-#### Getting Started
+## Getting Started
 
 Download the latest jenkins-plugin-manager jar [from here](https://github.com/jenkinsci/plugin-installation-manager-tool/releases/latest) and run it as shown below.
 
 ```bash
-java -jar jenkins-plugin-manager-*.jar --war /your/path/to/jenkins.war --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar jenkins-plugin-manager-*.jar --war /your/path/to/jenkins.war --plugin-download-directory /your/path/to/plugins/ --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 Alternatively, build and run the plugin manager yourself from source:
 
 ```bash
 mvn clean install 
-java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-download-directory /your/path/to/plugins/ --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
 If you use a [Jenkins docker image](https://hub.docker.com/r/jenkins/jenkins) the plugin manager can be invoked inside the running container via the bundled `jenkins-plugin-cli` shell script:
 
 ```bash
+docker cp /your/path/to/plugins.txt <container_name>:/tmp/plugins.txt
 docker exec -it <container_name> /bin/bash
-jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+jenkins-plugin-cli --plugin-file /tmp/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
+cp -r -p /usr/share/jenkins/ref/plugins/. /var/jenkins_home/plugins/.
+exit
 ```
 
-#### CLI Options
+## CLI Options
 * `--plugin-file` or `-f`: (optional) Path to the plugins.txt, or plugins.yaml file, which contains a list of plugins to install. If this file does not exist, or if the file exists, but does not have a .txt or .yaml/.yml extension, then an error will be thrown. 
 * `--plugin-download-directory` or `-d`: (optional) Directory in which to install plugins. This configuration can also be made via the PLUGIN_DIR environment variable. The directory will be first deleted, then recreated. If no directory configuration is provided, the defaults are C:\ProgramData\Jenkins\Reference\Plugins if the detected operating system is Microsoft Windows, or /usr/share/jenkins/ref/plugins otherwise.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space.
+* `--clean-download-directory`: (optional) If sets, cleans the plugin download directory before plugin installation. Otherwise the tool performs plugin download and reports compatibility issues, if any.
 * `--jenkins-version`: (optional) Version of Jenkins to be used.
   If not specified, the plugin manager will try to extract it from the WAR file or other sources.
   The argument can be also set using the `JENKINS_VERSION` environment variable.
-* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, will default to /usr/share/jenkins/jenkins.war or C:\ProgramData\Jenkins\jenkins.war, depending on the user's OS. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
+* `--war` or `-w`: (optional) Path to Jenkins war file. If no war file is entered, it will default to a specific location based on user's OS. In case of Windows, it will default to C:\ProgramData\Jenkins\jenkins.war and in case of OS other than Windows, it will default to /usr/share/java/jenkins.war. Plugins that are already included in the Jenkins war will only be downloaded if their required version is newer than the one included.
 * `--list` or `-l`: (optional) Lists plugin names and versions of: installed plugins (plugins that already exist in the plugin directory), bundled plugins (non-detached plugins that exist in the war file), plugins that will be downloaded (highest required versions of the requested plugins and dependencies that are not already installed), and the effective plugin set (the highest versions of all plugins that are already installed or will be installed)
 * `--verbose`: (optional) Show additional information about plugin dependencies and the download process
-* `--view-security-warnings`: (optional) Show if any of the user specified plugins have security warnings
+* `--hide-security-warnings`: (optional) Hide if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Show all plugins that have security warnings.
 * `--available-updates`: (optional) Show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
 * `--output {stdout,yaml,txt}`: (optional) Format to output plugin updates file in, stdout is the default.
@@ -66,7 +70,7 @@ jenkins-plugin-cli --plugin-file /your/path/to/plugins.txt --plugins delivery-pi
 Jenkins in a broken state.
 * `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports). Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
 
-#### Advanced configuration
+## Advanced configuration
 
 * `CACHE_DIR`: used to configure the directory where the plugins update center cache is located. By default it will be in `~/.cache/jenkins-plugin-management-cli`,
 if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jenkins-plugin-management-cli`.
@@ -78,7 +82,7 @@ If set then all plugins will be downloaded through that URL.
 
 * `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
 
-#### Plugin Input Format
+## Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
 Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
@@ -117,7 +121,7 @@ plugins:
 
 As with the plugins.txt file, version and URL are optional. If no version is provided, the latest version is used by default. If a groupId is provided, the tool will try to download the plugin from the Jenkins incrementals repository.
 
-#### Updating plugins
+## Updating plugins
 
 The CLI can output a new file with a list of updated plugin references.
 
@@ -154,7 +158,7 @@ Available updates:
 mailer (1.31) has an available update: 1.32
 ```
 
-#### Examples
+## Examples
 If a URL is included, then a placeholder should be included for the version. Examples of plugin inputs:
 
 * `github-branch-source` - will download the latest version
@@ -171,7 +175,7 @@ If a plugin to be downloaded from the incrementals repository is requested using
 java -jar jenkins-plugin-manager-*.jar -p "workflow-support:incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74"
 ```
 
-#### Proxy Support
+## Proxy Support
 Proxy support is available using standard [Java networking system properties](https://docs.oracle.com/javase/7/docs/api/java/net/doc-files/net-properties.html) `http.proxyHost` and `http.proxyPort`. Note that this provides only basic NTLM support and you may need to use an authentication proxy like [CNTLM](https://sourceforge.net/projects/cntlm/) to cover more advanced authentication use cases.
 
 ```bash
@@ -180,7 +184,7 @@ java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -Dhttps.proxyPor
 ```
 
 
-#### Other Information
+## Other Information
 The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file. By default, the versions of the plugin dependencies are determined by the update center metadata or the plugin MANIFEST.MF file, but the user can specify other behavior using the `latest` or `latest-specified` options.
 
 For plugins listed in a .txt file, each plugin must be listed on a new line. Comments beginning with `#` will be filtered out.
@@ -191,34 +195,8 @@ When using `--latest` you may run into a scenario where the jenkins update mirro
 
 The version-pinning behavior of this plugin installer has changed compared to the previous Jenkins plugin installer. By default, `--latest` option defaults to `true`, which means that even if you pass a list of pinned versions, these may fail to be installed correctly if they or some other dependency has a newer latest version available. In order to use *only* pinned versions of plugins, you must pass `--latest=false`. **NOTE:** When a new dependency is added to a plugin, it won’t get updated until you notice that it’s missing from your plugin list. (Details here: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/250)
 
-### Development
+## Contributions
+Thanks to all our contributors! Check out our [CONTRIBUTING](CONTRIBUTING.md) file to learn how to get started with issues.
 
-Information on developing and contributing to this project.
-
-#### System Output
-
-**Send output to stdout**. The primary output for your command should go to stdout. Anything that is machine readable 
-should also go to stdout—this is where piping sends things by default.
-
-**Send messaging to stderr**. Log messages, errors, and so on should all be sent to stderr. This means that when commands 
-are piped together, these messages are displayed to the user and not fed into the next command.
-
-For more information on basic cli best practices see [clig.dev](https://clig.dev/)
-
-#### Building and Testing
-
-Use maven to build and test locally.
-```shell
-mvn clean install
-```
-
-To test changes in a Jenkins Docker image run the following changes.
-```shell
-# build the plugin to generate cli jar in plugin-management-cli/target
-mvn clean install
-# build jenkins image with updated cli jar
-docker build -t jnks-plugin-tool -f plugin-management-cli/src/test/docker/Dockerfile plugin-management-cli/
-# run the image
-docker run --rm -it --entrypoint bash jnks-plugin-tool
-jenkins@9aa5a8051b4d:~$ jenkins-plugin-cli --help
-```
+* Feel free to pick a task from the [Issues](https://github.com/jenkinsci/plugin-installation-manager-tool/issues?q=is%3Aissue+is%3Aopen+) and get started.
+* [Open an issue](https://github.com/jenkinsci/plugin-installation-manager-tool/issues/new/choose).
