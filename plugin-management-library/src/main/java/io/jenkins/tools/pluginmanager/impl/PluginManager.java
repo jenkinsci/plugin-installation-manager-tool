@@ -243,7 +243,7 @@ public class PluginManager implements Closeable {
 
         listPlugins();
         // Writing to plugin lock file
-        writePluginLockFile(pluginsToBeDownloaded);
+        writeToPluginLockFile(allPluginsAndDependencies);
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
         if (!exceptions.isEmpty()) {
@@ -372,12 +372,13 @@ public class PluginManager implements Closeable {
     /**
      * Writes the plugins and their versions to a plugin-lock.txt file.
      *
-     * @param pluginsToDownload List of plugins that will be downloaded.
+     * @param allPluginsAndDependencies List of plugins that will be downloaded.
      */
-    public void writePluginLockFile(List<Plugin> pluginsToDownload) {
+    public void writeToPluginLockFile(Map<String,Plugin> allPluginsAndDependencies) {
         if (pluginLockFile != null) {
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(pluginLockFile,StandardCharsets.UTF_8))) {
-                for (Plugin plugin : pluginsToDownload) {
+                for (Map.Entry<String, Plugin> entry : allPluginsAndDependencies.entrySet()) {
+                    Plugin plugin = entry.getValue();
                     String pluginLine = String.format("%s:%s", plugin.getName(), plugin.getVersion());
                     writer.write(pluginLine);
                     writer.newLine();
