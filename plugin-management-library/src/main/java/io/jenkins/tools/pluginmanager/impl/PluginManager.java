@@ -281,6 +281,11 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
+        // Show missing plugins
+        List<String> missingPlugins = checkPluginDependencies();
+        if (!missingPlugins.isEmpty()) {
+            logVerbose("The following plugins are missing from the list of plugins to be downloaded: " + missingPlugins);
+        }
         logMessage("Done");
     }
 
@@ -1312,6 +1317,30 @@ public class PluginManager implements Closeable {
             }
         }
         return recursiveDependencies;
+    }
+
+    /**
+     * Compares allPluginsAndDependencies(excluding plugins which are already installed or bundled in the war) with pluginsToBeDownloaded
+     * @return list of missing plugins
+     */
+    public List<String> checkPluginDependencies() {
+        List<String> missingPlugins = new ArrayList<>();
+        Set<String> remainingPlugins = new HashSet<>(allPluginsAndDependencies.keySet());
+        remainingPlugins.removeAll(bundledPluginVersions.keySet());
+        remainingPlugins.removeAll(installedPluginVersions.keySet());
+
+        Set<String> requiredPluginNames = new HashSet<>();
+        for (Plugin plugin : pluginsToBeDownloaded) {
+            requiredPluginNames.add(plugin.getName());
+        }
+
+        for (String pluginName : remainingPlugins) {
+            if (!requiredPluginNames.contains(pluginName)) {
+                missingPlugins.add(pluginName);
+            }
+        }
+
+        return missingPlugins;
     }
 
     /**
