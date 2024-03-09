@@ -19,7 +19,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -33,6 +32,7 @@ import static java.nio.file.Files.createDirectory;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -1268,14 +1268,14 @@ public class PluginManagerTest {
         pm.setJenkinsUCLatest(latestUcUrl + "/update-center.json");
         String latestUrl = latestUcUrl + "/latest/pluginName.hpi";
         setTestUcJson();
-        Assert.assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
+        assertEquals(latestUrl, pm.getPluginDownloadUrl(pluginNoUrl));
 
         Plugin pluginNoVersion = new Plugin("pluginName", null, null, null);
         assertThat(pm.getPluginDownloadUrl(pluginNoVersion)).isEqualTo(latestUrl);
 
         Plugin pluginExperimentalVersion = new Plugin("pluginName", "experimental", null, null);
         String experimentalUrl = dirName(cfg.getJenkinsUcExperimental()) + "latest/pluginName.hpi";
-        Assert.assertEquals(experimentalUrl, pm.getPluginDownloadUrl(pluginExperimentalVersion));
+        assertEquals(experimentalUrl, pm.getPluginDownloadUrl(pluginExperimentalVersion));
 
         Plugin pluginIncrementalRepo = new Plugin("pluginName", "2.19-rc289.d09828a05a74", null, "org.jenkins-ci.plugins.pluginName");
 
@@ -1451,6 +1451,52 @@ public class PluginManagerTest {
 
         verify(pluginManagerSpy, times(1)).copyLocalFile(any(String.class), any(Plugin.class), any(File.class));
 
+    }
+
+    @Test
+    public void noMissingPluginsCheckTest() {
+
+        pm.setAllPluginsAndDependencies(createPluginMap("A", "B", "C"));
+        pm.setBundledPluginVersions(createPluginMap("A"));
+        pm.setInstalledPluginVersions(createPluginMap("B"));
+
+        Plugin pluginC = new Plugin("C", "version");
+
+        List<Plugin> pluginsToBeDownloaded = new ArrayList<>();
+        pluginsToBeDownloaded.add(pluginC);
+
+        pm.setPluginsToBeDownloaded(pluginsToBeDownloaded);
+        List<String> missingPlugins = pm.checkPluginDependencies();
+
+        assertEquals(0, missingPlugins.size());
+    }
+
+    @Test
+    public void someMissingPluginsCheckTest() {
+
+        pm.setAllPluginsAndDependencies(createPluginMap("A","B","C","D"));
+        pm.setBundledPluginVersions(createPluginMap("A"));
+        pm.setInstalledPluginVersions(createPluginMap("D"));
+
+        Plugin pluginC = new Plugin("C", "version");
+
+        List<Plugin> pluginsToBeDownloaded = new ArrayList<>();
+        pluginsToBeDownloaded.add(pluginC);
+
+        pm.setPluginsToBeDownloaded(pluginsToBeDownloaded);
+        List<String> missingPlugins = pm.checkPluginDependencies();
+
+        assertEquals(1, missingPlugins.size());
+        assertEquals(List.of("B"), missingPlugins);
+
+    }
+    private Map<String, Plugin> createPluginMap(String... pluginNames) {
+        Map<String, Plugin> pluginMap = new HashMap<>();
+        for (String name : pluginNames) {
+            Plugin plugin = new Plugin(name, "version");
+            pluginMap.put(name, plugin);
+        }
+        return pluginMap;
     }
 
     private JSONObject setTestUcJson() {
