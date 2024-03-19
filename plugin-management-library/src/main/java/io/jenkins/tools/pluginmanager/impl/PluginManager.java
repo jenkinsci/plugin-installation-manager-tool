@@ -442,13 +442,11 @@ public class PluginManager implements Closeable {
                     writer.newLine();
                 }
                 logVerbose("plugins-lock.txt file (" + pluginLockTxtFile + ") has been successfully created.");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         } else {
-            System.err.println("pluginLockFile is null");
+            logVerbose("pluginLockFile is null");
         }
     }
     public void writeToPluginLockYamlFile(Map<String, Plugin> allPluginsAndDependencies) {
@@ -465,8 +463,15 @@ public class PluginManager implements Closeable {
                     if (plugin.getVersion() != null) {
                         writer.write("      version: " + plugin.getVersion());
                         writer.newLine();
-                    } else if (plugin.getUrl() != null) {
+                    }
+                    if (plugin.getUrl() != null) {
                         writer.write("      url: " + plugin.getUrl());
+                        writer.newLine();
+                    }
+                    // Calculate checksum
+                    calculateChecksum(plugin);
+                    if (plugin.getChecksum() != null) {
+                        writer.write("      checksum: " + plugin.getChecksum());
                         writer.newLine();
                     }
                 }
@@ -475,7 +480,7 @@ public class PluginManager implements Closeable {
                 e.printStackTrace();
             }
         } else {
-            System.err.println("pluginLockFile is null");
+            logVerbose("pluginLockFile is null");
         }
     }
 
