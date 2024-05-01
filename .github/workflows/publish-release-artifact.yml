@@ -30,10 +30,12 @@ jobs:
           echo $PROJECT_VERSION
           echo "file-name=$FILE_NAME" >> $GITHUB_OUTPUT
           SHA256SUM=$(curl -fsSL https://repo.jenkins-ci.org/releases/$GROUP_ID/$ARTIFACT_ID/$PROJECT_VERSION/$ARTIFACT_ID-$PROJECT_VERSION.jar.sha256)
-          echo "${SHA256SUM}  $FILE_NAME-$PROJECT_VERSION.jar" >$FILE_NAME-$PROJECT_VERSION.jar.sha256
+          echo -n $SHA256SUM >$FILE_NAME-$PROJECT_VERSION.jar.sha256
+          echo "$SHA256SUM  $FILE_NAME-$PROJECT_VERSION.jar" >/tmp/jenkins_sha
           wget -q https://repo.jenkins-ci.org/releases/$GROUP_ID/$ARTIFACT_ID/$PROJECT_VERSION/$ARTIFACT_ID-$PROJECT_VERSION.jar \
             -O $FILE_NAME-$PROJECT_VERSION.jar \
-            && sha256sum -c --strict $FILE_NAME-$PROJECT_VERSION.jar.sha256
+            && sha256sum -c --strict /tmp/jenkins_sha \
+            && rm -f /tmp/jenkins_sha
       - name: Upload Release Asset
         id: upload-release-asset
         uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564
