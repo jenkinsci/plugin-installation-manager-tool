@@ -493,8 +493,11 @@ public class PluginManager implements Closeable {
                         throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
                     }
 
-                    if (isBeta(pluginVersion) && experimentalPlugins.has(plugin.getName())) {
-                        return getUpdatedPlugin(plugin, experimentalPlugins);
+                    if (isBeta(pluginVersion)) {
+                        resolveExperimentalUcIfRequired();
+                        if (experimentalPlugins.has(plugin.getName())) {
+                            return getUpdatedPlugin(plugin, experimentalPlugins);
+                        }
                     }
 
                     if (latestPlugins.has(plugin.getName())) {
@@ -848,7 +851,7 @@ public class PluginManager implements Closeable {
         logVerbose("\nRetrieving update center information");
         cm.createCache();
 
-        String cacheSuffix = jenkinsVersion != null ? "-" + jenkinsVersion : "";
+        String cacheSuffix = getCacheSuffix(jenkinsVersion);
         try {
             URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
             if (jenkinsVersion != null) {
@@ -866,9 +869,11 @@ public class PluginManager implements Closeable {
             throw new RuntimeException(e);
         }
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center" + cacheSuffix);
-        experimentalPlugins = experimentalUcJson.getJSONObject("plugins");
         pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
+    }
+
+    private static String getCacheSuffix(VersionNumber jenkinsVersion) {
+        return jenkinsVersion != null ? "-" + jenkinsVersion : "";
     }
 
     /**
@@ -1059,6 +1064,8 @@ public class PluginManager implements Closeable {
         } else if (version.equals(Plugin.LATEST)) {
             dependentPlugins = resolveDependenciesFromJson(plugin, latestUcJson);
         } else if (version.equals(Plugin.EXPERIMENTAL)) {
+            resolveExperimentalUcIfRequired();
+
             dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
         } else {
             dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
@@ -1068,6 +1075,16 @@ public class PluginManager implements Closeable {
         }
 
         return dependentPlugins;
+    }
+
+    private void resolveExperimentalUcIfRequired() {
+        if (experimentalPlugins == null) {
+            experimentalUcJson = getJson(
+                    cfg.getJenkinsUcExperimental(),
+                    "experimental-update-center" + getCacheSuffix(getJenkinsVersion())
+            );
+            experimentalPlugins = experimentalUcJson.getJSONObject("plugins");
+        }
     }
 
     /**
