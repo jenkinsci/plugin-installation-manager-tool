@@ -38,7 +38,7 @@ jobs:
             && rm -f /tmp/jenkins_sha
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: softprops/action-gh-release@a485adba73bc95d9848c86e019d675bac99de0ed
+        uses: softprops/action-gh-release@288696be3916479e99fa944c72825e9b3e192be4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
