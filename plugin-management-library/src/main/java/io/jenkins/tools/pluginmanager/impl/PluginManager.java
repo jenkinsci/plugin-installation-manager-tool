@@ -14,11 +14,13 @@ import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
 import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -90,6 +92,10 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossi
 public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
     private final List<Plugin> failedPlugins;
+    private final Path pluginFilePath;
+    private File pluginLockTxtFile;
+    private File pluginLockYamlFile;
+
     /**
      * Directory where the plugins will be downloaded
      */
@@ -126,6 +132,7 @@ public class PluginManager implements Closeable {
     public PluginManager(Config cfg) {
         this.cfg = cfg;
         logOutput = cfg.getLogOutput();
+        pluginFilePath = cfg.getPluginFilePath();
         pluginDir = cfg.getPluginDir();
         jenkinsVersion = cfg.getJenkinsVersion();
         final String warArg = cfg.getJenkinsWar();
@@ -181,6 +188,23 @@ public class PluginManager implements Closeable {
         return httpClient;
     }
 
+    public FileType getFileType(String filePath) {
+        int lastIndex = filePath.lastIndexOf('.');
+        if (lastIndex != -1) {
+            String extension = filePath.substring(lastIndex + 1);
+            switch (extension.toLowerCase()) {
+                case "txt":
+                    return FileType.TXT;
+                case "yaml":
+                case "yml":
+                    return FileType.YAML;
+                default:
+                    return FileType.UNKNOWN;
+            }
+        }
+        return FileType.UNKNOWN;
+    }
+
     /**
      * Drives the process to download plugins. Calls methods to find installed plugins, download plugins, and output
      * the failed plugins
@@ -234,6 +258,20 @@ public class PluginManager implements Closeable {
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
+        //Generating and Writing to plugin lock file
+        FileType fileType = getFileType(String.valueOf(pluginFilePath));
+        switch (fileType) {
+            case YAML:
+                createPluginLockYamlFile();
+                writeToPluginLockYamlFile(allPluginsAndDependencies);
+                break;
+            case TXT:
+                createPluginLockTxtFile();
+                writeToPluginLockTxtFile(allPluginsAndDependencies);
+                break;
+            default:
+                System.err.println("Unsupported output format: " + cfg.getOutputFormat());
+        }
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
         if (!exceptions.isEmpty()) {
@@ -242,7 +280,61 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
+        // Show missing plugins
+        List<String> missingPlugins = checkPluginDependencies();
+        if (!missingPlugins.isEmpty()) {
+            logVerbose("The following plugins are missing from the list of plugins to be downloaded: " + missingPlugins);
+        }
         logMessage("Done");
+    }
+
+    void createPluginLockTxtFile() {
+        if (pluginFilePath != null) {
+            Path pluginLockFilePath = pluginFilePath.resolveSibling("plugins-lock.txt");
+            pluginLockTxtFile = pluginLockFilePath.toFile();
+
+            try {
+                if (!pluginLockTxtFile.exists()) {
+                    boolean created = pluginLockTxtFile.createNewFile();
+                    if (created) {
+                        logVerbose("plugins-lock.txt file created successfully: " + pluginLockTxtFile.getAbsolutePath());
+                    } else {
+                        logVerbose("plugins-lock.txt file already exists: " + pluginLockTxtFile.getAbsolutePath());
+                    }
+                } else {
+                    logVerbose("plugins-lock.txt file already exists: " + pluginLockTxtFile.getAbsolutePath());
+                }
+            } catch (IOException e) {
+                logVerbose("Error creating plugins-lock.txt file: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            logVerbose("Error: pluginFilePath is null. Cannot create plugins-lock.txt file.");
+        }
+    }
+    void createPluginLockYamlFile() {
+        if (pluginFilePath != null) {
+            Path pluginLockFilePath = pluginFilePath.resolveSibling("plugins-lock.yaml");
+            pluginLockYamlFile = pluginLockFilePath.toFile();
+
+            try {
+                if (!pluginLockYamlFile.exists()) {
+                    boolean created = pluginLockYamlFile.createNewFile();
+                    if (created) {
+                        logVerbose("plugins-lock.yaml file created successfully: " + pluginLockYamlFile.getAbsolutePath());
+                    } else {
+                        logVerbose("plugins-lock.yaml file already exists: " + pluginLockYamlFile.getAbsolutePath());
+                    }
+                } else {
+                    logVerbose("plugins-lock.yaml file already exists: " + pluginLockYamlFile.getAbsolutePath());
+                }
+            } catch (IOException e) {
+                logVerbose("Error creating plugins-lock.yaml file: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            logVerbose("Error: pluginFilePath is null. Cannot create plugins-lock.yaml file");
+        }
     }
 
     void createPluginDir(boolean failIfExists) {
@@ -331,6 +423,63 @@ public class PluginManager implements Closeable {
                     .isOlderThan(installedEntry.getValue().getVersion())) {
                 effectivePlugins.replace(installedEntry.getKey(), installedEntry.getValue());
             }
+        }
+    }
+
+    /**
+     * Writes the plugins and their versions to a plugin-lock.txt file.
+     *
+     * @param allPluginsAndDependencies List of plugins that will be downloaded.
+     */
+    public void writeToPluginLockTxtFile(Map<String,Plugin> allPluginsAndDependencies) {
+        if (pluginLockTxtFile != null) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(pluginLockTxtFile,StandardCharsets.UTF_8))) {
+                for (Map.Entry<String, Plugin> entry : allPluginsAndDependencies.entrySet()) {
+                    Plugin plugin = entry.getValue();
+                    String pluginLine = String.format("%s:%s", plugin.getName(), plugin.getVersion());
+                    writer.write(pluginLine);
+                    writer.newLine();
+                }
+                logVerbose("plugins-lock.txt file (" + pluginLockTxtFile + ") has been successfully created.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            logVerbose("pluginLockFile is null");
+        }
+    }
+    public void writeToPluginLockYamlFile(Map<String, Plugin> allPluginsAndDependencies) {
+        if (pluginLockYamlFile != null) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(pluginLockYamlFile, StandardCharsets.UTF_8))) {
+                writer.write("plugins:");
+                writer.newLine();
+                for (Map.Entry<String, Plugin> entry : allPluginsAndDependencies.entrySet()) {
+                    Plugin plugin = entry.getValue();
+                    writer.write("  - artifactId: " + plugin.getName());
+                    writer.newLine();
+                    writer.write("    source:");
+                    writer.newLine();
+                    if (plugin.getVersion() != null) {
+                        writer.write("      version: " + plugin.getVersion());
+                        writer.newLine();
+                    }
+                    if (plugin.getUrl() != null) {
+                        writer.write("      url: " + plugin.getUrl());
+                        writer.newLine();
+                    }
+                    // Calculate checksum
+                    calculateChecksum(plugin);
+                    if (plugin.getChecksum() != null) {
+                        writer.write("      checksum: " + plugin.getChecksum());
+                        writer.newLine();
+                    }
+                }
+                logVerbose("plugins-lock.yaml file (" + pluginLockYamlFile + ") has been successfully created.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            logVerbose("pluginLockFile is null");
         }
     }
 
@@ -1189,6 +1338,30 @@ public class PluginManager implements Closeable {
             }
         }
         return recursiveDependencies;
+    }
+
+    /**
+     * Compares allPluginsAndDependencies(excluding plugins which are already installed or bundled in the war) with pluginsToBeDownloaded
+     * @return list of missing plugins
+     */
+    public List<String> checkPluginDependencies() {
+        List<String> missingPlugins = new ArrayList<>();
+        Set<String> remainingPlugins = new HashSet<>(allPluginsAndDependencies.keySet());
+        remainingPlugins.removeAll(bundledPluginVersions.keySet());
+        remainingPlugins.removeAll(installedPluginVersions.keySet());
+
+        Set<String> requiredPluginNames = new HashSet<>();
+        for (Plugin plugin : pluginsToBeDownloaded) {
+            requiredPluginNames.add(plugin.getName());
+        }
+
+        for (String pluginName : remainingPlugins) {
+            if (!requiredPluginNames.contains(pluginName)) {
+                missingPlugins.add(pluginName);
+            }
+        }
+
+        return missingPlugins;
     }
 
     /**
