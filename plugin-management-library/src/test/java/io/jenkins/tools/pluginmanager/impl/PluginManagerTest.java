@@ -1349,7 +1349,7 @@ public class PluginManagerTest {
                     // lastest version
                     Plugin plugin = new Plugin("pluginName", "latest", null, null);
                     assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/dynamic-stable-2.319.1/latest/pluginName.hpi");
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/latest/pluginName.hpi");
                 },
                 () -> {
                     // latest version with resolved version
@@ -1365,7 +1365,7 @@ public class PluginManagerTest {
                     // experimental version
                     Plugin plugin = new Plugin("pluginName", "experimental", null, null);
                     assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/experimental/latest/pluginName.hpi");
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/experimental/pluginName.hpi");
                 },
                 () -> {
                     // experimental version with resolved version
@@ -1381,13 +1381,13 @@ public class PluginManagerTest {
                     // incremental
                     Plugin plugin = new Plugin("pluginName", "1.0.0", null, "com.cloudbees.jenkins");
                     assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/incrementals/com/cloudbees/jenkins/pluginName/1.0.0/pluginName-1.0.0.hpi");
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
                 },
                 () -> {
                     // explicit url
                     Plugin plugin = new Plugin("pluginName", "1.0.0", "https://other-mirror.com/plugins/custom-url.hpi", null);
                     assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                            .isEqualTo("https://other-mirror.com/plugins/custom-url.hpi");
+                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
                 }
         );
     }
