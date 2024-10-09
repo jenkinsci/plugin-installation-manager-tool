@@ -1,0 +1,19 @@
+{
+  "name" : "plugins_mailer_132_mailerhpi",
+  "request" : {
+    "url" : "/update-center.json",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "{}",
+    "headers" : {
+      "Date" : "Sat, 25 Jul 2020 20:07:15 GMT",
+      "Server" : "Apache/2.4.29 (Ubuntu)",
+      "Last-Modified" : "Thu, 09 Apr 2020 10:51:31 GMT",
+      "ETag" : "\"1eda1-5a2d9664b503c\"",
+      "Accept-Ranges" : "bytes",
+      "Keep-Alive" : "timeout=3, max=99"
+    }
+  }
+}

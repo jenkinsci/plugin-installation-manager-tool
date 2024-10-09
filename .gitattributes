@@ -1,0 +1,7 @@
+* text eol=lf
+
+# Binary files stored in the repository
+*.hpi binary
+*.jpi binary
+*.war binary
+*.zip binary

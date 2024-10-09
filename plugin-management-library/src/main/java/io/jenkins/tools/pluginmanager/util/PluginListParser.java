@@ -64,7 +64,7 @@ public class PluginListParser {
                         .collect(toList());
                 pluginsFromTxt.addAll(pluginsFromFile);
             } catch (IOException e) {
-                System.out.println("Unable to open " + pluginTxtFile);
+                System.err.println("Unable to open " + pluginTxtFile);
             }
         }
 
@@ -112,7 +112,7 @@ public class PluginListParser {
                     pluginsFromYaml.add(plugin);
                 }
             } catch (IOException e) {
-                System.out.println("Unable to open " + pluginsFromYaml);
+                System.err.println("Unable to open " + pluginsFromYaml);
                 e.printStackTrace();
             }
         }
@@ -131,11 +131,11 @@ public class PluginListParser {
         }
         if (Files.exists(pluginFile.toPath())) {
             if (verbose) {
-                System.out.println("Reading in plugins from " + pluginFile + "\n");
+                System.err.println("Reading in plugins from " + pluginFile + "\n");
             }
             return true;
         }
-        System.out.println(pluginFile + " file does not exist");
+        System.err.println(pluginFile + " file does not exist");
         return false;
     }
 
@@ -168,7 +168,7 @@ public class PluginListParser {
             if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
             } else {
-                System.out.println("Invalid URL "+ pluginInfo[2] +" , will ignore");
+                System.err.println("Invalid URL " + pluginInfo[2] + " , will ignore");
             }
         }
         return new Plugin(pluginName, pluginVersion, pluginUrl, groupId);

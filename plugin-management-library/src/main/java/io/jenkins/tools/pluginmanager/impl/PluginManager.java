@@ -1,12 +1,17 @@
 package io.jenkins.tools.pluginmanager.impl;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.HashFunction;
-import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.config.LogOutput;
+import io.jenkins.tools.pluginmanager.parsers.PluginOutputConverter;
+import io.jenkins.tools.pluginmanager.parsers.StdOutPluginOutputConverter;
+import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
+import io.jenkins.tools.pluginmanager.parsers.YamlPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.FileDownloadResponseHandler;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.Closeable;
@@ -46,6 +51,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -60,10 +67,14 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
@@ -75,39 +86,38 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathO
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
-import static java.util.Comparator.comparing;
 
 public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
-    private List<Plugin> failedPlugins;
+    private final List<Plugin> failedPlugins;
     /**
      * Directory where the plugins will be downloaded
      */
-    private File pluginDir;
+    private final File pluginDir;
     private String jenkinsUcLatest;
     private HashFunction hashFunction;
-    private @CheckForNull VersionNumber jenkinsVersion;
-    private @CheckForNull File jenkinsWarFile;
+    private final @CheckForNull VersionNumber jenkinsVersion;
+    private final @CheckForNull File jenkinsWarFile;
     private Map<String, Plugin> installedPluginVersions;
     private Map<String, Plugin> bundledPluginVersions;
     private Map<String, List<SecurityWarning>> allSecurityWarnings;
     private Map<String, Plugin> allPluginsAndDependencies;
     private Map<String, Plugin> effectivePlugins;
     private List<Plugin> pluginsToBeDownloaded;
-    private Config cfg;
+    private final Config cfg;
     private JSONObject latestUcJson;
     private JSONObject experimentalUcJson;
     private JSONObject pluginInfoJson;
     private JSONObject latestPlugins;
     private JSONObject experimentalPlugins;
-    private boolean verbose;
-    private boolean useLatestSpecified;
-    private boolean useLatestAll;
-    private String userAgentInformation;
-    private boolean skipFailedPlugins;
+    private final boolean verbose;
+    private final boolean useLatestSpecified;
+    private final boolean useLatestAll;
+    private final String userAgentInformation;
+    private final boolean skipFailedPlugins;
     private CloseableHttpClient httpClient;
-
-    private CacheManager cm;
+    private final CacheManager cm;
+    private final LogOutput logOutput;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
     private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
@@ -115,6 +125,7 @@ public class PluginManager implements Closeable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
         this.cfg = cfg;
+        logOutput = cfg.getLogOutput();
         pluginDir = cfg.getPluginDir();
         jenkinsVersion = cfg.getJenkinsVersion();
         final String warArg = cfg.getJenkinsWar();
@@ -132,6 +143,7 @@ public class PluginManager implements Closeable {
         hashFunction = cfg.getHashFunction();
         httpClient = null;
         userAgentInformation = this.getUserAgentInformation();
+        cm = new CacheManager(cfg.getCachePath(), cfg.getLogOutput());
     }
 
     private String getUserAgentInformation() {
@@ -151,14 +163,19 @@ public class PluginManager implements Closeable {
 
         return userAgentInformation;
     }
+
     private HttpClient getHttpClient() {
         if (httpClient == null) {
+            RequestConfig globalConfig = RequestConfig.custom()
+                .setCookieSpec(CookieSpecs.STANDARD) // use modern cookie policy (RFC 6265)
+                .build();
             httpClient = HttpClients.custom().useSystemProperties()
                 // there is a more complex retry handling in downloadToFile(...) on the whole flow
                 // this affects only the single request
                 .setRetryHandler(new DefaultHttpRequestRetryHandler(DEFAULT_MAX_RETRIES, true))
                 .setConnectionManager(new PoolingHttpClientConnectionManager())
                 .setUserAgent(userAgentInformation)
+                .setDefaultRequestConfig(globalConfig)
                 .build();
         }
         return httpClient;
@@ -194,7 +211,7 @@ public class PluginManager implements Closeable {
                 throw new UncheckedIOException("Unable to delete: " + pluginDir.getAbsolutePath(), e);
             }
         }
-        if (cfg.doDownload()) {
+        if (cfg.doDownload() && !pluginDir.exists()) {
             createPluginDir(cfg.isCleanPluginDir());
         }
 
@@ -225,7 +242,7 @@ public class PluginManager implements Closeable {
         if (cfg.doDownload()) {
             downloadPlugins(pluginsToBeDownloaded);
         }
-        System.out.println("Done");
+        logMessage("Done");
     }
 
     void createPluginDir(boolean failIfExists) {
@@ -322,14 +339,13 @@ public class PluginManager implements Closeable {
      * actually be downloaded based on the requested plugins and currently installed plugins, and the effective plugin
      * set, which includes all currently installed plugins and plugins that will be downloaded by the tool
      */
-    public void listPlugins() {
+    void listPlugins() {
         if (cfg.isShowPluginsToBeDownloaded()) {
-            logPlugins("Installed plugins:", new ArrayList<>(installedPluginVersions.values()));
+            logPlugins("\nInstalled plugins:", new ArrayList<>(installedPluginVersions.values()));
             logPlugins("Bundled plugins:", new ArrayList<>(bundledPluginVersions.values()));
             logPlugins("All requested plugins:", new ArrayList<>(allPluginsAndDependencies.values()));
             logPlugins("Plugins that will be downloaded:", pluginsToBeDownloaded);
-            logPlugins("Resulting plugin list:",
-                    new ArrayList<>(effectivePlugins.values()));
+            outputPluginList(new ArrayList<>(effectivePlugins.values()), () -> new StdOutPluginOutputConverter("Resulting plugin list:"));
         }
     }
 
@@ -339,11 +355,34 @@ public class PluginManager implements Closeable {
      * @param description string describing plugins to be printed
      * @param plugins     list of plugins to be output
      */
-    public void logPlugins(String description, List<Plugin> plugins) {
-        System.out.println("\n" + description);
-        plugins.stream()
-                .sorted(comparing(Plugin::getName).thenComparing(Plugin::getVersion))
-                .forEach(System.out::println);
+    private void logPlugins(String description, List<Plugin> plugins) {
+        logMessage(new StdOutPluginOutputConverter(description).convert(plugins));
+    }
+
+    /**
+     * Generate plugin list in the format requested by the user and output to standard out.
+     * @param plugins plugins to include in the list
+     * @param stdOutConverter if the output format is STDOUT, use the supplied converter.
+     */
+    public void outputPluginList(@NonNull List<Plugin> plugins, @NonNull Supplier<PluginOutputConverter> stdOutConverter) {
+        System.out.println(formatPluginsList(plugins, stdOutConverter));
+    }
+
+    /**
+     * Generate plugin list in the format requested by the user.
+     * @param plugins plugins to include in the list
+     * @param stdOutConverter if the output format is STDOUT, use the supplied converter.
+     */
+    private String formatPluginsList(@NonNull List<Plugin> plugins, @NonNull Supplier<PluginOutputConverter> stdOutConverter) {
+        switch (cfg.getOutputFormat()) {
+            case YAML:
+                return new YamlPluginOutputConverter().convert(plugins);
+            case TXT:
+                return new TxtOutputConverter().convert(plugins);
+            case STDOUT:
+            default:
+                return stdOutConverter.get().convert(plugins);
+        }
     }
 
     /**
@@ -354,11 +393,11 @@ public class PluginManager implements Closeable {
      */
     public Map<String, List<SecurityWarning>> getSecurityWarnings() {
         if (latestUcJson == null) {
-            System.out.println("Unable to get update center json");
+            logMessage("Unable to get update center json");
             return allSecurityWarnings;
         }
         if (!latestUcJson.has("warnings")) {
-            System.out.println("update center json has no warnings: ignoring");
+            logMessage("update center json has no warnings: ignoring");
             return allSecurityWarnings;
         }
         JSONArray warnings = latestUcJson.getJSONArray("warnings");
@@ -405,7 +444,7 @@ public class PluginManager implements Closeable {
                     .flatMap(List::stream)
                     .sorted(Comparator.comparing(SecurityWarning::getName))
                     .map(w -> w.getName() + " - " + w.getMessage())
-                    .forEach(System.out::println);
+                    .forEach(this::logMessage);
         }
     }
 
@@ -417,12 +456,18 @@ public class PluginManager implements Closeable {
      */
 
     public void showSpecificSecurityWarnings(List<Plugin> plugins) {
-        if (cfg.isShowWarnings()) {
-            System.out.println("\nSecurity warnings:");
+        // NOTE: By default, the plugin installation manager tool will show security warnings.
+        // see: https://github.com/jenkinsci/plugin-installation-manager-tool/issues/258
+        if (!cfg.isHideWarnings()) {
+            boolean headingDisplayed = false;
             for (Plugin plugin : plugins) {
                 if (warningExists(plugin)) {
+                    if (!headingDisplayed) {
+                        logMessage("\nSecurity warnings:");
+                        headingDisplayed = true;
+                    }
                     String pluginName = plugin.getName();
-                    System.out.println(plugin.getSecurityWarnings().stream()
+                    logMessage(plugin.getSecurityWarnings().stream()
                             .map(warning -> String.format("%s (%s): %s %s %s", pluginName,
                                     plugin.getVersion(), warning.getId(), warning.getMessage(), warning.getUrl())).
                                     collect(Collectors.joining("\n")));
@@ -448,8 +493,11 @@ public class PluginManager implements Closeable {
                         throw new IllegalStateException("List of plugins is not available. Likely Update Center data has not been downloaded yet");
                     }
 
-                    if (isBeta(pluginVersion) && experimentalPlugins.has(plugin.getName())) {
-                        return getUpdatedPlugin(plugin, experimentalPlugins);
+                    if (isBeta(pluginVersion)) {
+                        resolveExperimentalUcIfRequired();
+                        if (experimentalPlugins.has(plugin.getName())) {
+                            return getUpdatedPlugin(plugin, experimentalPlugins);
+                        }
                     }
 
                     if (latestPlugins.has(plugin.getName())) {
@@ -559,8 +607,7 @@ public class PluginManager implements Closeable {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
                 boolean successfulDownload = downloadPlugin(plugin, getPluginArchive(downloadsTmpDir, plugin));
                 if (skipFailedPlugins) {
-                    System.out.println(
-                            "SKIP: Unable to download " + plugin.getName());
+                    logMessage("SKIP: Unable to download " + plugin.getName());
                 } else if (!successfulDownload) {
                     throw new DownloadPluginException("Unable to download " + plugin.getName());
                 }
@@ -591,20 +638,24 @@ public class PluginManager implements Closeable {
             File downloadedPlugin = new File(downloadsTmpDir, archiveName);
             try {
                 if (failedPluginNames.contains(plugin.getName())) {
-                    System.out.println("Will skip the failed plugin download: " + plugin.getName() +
+                    logMessage("Will skip the failed plugin download: " + plugin.getName() +
                             ". See " + downloadedPlugin.getAbsolutePath() + " for the downloaded file");
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
                 File finalPath = new File(pluginDir, archiveName);
+                File backupPath = new File(pluginDir, plugin.getBackupFileName());
                 if (finalPath.isDirectory()) {
                     // Jenkins supports storing plugins as unzipped files with ".jpi" extension
                     FileUtils.cleanDirectory(finalPath);
                     Files.delete(finalPath.toPath());
                 }
+                if (finalPath.exists()) {
+                    Files.move(finalPath.toPath(), backupPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
                 Files.move(downloadedPlugin.toPath(), finalPath.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException ex) {
                 if (skipFailedPlugins) {
-                    System.out.println("SKIP: Unable to move " + plugin.getName() + " to the plugin directory");
+                    logMessage("SKIP: Unable to move " + plugin.getName() + " to the plugin directory");
                 } else {
                     throw new DownloadPluginException("Unable to move " + plugin.getName() + " to the plugin directory", ex);
                 }
@@ -704,19 +755,13 @@ public class PluginManager implements Closeable {
             if (versionInUpdateCenter.equals(requestedPlugin.getVersion().toString())) {
 
                 String checksum = pluginFromUpdateCenter.getString(getHashFunction().toString());
-                if (verbose) {
-                    System.out.println("Setting checksum for: " + requestedPlugin.getName() + " to " + checksum);
-                }
+                logVerbose("Setting checksum for: " + requestedPlugin.getName() + " to " + checksum);
                 requestedPlugin.setChecksum(checksum);
-            } else {
-                if (verbose && requestedPlugin.getChecksum() == null) {
-                    System.out.println("Couldn't find checksum for " + requestedPlugin.getName() + " at version: " + requestedPlugin.getVersion().toString());
-                }
+            } else if (requestedPlugin.getChecksum() == null) {
+                logVerbose("Couldn't find checksum for " + requestedPlugin.getName() + " at version: " + requestedPlugin.getVersion().toString());
             }
-        } else {
-            if (verbose && requestedPlugin.getChecksum() == null) {
-                System.out.println("Couldn't find checksum for: " + requestedPlugin.getName());
-            }
+        } else if (requestedPlugin.getChecksum() == null) {
+            logVerbose("Couldn't find checksum for: " + requestedPlugin.getName());
         }
     }
 
@@ -772,19 +817,24 @@ public class PluginManager implements Closeable {
     public JSONObject getJson(URL url, String cacheKey) {
         JSONObject jsonObject = cm.retrieveFromCache(cacheKey);
         if (jsonObject != null) {
-            if (verbose) {
-                System.out.println("Returning cached value for: " + cacheKey);
-            }
+            logVerbose("Returning cached value for: " + cacheKey);
             return jsonObject;
         } else {
-            if (verbose) {
-                System.out.println("Cache miss for: " + cacheKey);
-            }
+            logVerbose("Cache miss for: " + cacheKey);
         }
-
+        final String response;
         try {
-            String urlText = IOUtils.toString(url, StandardCharsets.UTF_8);
-            String result = removePossibleWrapperText(urlText);
+            if (url.getProtocol().equalsIgnoreCase("http") || url.getProtocol().equalsIgnoreCase("https")) {
+                response = getViaHttpWithResponseHandler(
+                  url.toString(),
+                  new BasicResponseHandler(),
+                  cacheKey,
+                  e -> String.format("Unable to retrieve JSON from %s: %s", url, e.getMessage()),
+                  3);
+            } else {
+                response = IOUtils.toString(url, StandardCharsets.UTF_8);
+            }
+            String result = removePossibleWrapperText(response);
             JSONObject json = new JSONObject(result);
             cm.addToCache(cacheKey, json);
             return json;
@@ -799,10 +849,9 @@ public class PluginManager implements Closeable {
      */
     public void getUCJson(VersionNumber jenkinsVersion) {
         logVerbose("\nRetrieving update center information");
-        cm = new CacheManager(Settings.DEFAULT_CACHE_PATH, verbose);
         cm.createCache();
 
-        String cacheSuffix = jenkinsVersion != null ? "-" + jenkinsVersion : "";
+        String cacheSuffix = getCacheSuffix(jenkinsVersion);
         try {
             URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
             if (jenkinsVersion != null) {
@@ -813,12 +862,18 @@ public class PluginManager implements Closeable {
 
             latestUcJson = getJson(url, "update-center" + cacheSuffix);
         } catch (MalformedURLException | URISyntaxException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        experimentalUcJson = getJson(cfg.getJenkinsUcExperimental(), "experimental-update-center" + cacheSuffix);
-        experimentalPlugins = experimentalUcJson.getJSONObject("plugins");
         pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
+    }
+
+    private static String getCacheSuffix(VersionNumber jenkinsVersion) {
+        return jenkinsVersion != null ? "-" + jenkinsVersion : "";
     }
 
     /**
@@ -841,9 +896,7 @@ public class PluginManager implements Closeable {
             if (pluginInfo.has(plugin.getVersion().toString())) {
                 JSONObject specificVersionInfo = pluginInfo.getJSONObject(plugin.getVersion().toString());
                 String checksum = specificVersionInfo.getString(getHashFunction().toString());
-                if (verbose) {
-                    System.out.println("Setting checksum for: " + plugin.getName() + " to " + checksum);
-                }
+                logVerbose("Setting checksum for: " + plugin.getName() + " to " + checksum);
                 plugin.setChecksum(checksum);
                 plugin.setJenkinsVersion(specificVersionInfo.getString("requiredCore"));
                 return (JSONArray) specificVersionInfo.get("dependencies");
@@ -899,7 +952,7 @@ public class PluginManager implements Closeable {
                     String.format("%nResolving dependencies of %s by downloading plugin to temp file %s and parsing " +
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
-                Files.delete(tempFile.toPath());
+                Files.deleteIfExists(tempFile.toPath());
                 throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
             }
 
@@ -949,10 +1002,8 @@ public class PluginManager implements Closeable {
             Files.delete(tempFile.toPath());
             return dependentPlugins;
         } catch (IOException e) {
-            System.out.println(String.format("Unable to resolve dependencies for %s", plugin.getName()));
-            if (verbose) {
-                e.printStackTrace();
-            }
+            logMessage(String.format("Unable to resolve dependencies for %s", plugin.getName()));
+            logOutput.printVerboseStacktrace(e);
             return dependentPlugins;
         }
     }
@@ -1013,6 +1064,8 @@ public class PluginManager implements Closeable {
         } else if (version.equals(Plugin.LATEST)) {
             dependentPlugins = resolveDependenciesFromJson(plugin, latestUcJson);
         } else if (version.equals(Plugin.EXPERIMENTAL)) {
+            resolveExperimentalUcIfRequired();
+
             dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
         } else {
             dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
@@ -1022,6 +1075,16 @@ public class PluginManager implements Closeable {
         }
 
         return dependentPlugins;
+    }
+
+    private void resolveExperimentalUcIfRequired() {
+        if (experimentalPlugins == null) {
+            experimentalUcJson = getJson(
+                    cfg.getJenkinsUcExperimental(),
+                    "experimental-update-center" + getCacheSuffix(getJenkinsVersion())
+            );
+            experimentalPlugins = experimentalUcJson.getJSONObject("plugins");
+        }
     }
 
     /**
@@ -1061,6 +1124,12 @@ public class PluginManager implements Closeable {
                 if (exceptions != null) {
                     exceptions.add(e);
                 } else {
+                    /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+                     * but the program cannot do anything with unexpected runtime
+                     * exceptions except throw them or record them in the list of
+                     * exceptions for processing by the caller.
+                     * Spotbugs warning is ignored.
+                     */
                     throw e;
                 }
                 continue;
@@ -1146,7 +1215,7 @@ public class PluginManager implements Closeable {
         String pluginDownloadUrl = getPluginDownloadUrl(plugin);
         boolean successfulDownload = downloadToFile(pluginDownloadUrl, plugin, location);
         if (successfulDownload && location == null) {
-            System.out.println(String.format("%s downloaded successfully", plugin.getName()));
+            logMessage(String.format("%s downloaded successfully", plugin.getName()));
             installedPluginVersions.put(plugin.getName(), plugin);
         }
         return successfulDownload;
@@ -1220,12 +1289,12 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
+    @SuppressFBWarnings({"PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
             pluginFile = new File(pluginDir, plugin.getArchiveFileName());
-            System.out.println("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
+            logMessage("\nDownloading plugin " + plugin.getName() + " from url: " + urlString);
         } else {
             pluginFile = fileLocation;
         }
@@ -1236,7 +1305,7 @@ public class PluginManager implements Closeable {
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
             if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
-                System.out.println("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+                logMessage("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
                 // as fallback try to directly download from Jenkins server (only if mirrors fail)
                 urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
@@ -1252,14 +1321,12 @@ public class PluginManager implements Closeable {
                 plugin.setFile(pluginFile);
             } catch (IOException e) {
                 failedPlugins.add(plugin);
-                System.out.println("Downloaded file is not a valid ZIP");
-                if (verbose) {
-                    e.printStackTrace();
-                }
+                logMessage("Downloaded file is not a valid ZIP");
+                logOutput.printVerboseStacktrace(e);
                 return false;
             } catch (PluginChecksumMismatchException e) {
                 failedPlugins.add(plugin);
-                System.out.println(e.getMessage());
+                logMessage(e.getMessage());
                 return false;
             }
         } else {
@@ -1278,70 +1345,70 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return              boolean signifying if plugin was successfully downloaded
      */
-    @SuppressFBWarnings({"HTTP_PARAMETER_POLLUTION"})
     protected boolean downloadHttpToFile(String pluginUrl, Plugin plugin, File pluginFile, int maxRetries){
+        try {
+            getViaHttpWithResponseHandler(pluginUrl, new FileDownloadResponseHandler(pluginFile), plugin.getName(),
+                    e -> String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s", pluginUrl,
+                            plugin.getName(), e.getMessage()),
+                    maxRetries);
+
+            // Check if plugin is a proper ZIP file
+            try (JarFile ignored = new JarFile(pluginFile)) {
+                plugin.setFile(pluginFile);
+                logVerbose("Downloaded and validated plugin " + plugin.getName());
+            } catch (IOException e) {
+                throw new IOException("Downloaded file for " + plugin.getName() + " is not a valid ZIP", e);
+            }
+        } catch (IOException e) {
+            logMessage(e.getMessage());
+            logOutput.printVerboseStacktrace(e);
+            return false;
+        }
+        return true;
+    }
+
+    @SuppressFBWarnings({"HTTP_PARAMETER_POLLUTION"})
+    private <T> T getViaHttpWithResponseHandler(String url, ResponseHandler<? extends T> responseHandler, String resourceName, Function<IOException, String> ioExceptionMessageSupplier, int maxRetries) throws IOException {
+        HttpClient httpClient = getHttpClient();
+        HttpClientContext context = HttpClientContext.create();
+        CredentialsProvider credentialsProvider = getCredentialsProvider();
+        if (credentialsProvider != null) {
+            context.setCredentialsProvider(credentialsProvider);
+        }
+        HttpGet httpGet = new HttpGet(url);
         boolean success = false;
+        // TODO: retry logic should rather be implemented via DefaultHttpRequestRetruHandler, there is no need for an additional retry
         for (int i = 0; i < maxRetries; i++) {
-            success = true;
             try {
-                if (pluginFile.exists()) {
-                    Files.delete(pluginFile.toPath());
-                }
+                T response = httpClient.execute(httpGet, responseHandler, context);
+                success = true;
+                return response;
             } catch (IOException e) {
-                logVerbose(String.format("Unable to delete %s before retry %d", pluginFile, i + 1));
-            }
-            HttpClient httpClient = getHttpClient();
-            HttpClientContext context = HttpClientContext.create();
-            CredentialsProvider credentialsProvider = getCredentialsProvider();
-            if (credentialsProvider != null) {
-                context.setCredentialsProvider(credentialsProvider);
-            }
-            HttpGet httpGet = new HttpGet(pluginUrl);
-            try {
-                httpClient.execute(httpGet, new FileDownloadResponseHandler(pluginFile), context);
-            } catch (IOException e) {
-                String message = String.format("Unable to resolve plugin URL %s, or download plugin %s to file: %s",
-                pluginUrl, plugin.getName(), e.getMessage());
-                if (i >= maxRetries -1) {
-                    System.out.println(message);
+                String message = ioExceptionMessageSupplier.apply(e);
+                if (i < maxRetries - 1) {
+                    logMessage(message);
                 } else {
-                    logVerbose(message);
+                    throw new IOException(message, e);
                 }
-                success = false;
             } finally {
                 // get final URI (after all redirects)
                 List<URI> locations = context.getRedirectLocations();
                 if (locations != null) {
-                    String message = String.format("%s %s from %s (attempt %d of %d)", success ? "Downloaded" : "Tried downloading", plugin.getName(), locations.get(locations.size() - 1), i+1, maxRetries);
+                    String message = String.format("%s %s from %s (attempt %d of %d)",
+                            success ? "Downloaded" : "Tried downloading", resourceName,
+                            locations.get(locations.size() - 1), i + 1, maxRetries);
                     if (success) {
                         logVerbose(message);
                     } else {
-                        System.out.println(message);
+                        logMessage(message);
                     }
-                }
-            }
-
-            // Check if plugin is a proper ZIP file
-            if (success) {
-                try (JarFile ignored = new JarFile(pluginFile)) {
-                    plugin.setFile(pluginFile);
-                    logVerbose("Downloaded and validated plugin " + plugin.getName());
-                    break;
-                } catch (IOException e) {
-                    System.out.println("Downloaded file for " + plugin.getName() + " is not a valid ZIP");
-                    if (i >= maxRetries -1) {
-                        if (verbose) {
-                            e.printStackTrace();
-                        }
-                    }
-                    success = false;
                 }
             }
         }
-        return success;
+        throw new IllegalStateException("Reached maximum number of retries without triggering IOException");
     }
 
-      /**
+    /**
      * Downloads a plugin from local folder location
      *
      * @param pluginUrl location to download plugin to.
@@ -1360,14 +1427,14 @@ public class PluginManager implements Closeable {
                 success = true;
             } else {
                 String message = String.format("Unable to copy plugin URL %s, original file does not exists or is not accessible", originFile.getAbsolutePath());
-                System.out.println(message);
+                logMessage(message);
             }
         } catch (URISyntaxException | InvalidPathException | IOException e) {
-            System.out.println("ERROR " + e.getClass().toGenericString() );
+            logMessage("ERROR " + e.getClass().toGenericString());
 
             String message = String.format("Unable to resolve plugin URL %s, or copy plugin %s to file: %s",
             pluginUrl, plugin.getName(), e.getMessage());
-            System.out.println(message);
+            logMessage(message);
             success = false;
         }
         return success;
@@ -1389,9 +1456,7 @@ public class PluginManager implements Closeable {
     void verifyChecksum(Plugin plugin, File pluginFile) {
         String expectedChecksum = plugin.getChecksum();
         if (expectedChecksum == null) {
-            if (verbose) {
-                System.out.println("No checksum found for " + plugin.getName() + " (probably custom built plugin)");
-            }
+            logVerbose("No checksum found for " + plugin.getName() + " (probably custom built plugin)");
             return;
         }
 
@@ -1408,9 +1473,7 @@ public class PluginManager implements Closeable {
             String actual = new String(Base64.getEncoder().encode(actualChecksumDigest), StandardCharsets.UTF_8);
             throw new PluginChecksumMismatchException(plugin, expectedChecksum, actual);
         } else {
-            if (verbose) {
-                System.out.println("Checksum valid for: " + plugin.getName());
-            }
+            logVerbose("Checksum valid for: " + plugin.getName());
         }
     }
 
@@ -1445,7 +1508,7 @@ public class PluginManager implements Closeable {
         if (jenkinsWarFile != null) {
             return getJenkinsVersionFromWar();
         }
-        System.out.println("Unable to determine Jenkins version");
+        logMessage("Unable to determine Jenkins version");
         return null;
     }
 
@@ -1457,12 +1520,12 @@ public class PluginManager implements Closeable {
     @CheckForNull
     public VersionNumber getJenkinsVersionFromWar() {
         if (jenkinsWarFile == null) {
-            System.out.println("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
+            logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
             return null;
         }
         String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
-            System.out.println("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
+            logMessage("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());
             return null;
         }
         logVerbose("Jenkins version: " + version);
@@ -1478,7 +1541,7 @@ public class PluginManager implements Closeable {
     public String getPluginVersion(File file) {
         String version = getAttributeFromManifest(file, "Plugin-Version");
         if (StringUtils.isEmpty(version)) {
-            System.out.println("Unable to get plugin version from " + file);
+            logMessage("Unable to get plugin version from " + file);
             return "";
         }
         return version;
@@ -1523,12 +1586,12 @@ public class PluginManager implements Closeable {
      *
      * @return list of names of plugins that are currently installed in the war
      */
-    @SuppressFBWarnings({"RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "PATH_TRAVERSAL_IN"})
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public Map<String, Plugin> bundledPlugins() {
         Map<String, Plugin> bundledPlugins = new HashMap<>();
 
         if (jenkinsWarFile == null) {
-            System.out.println("WAR file is not defined, cannot retrieve the bundled plugins");
+            logMessage("WAR file is not defined, cannot retrieve the bundled plugins");
             return bundledPlugins;
         }
 
@@ -1571,7 +1634,7 @@ public class PluginManager implements Closeable {
                 throw new WarBundledPluginException("Unable to open war file to extract bundled plugin information", e);
             }
         } else {
-            System.out.println("War not found, installing all plugins: " + jenkinsWarFile.toString());
+            logMessage("War not found, installing all plugins: " + jenkinsWarFile.toString());
         }
         return bundledPlugins;
     }
@@ -1658,14 +1721,21 @@ public class PluginManager implements Closeable {
     }
 
     /**
-     * Outputs information to the console if verbose option was set to true
+     * Outputs information to the console (std err) if verbose option was set to true
      *
      * @param message informational string to output
      */
-    public void logVerbose(String message) {
-        if (verbose) {
-            System.out.println(message);
-        }
+    private void logVerbose(String message) {
+        logOutput.printVerboseMessage(message);
+    }
+
+    /**
+     * Output message to the console (std err).
+     *
+     * @param message informational string to output
+     */
+    private void logMessage(String message) {
+        logOutput.printMessage(message);
     }
 
     /**
@@ -1719,10 +1789,6 @@ public class PluginManager implements Closeable {
         this.pluginInfoJson = pluginInfoJson;
     }
 
-    public void setCm(CacheManager cm) {
-        this.cm = cm;
-    }
-
     /**
      * Gets the list of failed plugins
      *
@@ -1738,4 +1804,5 @@ public class PluginManager implements Closeable {
             httpClient.close();
         }
     }
+
 }

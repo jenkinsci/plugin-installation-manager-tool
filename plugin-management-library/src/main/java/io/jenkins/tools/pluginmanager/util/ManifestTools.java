@@ -78,7 +78,7 @@ public class ManifestTools {
         try {
             return getAttributesFromManifest(file).getValue(key);
         } catch (IOException e) {
-            System.out.println("Unable to open " + file);
+            System.err.println("Unable to open " + file);
             if (key.equals("Plugin-Dependencies")) {
                 throw new DownloadPluginException("Unable to read " + key + " from the manifest of " + file, e);
             }

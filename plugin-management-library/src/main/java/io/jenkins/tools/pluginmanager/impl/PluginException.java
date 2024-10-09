@@ -27,7 +27,7 @@ public class PluginException extends RuntimeException {
             // insert in reverse order
             dependencyChain.add(0, currentPlugin);
             if (depth++ > 20) {
-                System.out.println("Probably found a dependency cycle in " + plugin);
+                System.err.println("Probably found a dependency cycle in " + plugin);
                 break;
             }
         }

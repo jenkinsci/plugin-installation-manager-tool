@@ -9,16 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up JDK 1.8
-        uses: actions/setup-java@v1
+      - uses: actions/checkout@v4
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
         with:
-          java-version: 1.8
+          java-version: 11
+          distribution: 'temurin'
       - name: Set version
         id: set-version
         run: |
           version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "::set-output name=project-version::$version"
+          echo "project-version=$version" >> $GITHUB_OUTPUT
       - name: Fetch artifact
         id: fetch-artifact
         run: |
@@ -27,16 +28,20 @@ jobs:
           FILE_NAME=jenkins-plugin-manager
           PROJECT_VERSION=${{ steps.set-version.outputs.project-version }}
           echo $PROJECT_VERSION
-          echo "::set-output name=file-name::$FILE_NAME"
+          echo "file-name=$FILE_NAME" >> $GITHUB_OUTPUT
+          SHA256SUM=$(curl -fsSL https://repo.jenkins-ci.org/releases/$GROUP_ID/$ARTIFACT_ID/$PROJECT_VERSION/$ARTIFACT_ID-$PROJECT_VERSION.jar.sha256)
+          echo -n $SHA256SUM >$FILE_NAME-$PROJECT_VERSION.jar.sha256
+          echo "$SHA256SUM  $FILE_NAME-$PROJECT_VERSION.jar" >/tmp/jenkins_sha
           wget -q https://repo.jenkins-ci.org/releases/$GROUP_ID/$ARTIFACT_ID/$PROJECT_VERSION/$ARTIFACT_ID-$PROJECT_VERSION.jar \
-            -O $FILE_NAME-$PROJECT_VERSION.jar
+            -O $FILE_NAME-$PROJECT_VERSION.jar \
+            && sha256sum -c --strict /tmp/jenkins_sha \
+            && rm -f /tmp/jenkins_sha
       - name: Upload Release Asset
         id: upload-release-asset
-        uses: actions/upload-release-asset@v1
+        uses: softprops/action-gh-release@0a7d9cdbe44d16ac5fe9788836ca8af96266902e
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }} 
-          asset_path: ./${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
-          asset_name: ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
-          asset_content_type: application/java-archive
+          files: |
+            ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar
+            ${{ steps.fetch-artifact.outputs.file-name }}-${{ steps.set-version.outputs.project-version }}.jar.sha256

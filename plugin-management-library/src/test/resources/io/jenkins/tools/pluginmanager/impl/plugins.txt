@@ -46,7 +46,7 @@ role-strategy:2.16
 run-condition:1.3
 scm-api:2.6.3
 security-inspector:0.5
-snakeyaml-api:1.26.4
+snakeyaml-api:1.31-84.ve43da_fb_49d0b
 ssh-credentials:1.18.1
 timestamper:1.11.3
 token-macro:2.12

@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.cli;
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
+import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
@@ -20,8 +21,8 @@ import org.junit.rules.TemporaryFolder;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
-import static com.github.stefanbirkner.systemlambda.SystemLambda.withEnvironmentVariable;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.commons.io.IOUtils.toInputStream;
@@ -69,17 +70,13 @@ public class CliOptionsTest {
     public void setupDefaultsTest() throws Exception {
         parser.parseArgument();
 
-        Config cfg = withEnvironmentVariable("JENKINS_UC", "")
-            .and("JENKINS_UC_EXPERIMENTAL", "")
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", "")
-            .and("JENKINS_PLUGIN_INFO", "")
-            .and("JENKINS_UC_HASH_FUNCTION", "")
-            .execute(options::setup);
+        Config cfg = options.setup();
 
         assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
         assertThat(cfg.isShowAllWarnings()).isFalse();
         assertThat(cfg.isShowWarnings()).isFalse();
+        assertThat(cfg.isHideWarnings()).isFalse();
         assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
@@ -111,7 +108,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupPluginsTest() throws CmdLineException, IOException, URISyntaxException {
+    public void setupPluginsTest() throws Exception {
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.txt").toURI());
 
         File pluginFile = temporaryFolder.newFile("plugins.txt");
@@ -125,9 +122,13 @@ public class CliOptionsTest {
         requestedPlugins.add(new Plugin("mailer", "latest", null, null));
         requestedPlugins.add(new Plugin("cobertura", "experimental", null, null));
 
-        Config cfg = options.setup();
+        String stdOut = tapSystemOutNormalized(() -> {
+            Config cfg = options.setup();
 
-        assertConfigHasPlugins(cfg, requestedPlugins);
+            assertConfigHasPlugins(cfg, requestedPlugins);
+        });
+
+        assertThat(stdOut).isEmpty();
     }
 
 
@@ -208,36 +209,12 @@ public class CliOptionsTest {
                 "--jenkins-incrementals-repo-mirror", incrementalsCli,
                 "--jenkins-plugin-info", pluginInfoCli);
 
-        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
-            .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
-            .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(options::setup);
+        Config cfg = options.setup();
 
-        // Cli options should override environment variables
         assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
-    }
-
-    @Test
-    public void setupUpdateCenterEnvVarTest() throws Exception {
-        String ucEnvVar = "https://updates.jenkins.io/env";
-        String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
-        String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
-        String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
-
-        Config cfg = withEnvironmentVariable("JENKINS_UC", ucEnvVar)
-            .and("JENKINS_UC_EXPERIMENTAL", experimentalUcEnvVar)
-            .and("JENKINS_INCREMENTALS_REPO_MIRROR", incrementalsEnvVar)
-            .and("JENKINS_PLUGIN_INFO", pluginInfoEnvVar)
-            .execute(options::setup);
-
-        assertThat(cfg.getJenkinsUc()).hasToString(ucEnvVar + "/update-center.json");
-        assertThat(cfg.getJenkinsUcExperimental()).hasToString(experimentalUcEnvVar + "/update-center.json");
-        assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsEnvVar);
-        assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoEnvVar);
     }
 
     @Test
@@ -246,6 +223,13 @@ public class CliOptionsTest {
         Config cfg = options.setup();
         assertThat(cfg.isShowAllWarnings()).isTrue();
         assertThat(cfg.isShowWarnings()).isTrue();
+    }
+
+    @Test
+    public void setupHideSecurityWarningsTest() throws CmdLineException {
+        parser.parseArgument("--hide-security-warnings");
+        Config cfg = options.setup();
+        assertThat(cfg.isHideWarnings()).isTrue();
     }
 
     @Test
@@ -345,6 +329,54 @@ public class CliOptionsTest {
     public void invalidCredentialsTest() {
         assertThatThrownBy(() -> parser.parseArgument("--credentials", "myhost:myuser,myhost2:1234:myuser2:mypass2"))
         .isInstanceOf(CmdLineException.class).hasMessageContaining("Require at least a value containing 2 colons but found \"myhost:myuser\". The value must adhere to the grammar \"<host>[:port]:<username>:<password>\"");
+    }
+
+    @Test
+    public void outputFormatDefaultTest() throws CmdLineException {
+        parser.parseArgument("--plugins", "foo");
+
+        assertThat(options.getOutputFormat()).isEqualTo(OutputFormat.STDOUT);
+        Config cfg = options.setup();
+        assertThat(cfg.getOutputFormat()).isEqualTo(OutputFormat.STDOUT);
+    }
+
+    @Test
+    public void outputFormatTest() throws CmdLineException {
+        parser.parseArgument("--plugins", "foo", "--output", "yaml");
+
+        assertThat(options.getOutputFormat()).isEqualTo(OutputFormat.YAML);
+        Config cfg = options.setup();
+        assertThat(cfg.getOutputFormat()).isEqualTo(OutputFormat.YAML);
+    }
+
+    @Test
+    public void verboseTest() throws Exception {
+        parser.parseArgument("--plugins", "foo", "--verbose");
+
+        String stdOut = tapSystemOutNormalized(() -> {
+            options.setup();
+        });
+        assertThat(stdOut).isEmpty();
+
+        String stdErr = tapSystemErrNormalized(() -> {
+            options.setup();
+        });
+        assertThat(stdErr).isNotEmpty();
+    }
+
+    @Test
+    public void verboseDisabledTest() throws Exception {
+        parser.parseArgument("--plugins", "foo");
+
+        String stdOut = tapSystemOutNormalized(() -> {
+            options.setup();
+        });
+        assertThat(stdOut).isEmpty();
+
+        String stdErr = tapSystemErrNormalized(() -> {
+            options.setup();
+        });
+        assertThat(stdErr).isEmpty();
     }
 
     private void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {

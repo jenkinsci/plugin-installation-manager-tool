@@ -2,7 +2,9 @@ package io.jenkins.tools.pluginmanager.impl;
 
 import hudson.util.VersionNumber;
 import io.jenkins.tools.pluginmanager.config.Config;
+import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.Settings;
+import io.jenkins.tools.pluginmanager.parsers.StdOutPluginOutputConverter;
 import io.jenkins.tools.pluginmanager.util.ManifestTools;
 import java.io.File;
 import java.io.IOException;
@@ -19,11 +21,12 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.junit.rules.TemporaryFolder;
 
+import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static java.nio.file.Files.createDirectory;
@@ -54,14 +57,12 @@ public class PluginManagerTest {
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
 
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
     @Before
-    public void setUp() {
+    public void setUp() throws IOException {
         cfg = Config.builder()
             .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withCachePath(folder.newFolder().toPath())
                 .build();
 
         pm = new PluginManager(cfg);
@@ -251,10 +252,11 @@ public class PluginManagerTest {
                 Arrays.asList(plugin1, plugin2, dependency1, dependency2));
         pluginManager.setEffectivePlugins(effectivePlugins);
 
-        String output = tapSystemOutNormalized(
-                pluginManager::listPlugins);
+        String stdOutput = tapSystemOutNormalized(pluginManager::listPlugins);
+        String stdErr = tapSystemErrNormalized(pluginManager::listPlugins);
 
-        assertThat(output).isEqualTo(
+
+        assertThat(stdErr).isEqualTo(
                 "\nInstalled plugins:\n" +
                         "installed1 1.0\n" +
                         "installed2 2.0\n" +
@@ -270,16 +272,184 @@ public class PluginManagerTest {
                         "dependency1 1.0.0\n" +
                         "dependency2 1.0.0\n" +
                         "plugin1 1.0\n" +
-                        "plugin2 2.0\n" +
-                        "\nResulting plugin list:\n" +
-                        "bundled1 1.0\n" +
-                        "bundled2 2.0\n" +
-                        "dependency1 1.0.0\n" +
-                        "dependency2 1.0.0\n" +
+                        "plugin2 2.0\n\n");
+
+        assertThat(stdOutput).isEqualTo("Resulting plugin list:\n" +
+                "bundled1 1.0\n" +
+                "bundled2 2.0\n" +
+                "dependency1 1.0.0\n" +
+                "dependency2 1.0.0\n" +
+                "installed1 1.0\n" +
+                "installed2 2.0\n" +
+                "plugin1 1.0\n" +
+                "plugin2 2.0\n\n");
+    }
+
+    @Test
+    public void listPluginsOutputYamlTest() throws Exception {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withOutputFormat(OutputFormat.YAML)
+                .withShowPluginsToBeDownloaded(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+
+        Map<String, Plugin> installedPluginVersions = new HashMap<>();
+        Map<String, Plugin> bundledPluginVersions = new HashMap<>();
+        Map<String, Plugin> allPluginsAndDependencies = new HashMap<>();
+        HashMap<String, Plugin> effectivePlugins = new HashMap<>();
+
+        installedPluginVersions.put("installed1", new Plugin("installed1", "1.0", null, null));
+        installedPluginVersions.put("installed2", new Plugin("installed2", "2.0", null, null));
+
+        bundledPluginVersions.put("bundled1", new Plugin("bundled1", "1.0", null, null));
+        bundledPluginVersions.put("bundled2", new Plugin("bundled2", "2.0", null, null));
+
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
+        Plugin dependency1 = new Plugin("dependency1", "1.0.0", null, null);
+        Plugin dependency2 = new Plugin("dependency2", "1.0.0", null, null);
+
+        allPluginsAndDependencies.put("plugin1", plugin1);
+        allPluginsAndDependencies.put("plugin2", plugin2);
+        allPluginsAndDependencies.put("dependency1", dependency1);
+        allPluginsAndDependencies.put("dependency2", dependency2);
+
+        Plugin installed1 = new Plugin("installed1", "1.0", null, null);
+        Plugin installed2 = new Plugin("installed2", "2.0", null, null);
+        Plugin bundled1 = new Plugin("bundled1", "1.0", null, null);
+        Plugin bundled2 = new Plugin("bundled2", "2.0", null, null);
+
+        effectivePlugins.put("installed1", installed1);
+        effectivePlugins.put("installed2", installed2);
+        effectivePlugins.put("bundled1", bundled1);
+        effectivePlugins.put("bundled2", bundled2);
+        effectivePlugins.put("plugin1", plugin1);
+        effectivePlugins.put("plugin2", plugin2);
+        effectivePlugins.put("dependency1", dependency1);
+        effectivePlugins.put("dependency2", dependency2);
+
+        pluginManager.setInstalledPluginVersions(installedPluginVersions);
+        pluginManager.setBundledPluginVersions(bundledPluginVersions);
+        pluginManager.setAllPluginsAndDependencies(allPluginsAndDependencies);
+        pluginManager.setPluginsToBeDownloaded(Arrays.asList(plugin1, plugin2, dependency1, dependency2));
+        pluginManager.setEffectivePlugins(effectivePlugins);
+
+        String stdOutput = tapSystemOutNormalized(pluginManager::listPlugins);
+        String stdErr = tapSystemErrNormalized(pluginManager::listPlugins);
+
+
+        assertThat(stdErr).isEqualTo(
+                "\nInstalled plugins:\n" +
                         "installed1 1.0\n" +
                         "installed2 2.0\n" +
+                        "\nBundled plugins:\n" +
+                        "bundled1 1.0\n" +
+                        "bundled2 2.0\n" +
+                        "\nAll requested plugins:\n" +
+                        "dependency1 1.0.0\n" +
+                        "dependency2 1.0.0\n" +
                         "plugin1 1.0\n" +
-                        "plugin2 2.0\n");
+                        "plugin2 2.0\n" +
+                        "\nPlugins that will be downloaded:\n" +
+                        "dependency1 1.0.0\n" +
+                        "dependency2 1.0.0\n" +
+                        "plugin1 1.0\n" +
+                        "plugin2 2.0\n\n");
+
+        assertThat(stdOutput).isEqualTo("plugins:\n" +
+                "- artifactId: \"bundled1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"bundled2\"\n" +
+                "  source:\n" +
+                "    version: \"2.0\"\n" +
+                "- artifactId: \"dependency1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0.0\"\n" +
+                "- artifactId: \"dependency2\"\n" +
+                "  source:\n" +
+                "    version: \"1.0.0\"\n" +
+                "- artifactId: \"installed1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"installed2\"\n" +
+                "  source:\n" +
+                "    version: \"2.0\"\n" +
+                "- artifactId: \"plugin1\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"plugin2\"\n" +
+                "  source:\n" +
+                "    version: \"2.0\"\n" +
+                "\n");
+    }
+
+    @Test
+    public void outputPluginsListYamlTest() throws Exception {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        Plugin b = new Plugin("b", "2.0", null, null);
+        Plugin c = new Plugin("c", "3.0", null, null);
+        List<Plugin> plugins = Arrays.asList(a, b, c);
+
+        cfg = Config.builder()
+                .withOutputFormat(OutputFormat.YAML)
+                .build();
+        pm = new PluginManager(cfg);
+        String stdout = tapSystemOutNormalized(() -> {
+            pm.outputPluginList(plugins, () -> new StdOutPluginOutputConverter("test plugins"));
+        });
+        assertThat(stdout).isEqualTo("plugins:\n" +
+                "- artifactId: \"a\"\n" +
+                "  source:\n" +
+                "    version: \"1.0\"\n" +
+                "- artifactId: \"b\"\n" +
+                "  source:\n" +
+                "    version: \"2.0\"\n" +
+                "- artifactId: \"c\"\n" +
+                "  source:\n" +
+                "    version: \"3.0\"\n\n");
+    }
+
+    @Test
+    public void outputPluginsListTextTest() throws Exception {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        Plugin b = new Plugin("b", "2.0", null, null);
+        Plugin c = new Plugin("c", "3.0", null, null);
+        List<Plugin> plugins = Arrays.asList(a, b, c);
+
+        cfg = Config.builder()
+                .withOutputFormat(OutputFormat.TXT)
+                .build();
+        pm = new PluginManager(cfg);
+        String stdout = tapSystemOutNormalized(() -> {
+            pm.outputPluginList(plugins, () -> new StdOutPluginOutputConverter("test plugins"));
+        });
+        assertThat(stdout).isEqualTo("a:1.0\n" +
+                "b:2.0\n" +
+                "c:3.0\n");
+    }
+
+    @Test
+    public void outputPluginsListStdOutTest() throws Exception {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        Plugin b = new Plugin("b", "2.0", null, null);
+        Plugin c = new Plugin("c", "3.0", null, null);
+        List<Plugin> plugins = Arrays.asList(a, b, c);
+
+        cfg = Config.builder()
+                .withOutputFormat(OutputFormat.STDOUT)
+                .build();
+        pm = new PluginManager(cfg);
+        String stdout = tapSystemOutNormalized(() -> {
+            pm.outputPluginList(plugins, () -> new StdOutPluginOutputConverter("test plugins"));
+        });
+        assertThat(stdout).isEqualTo("test plugins\n" +
+                "a 1.0\n" +
+                "b 2.0\n" +
+                "c 3.0\n\n");
     }
 
     @Test
@@ -633,22 +803,23 @@ public class PluginManagerTest {
 
     @Test
     public void outputPluginReplacementInfoTest() throws Exception {
-        Config config = Config.builder()
-                .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
-                .withIsVerbose(true)
-                .build();
+        String output = tapSystemErrNormalized(() -> {
+            Config config = Config.builder()
+                    .withJenkinsWar(Settings.DEFAULT_WAR)
+                    .withPluginDir(new File(folder.getRoot(), "plugins"))
+                    .withIsVerbose(true)
+                    .build();
 
-        PluginManager pluginManager = new PluginManager(config);
-        Plugin lowerVersion = new Plugin("plugin1", "1.0", null, null);
-        Plugin lowerVersionParent = new Plugin("plugin1parent1", "1.0.0", null, null);
-        Plugin higherVersion = new Plugin("plugin1", "2.0", null, null);
-        Plugin highVersionParent = new Plugin("plugin1parent2", "2.0.0", null, null);
-        lowerVersion.setParent(lowerVersionParent);
-        higherVersion.setParent(highVersionParent);
+            PluginManager pluginManager = new PluginManager(config);
+            Plugin lowerVersion = new Plugin("plugin1", "1.0", null, null);
+            Plugin lowerVersionParent = new Plugin("plugin1parent1", "1.0.0", null, null);
+            Plugin higherVersion = new Plugin("plugin1", "2.0", null, null);
+            Plugin highVersionParent = new Plugin("plugin1parent2", "2.0.0", null, null);
+            lowerVersion.setParent(lowerVersionParent);
+            higherVersion.setParent(highVersionParent);
 
-        String output = tapSystemOutNormalized(
-                () -> pluginManager.outputPluginReplacementInfo(lowerVersion, higherVersion));
+            pluginManager.outputPluginReplacementInfo(lowerVersion, higherVersion);
+        });
 
         assertThat(output).isEqualTo(
                 "Version of plugin1 (1.0) required by plugin1parent1 (1.0.0) is lower than the version " +
@@ -664,9 +835,7 @@ public class PluginManagerTest {
     }
 
     @Test
-    public void getJsonThrowsExceptionWhenUrlDoesNotExists() throws IOException{
-        pm.setCm(new CacheManager(folder.newFolder().toPath(), false));
-
+    public void getJsonThrowsExceptionWhenUrlDoesNotExists() {
         assertThatThrownBy(() -> pm.getJson(new File("does/not/exist").toURI().toURL(), "update-center"))
                 .isInstanceOf(UpdateCenterInfoRetrievalException.class)
                 .hasMessage("Error getting update center json");
@@ -747,7 +916,8 @@ public class PluginManagerTest {
     public void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         setTestUcJson();
-        assertThat(pm.resolveDependenciesFromManifest(testPlugin)).isEmpty();
+        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin)).isInstanceOf(DownloadPluginException.class)
+        .hasMessageContaining("Unable to resolve dependencies");
     }
 
     @Test
@@ -1118,10 +1288,6 @@ public class PluginManagerTest {
         String otherURL = dirName(cfg.getJenkinsUc().toString()) +
                 "download/plugins/pluginName/otherversion/pluginName.hpi";
         assertThat(pm.getPluginDownloadUrl(pluginOtherVersion)).isEqualTo(otherURL);
-
-        environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://server.com/jenkins-plugins");
-        assertThat(pm.getPluginDownloadUrl(pluginOtherVersion))
-                .isEqualTo("https://server.com/jenkins-plugins/pluginName/otherversion/pluginName.hpi");
     }
 
     @Test
@@ -1144,6 +1310,7 @@ public class PluginManagerTest {
     /**
      * Test configuring custom update center mirror configuration (i.e. Artifactory).
      */
+    @Ignore("setting environment variables is not supported in Java 17")
     @Test
     public void getDownloadPluginUrlCustomUcUrls() throws IOException {
         Config config = Config.builder()
@@ -1155,7 +1322,7 @@ public class PluginManagerTest {
                 .withJenkinsPluginInfo(new URL("https://private-mirror.com/jenkins-updated-center/current/plugin-versions.json"))
                 .build();
 
-        environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
+        //environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
 
         PluginManager pluginManager = new PluginManager(config);
 

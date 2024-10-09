@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import io.jenkins.tools.pluginmanager.config.LogOutput;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -10,7 +11,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
-import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
 import static java.nio.file.Files.setPosixFilePermissions;
 import static java.nio.file.Files.write;
 import static java.time.Clock.systemDefaultZone;
@@ -64,9 +64,9 @@ public class CacheManagerTest {
     @Test
     public void cacheReturnsJsonStoredByAnotherCacheManagerInstance() throws Exception {
         Path cacheFolder = folder.newFolder("reused_cache").toPath();
-        CacheManager writeInstance = new CacheManager(cacheFolder, !VERBOSE);
+        CacheManager writeInstance = new CacheManager(cacheFolder, new LogOutput(!VERBOSE));
         writeInstance.createCache();
-        CacheManager readInstance = new CacheManager(cacheFolder, !VERBOSE);
+        CacheManager readInstance = new CacheManager(cacheFolder, new LogOutput(!VERBOSE));
 
         writeInstance.addToCache(
                 "the-cache-key",
@@ -96,8 +96,8 @@ public class CacheManagerTest {
     }
 
     @Test
-    public void messageThatCacheFolderIsCreatedIsWrittenToSystemOutWhenItDidNotExist() throws Exception {
-        String out = tapSystemOutNormalized(this::cacheManager);
+    public void messageThatCacheFolderIsCreatedIsWrittenToSystemErrWhenItDidNotExist() throws Exception {
+        String out = tapSystemErrNormalized(this::cacheManager);
 
         assertThat(out)
                 .startsWith("Created cache at: ")
@@ -105,12 +105,12 @@ public class CacheManagerTest {
     }
 
     @Test
-    public void infoAboutAnExpiredCacheEntryIsWrittenToSystemOut() throws Exception {
+    public void infoAboutAnExpiredCacheEntryIsWrittenToSystemErr() throws Exception {
         CacheManager managerWithExpiredEntries = cacheManagerWithExpiredEntries();
 
         managerWithExpiredEntries.addToCache("the-cache-key", new JSONObject());
 
-        String out = tapSystemOutNormalized(
+        String out = tapSystemErrNormalized(
                 () -> managerWithExpiredEntries.retrieveFromCache("the-cache-key")
         );
 
@@ -179,15 +179,14 @@ public class CacheManagerTest {
 
     private CacheManager cacheManager(Clock clock) {
         Path cacheFolder = cacheFolder();
-        CacheManager manager = new CacheManager(cacheFolder, VERBOSE, clock);
+        CacheManager manager = new CacheManager(cacheFolder, new LogOutput(VERBOSE), clock, true);
         manager.createCache();
         return manager;
     }
 
     private CacheManager cacheManagerWithNonJsonFileForKey(String key) throws IOException {
         Path cacheFolder = cacheFolder();
-        CacheManager manager = new CacheManager(
-                cacheFolder, VERBOSE, systemDefaultZone());
+        CacheManager manager = new CacheManager(cacheFolder, new LogOutput(VERBOSE));
         manager.createCache();
         write(cacheFolder.resolve(key + ".json"), new byte[] { 1, 2, 3});
         return manager;
@@ -195,8 +194,7 @@ public class CacheManagerTest {
 
     private CacheManager cacheManagerWithNonReadableJsonFileForKey(String key) throws IOException {
         Path cacheFolder = cacheFolder();
-        CacheManager manager = new CacheManager(
-                cacheFolder, VERBOSE, systemDefaultZone());
+        CacheManager manager = new CacheManager(cacheFolder, new LogOutput(VERBOSE));
         manager.createCache();
         manager.addToCache(key, new JSONObject());
         setPosixFilePermissions(cacheFolder.resolve(key + ".json"), emptySet());

@@ -1,10 +1,14 @@
 package io.jenkins.tools.pluginmanager.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+// see https://github.com/spotbugs/spotbugs/issues/1958#issuecomment-1056685201
+@SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME", justification = "dumb rule that makes no sense")
 public class Settings {
     public static final String DEFAULT_PLUGIN_DIR_LOCATION;
     public static final String DEFAULT_WAR;
@@ -19,6 +23,10 @@ public class Settings {
     public static final String DEFAULT_PLUGIN_INFO_LOCATION = "https://updates.jenkins.io/plugin-versions.json";
     public static final Path DEFAULT_CACHE_PATH;
     public static final HashFunction DEFAULT_HASH_FUNCTION = HashFunction.SHA256;
+
+    private static final String DOCKER_IMAGE_WAR_LOCATION = "/usr/share/jenkins/jenkins.war";
+
+    private static final String PACKAGING_WAR_LOCATION = "/usr/share/java/jenkins.war";
 
     static {
         String cacheBaseDir = System.getProperty("user.home");
@@ -39,6 +47,10 @@ public class Settings {
             DEFAULT_INCREMENTALS_REPO_MIRROR = new URL(DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
             DEFAULT_PLUGIN_INFO = new URL(DEFAULT_PLUGIN_INFO_LOCATION);
         } catch (MalformedURLException e) {
+            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+             * but the program cannot do anything with a malformed URL.
+             * Spotbugs warning is ignored.
+             */
             throw new RuntimeException(e);
         }
 
@@ -46,7 +58,13 @@ public class Settings {
             DEFAULT_WAR = "C:\\ProgramData\\Jenkins\\jenkins.war";
             DEFAULT_PLUGIN_DIR_LOCATION = "C:\\ProgramData\\Jenkins\\Reference\\Plugins";
         } else {
-            DEFAULT_WAR = "/usr/share/jenkins/jenkins.war";
+            File file = new File(DOCKER_IMAGE_WAR_LOCATION);
+            if (file.exists()) {
+                DEFAULT_WAR = DOCKER_IMAGE_WAR_LOCATION;
+            } else {
+                DEFAULT_WAR = PACKAGING_WAR_LOCATION;
+            }
+
             DEFAULT_PLUGIN_DIR_LOCATION = "/usr/share/jenkins/ref/plugins";
         }
     }

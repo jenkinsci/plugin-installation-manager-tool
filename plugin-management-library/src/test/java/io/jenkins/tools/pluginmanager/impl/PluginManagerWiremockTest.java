@@ -7,6 +7,8 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collections;
 import org.junit.After;
 import org.junit.Before;
@@ -31,7 +33,7 @@ public class PluginManagerWiremockTest {
     public final TemporaryFolder folder = new TemporaryFolder();
 
     @Before
-    public void proxyToWireMock() {
+    public void proxyToWireMock() throws IOException {
         archives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
         archives.start();
         protectedArchives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
@@ -40,6 +42,7 @@ public class PluginManagerWiremockTest {
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .withPluginDir(new File(folder.getRoot(), "plugins"))
                 .withCredentials(Collections.singletonList(new Credentials("myuser", "mypassword", "localhost", protectedArchives.port())))
+                .withCachePath(folder.newFolder().toPath())
                 .build();
         pm = new PluginManager(cfg);
 
@@ -78,4 +81,11 @@ public class PluginManagerWiremockTest {
         int wireMockPort = archives.port(); // no credentials configured for this port
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/protectedplugins/mailer/1.32/mailer.hpi", plugin, null)).isFalse();
     }
+
+    @Test
+    public void getJsonWithBasicAuth() throws IOException{
+        int wireMockPort = protectedArchives.port();
+        assertThat(pm.getJson(new URL("http://localhost:" + wireMockPort + "/update-center.json"), "cache-key")).isNotNull();
+    }
+
 }

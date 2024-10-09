@@ -5,15 +5,14 @@
     <parent>
         <groupId>org.jenkins-ci</groupId>
         <artifactId>jenkins</artifactId>
-        <version>1.71</version>
+        <version>1.123</version>
+        <relativePath />
     </parent>
 
     <properties>
-        <revision>2.12.4</revision>
+        <revision>2.13.1</revision>
         <changelist>-SNAPSHOT</changelist>
-        <java.level>8</java.level>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spotbugs.excludeFilterFile>${project.basedir}/../src/spotbugs/spotbugs-excludes.xml</spotbugs.excludeFilterFile>
+        <gitHubRepo>jenkinsci/plugin-installation-manager-tool</gitHubRepo>
         <tagNameFormat>@{project.version}</tagNameFormat>
     </properties>
 
@@ -27,18 +26,17 @@
         <module>plugin-management-library</module>
         <module>plugin-management-cli</module>
     </modules>
-
-    <scm>
-        <connection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/plugin-installation-manager-tool.git</developerConnection>
-        <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
+    <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
+        <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+        <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+        <url>https://github.com/${gitHubRepo}</url>
         <tag>${scmTag}</tag>
     </scm>
 
     <licenses>
         <license>
             <name>The MIT license</name>
-            <url>http://www.opensource.org/licenses/mit-license.php</url>
+            <url>https://opensource.org/licenses/MIT</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -60,37 +58,15 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>4.13.2</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.hamcrest</groupId>
-                        <artifactId>hamcrest-core</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
-                <version>3.22.0</version>
+                <version>3.26.3</version>
             </dependency>
+            <!-- Resolve new checks added by enforcer plugin in parent pom 1.95 -->
             <dependency>
-                <groupId>org.hamcrest</groupId>
-                <artifactId>hamcrest-core</artifactId>
-                <version>2.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.junit</groupId>
-                <artifactId>junit-bom</artifactId>
-                <version>5.8.2</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.36</version>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.15.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -98,7 +74,7 @@
     <dependencies>
         <dependency>
             <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
+            <artifactId>hamcrest</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -114,7 +90,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>4.3.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -125,12 +100,11 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.1.2</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>9.3</version>
+                            <version>10.18.2</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -168,5 +142,40 @@
             </resource>
         </resources>
     </build>
+
+    <profiles>
+        <profile>
+            <id>enable-jacoco</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+			<version>0.8.12</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/Messages.class</exclude>
+                                <!-- https://github.com/HtmlUnit/htmlunit-cssparser/issues/4 -->
+                                <exclude>org/htmlunit/**</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
