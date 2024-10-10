@@ -27,6 +27,11 @@ public class Plugin {
     private String checksum;
     private VersionNumber jenkinsVersion;
 
+    public Plugin(String name, String version) {
+        this.name = name;
+        this.version = new VersionNumber(version);
+    }
+
     public Plugin(String name, String version, String url, String groupId) {
         this.name = name;
         if (StringUtils.isEmpty(version)) {
