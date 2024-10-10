@@ -10,7 +10,7 @@
     </parent>
 
     <properties>
-        <revision>2.13.2</revision>
+        <revision>2.13.3</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/plugin-installation-manager-tool</gitHubRepo>
         <tagNameFormat>@{project.version}</tagNameFormat>
@@ -18,7 +18,7 @@
 
     <groupId>io.jenkins.plugin-management</groupId>
     <artifactId>plugin-management-parent-pom</artifactId>
-    <version>2.13.2</version>
+    <version>${revision}${changelist}</version>
     <packaging>pom</packaging>
     <url>https://github.com/jenkinsci/plugin-installation-manager-tool</url>
 
