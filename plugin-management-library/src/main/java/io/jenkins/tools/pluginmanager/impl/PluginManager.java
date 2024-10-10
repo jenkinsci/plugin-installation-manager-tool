@@ -1240,12 +1240,13 @@ public class PluginManager implements Closeable {
             pluginVersion = Plugin.LATEST;
         }
 
-        String jenkinsUcDownload =  System.getenv("JENKINS_UC_DOWNLOAD");
+        String jenkinsUcDownload = System.getenv("JENKINS_UC_DOWNLOAD");
         String jenkinsUcDownloadUrl = System.getenv("JENKINS_UC_DOWNLOAD_URL");
-        if (StringUtils.isNotEmpty(jenkinsUcDownloadUrl)) {
-            urlString = appendPathOntoUrl(jenkinsUcDownloadUrl, pluginName, pluginVersion, pluginName + ".hpi");
-        } else if (StringUtils.isNotEmpty(pluginUrl)) {
+
+        if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
+        } else if (StringUtils.isNotEmpty(jenkinsUcDownloadUrl)) {
+            urlString = appendPathOntoUrl(jenkinsUcDownloadUrl, pluginName, pluginVersion, pluginName + ".hpi");
         } else if (pluginVersion.equals(Plugin.LATEST) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
         } else if (pluginVersion.equals(Plugin.EXPERIMENTAL)) {
