@@ -115,6 +115,13 @@ class CliOptions {
             handler = URLOptionHandler.class)
     private URL jenkinsIncrementalsRepoMirror;
 
+    @Option(name = "--jenkins-archive-repo-mirror",
+            usage = "Set the custom URL for the Jenkins plugin archive repository, will override " +
+                    "the JENKINS_ARCHIVE_REPO_MIRROR environment variable. If not set via CLI option or " +
+                    "environment variable, will default to " + Settings.DEFAULT_ARCHIVE_REPO_MIRROR_LOCATION,
+            handler = URLOptionHandler.class)
+    private URL jenkinsArchiveRepoMirror;
+
     @Option(name = "--jenkins-plugin-info",
             usage = "Sets the location of plugin information; will override JENKINS_PLUGIN_INFO environment variable. " +
                     "If not set via CLI option or environment variable, will default to " +
@@ -168,6 +175,7 @@ class CliOptions {
                 .withJenkinsUc(getUpdateCenter())
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
+                .withJenkinsArchiveRepoMirror(getArchiveMirror())
                 .withJenkinsPluginInfo(getPluginInfo())
                 .withJenkinsVersion(getJenkinsVersion())
                 .withJenkinsWar(getJenkinsWar())
@@ -442,6 +450,34 @@ class CliOptions {
                     jenkinsIncrementalsRepo);
         }
         return jenkinsIncrementalsRepo;
+    }
+
+    /**
+     * Determines the archive repository mirror URL. If a value is set via CLI option, it will override a
+     * value set via environment variable. If neither are set, the default in the Settings class will be used.
+     *
+     * @return the archive repository mirror URL
+     */
+    private URL getArchiveMirror() {
+        URL archiveRepoMirror;
+        String archiveRepoEnv = System.getenv("JENKINS_ARCHIVE_REPO_MIRROR");
+        if (jenkinsArchiveRepoMirror != null) {
+            archiveRepoMirror = jenkinsArchiveRepoMirror;
+            logVerbose("Using archive repository mirror " + archiveRepoMirror + " specified with CLI option");
+        } else if (!StringUtils.isEmpty(archiveRepoEnv)) {
+            try {
+                archiveRepoMirror = new URL(archiveRepoEnv);
+            } catch (MalformedURLException e) {
+                throw new RuntimeException(e);
+            }
+            logVerbose("Using archive repository mirror " + archiveRepoMirror +
+                    " from JENKINS_ARCHIVE_REPO_MIRROR environment variable");
+        } else {
+            archiveRepoMirror = Settings.DEFAULT_ARCHIVE_REPO_MIRROR;
+            logVerbose("No CLI option or environment variable set for archive repository mirror, using default of " +
+                    archiveRepoMirror);
+        }
+        return archiveRepoMirror;
     }
 
     /**
