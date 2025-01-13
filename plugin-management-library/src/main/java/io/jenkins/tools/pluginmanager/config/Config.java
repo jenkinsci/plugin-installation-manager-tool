@@ -46,6 +46,7 @@ public class Config {
     private final URL jenkinsUc;
     private final URL jenkinsUcExperimental;
     private final URL jenkinsIncrementalsRepoMirror;
+    private final URL jenkinsArchiveRepoMirror;
     private final URL jenkinsPluginInfo;
     private final boolean doDownload;
     private final boolean useLatestSpecified;
@@ -71,6 +72,7 @@ public class Config {
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
+            URL jenkinsArchiveRepoMirror,
             URL jenkinsPluginInfo,
             boolean doDownload,
             boolean useLatestSpecified,
@@ -94,6 +96,7 @@ public class Config {
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+        this.jenkinsArchiveRepoMirror = jenkinsArchiveRepoMirror;
         this.jenkinsPluginInfo = jenkinsPluginInfo;
         this.doDownload = doDownload;
         this.useLatestSpecified = useLatestSpecified;
@@ -158,6 +161,10 @@ public class Config {
 
     public URL getJenkinsIncrementalsRepoMirror() {
         return jenkinsIncrementalsRepoMirror;
+    }
+
+    public URL getJenkinsArchiveRepoMirror() {
+        return jenkinsArchiveRepoMirror;
     }
 
     public URL getJenkinsPluginInfo() {
@@ -228,6 +235,7 @@ public class Config {
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
+        private URL jenkinsArchiveRepoMirror = Settings.DEFAULT_ARCHIVE_REPO_MIRROR;
         private URL jenkinsPluginInfo = Settings.DEFAULT_PLUGIN_INFO;
         private boolean doDownload;
         private boolean useLatestSpecified;
@@ -317,6 +325,11 @@ public class Config {
             return this;
         }
 
+        public Builder withJenkinsArchiveRepoMirror(URL jenkinsArchiveRepoMirror) {
+            this.jenkinsArchiveRepoMirror = jenkinsArchiveRepoMirror;
+            return this;
+        }
+
         public Builder withJenkinsPluginInfo(URL jenkinsPluginInfo) {
             this.jenkinsPluginInfo = jenkinsPluginInfo;
             return this;
@@ -383,6 +396,7 @@ public class Config {
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
+                    jenkinsArchiveRepoMirror,
                     jenkinsPluginInfo,
                     doDownload,
                     useLatestSpecified,

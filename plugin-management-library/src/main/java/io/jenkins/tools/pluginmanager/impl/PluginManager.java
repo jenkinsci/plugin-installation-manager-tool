@@ -120,7 +120,6 @@ public class PluginManager implements Closeable {
     private final LogOutput logOutput;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
-    private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
@@ -1305,10 +1304,10 @@ public class PluginManager implements Closeable {
         if(urlString.startsWith("http://") || urlString.startsWith("https://")){
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
-            if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
-                logMessage("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+            if (!success && !urlString.startsWith(cfg.getJenkinsArchiveRepoMirror().toString())) {
+                logMessage("Downloading from mirrors failed, falling back to " + cfg.getJenkinsArchiveRepoMirror().toString());
                 // as fallback try to directly download from Jenkins server (only if mirrors fail)
-                urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
+                urlString = appendPathOntoUrl(cfg.getJenkinsArchiveRepoMirror().toString(), "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
             }
         } else if (urlString.startsWith("file://")){
