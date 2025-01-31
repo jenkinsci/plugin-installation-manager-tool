@@ -51,6 +51,7 @@ public class Config {
     private final boolean doDownload;
     private final boolean useLatestSpecified;
     private final boolean useLatestAll;
+    private final boolean useArchiveAll;
     private final boolean skipFailedPlugins;
     @NonNull
     private final OutputFormat outputFormat;
@@ -77,6 +78,7 @@ public class Config {
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
+            boolean useArchiveAll,
             boolean skipFailedPlugins,
             OutputFormat outputFormat,
             HashFunction hashFunction,
@@ -101,6 +103,7 @@ public class Config {
         this.doDownload = doDownload;
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
+        this.useArchiveAll = useArchiveAll;
         this.skipFailedPlugins = skipFailedPlugins;
         this.outputFormat = outputFormat;
         this.credentials = credentials;
@@ -191,6 +194,8 @@ public class Config {
 
     public boolean isUseLatestAll() { return useLatestAll; }
 
+    public boolean isUseArchiveAll() { return useArchiveAll; }
+
     public boolean isSkipFailedPlugins() {
         return skipFailedPlugins;
     }
@@ -240,6 +245,7 @@ public class Config {
         private boolean doDownload;
         private boolean useLatestSpecified;
         private boolean useLatestAll;
+        private boolean useArchiveAll;
         private boolean skipFailedPlugins;
         private OutputFormat outputFormat = OutputFormat.STDOUT;
         private List<Credentials> credentials = Collections.emptyList();
@@ -350,6 +356,11 @@ public class Config {
             return this;
         }
 
+        public Builder withUseArchiveAll(boolean useArchiveAll) {
+            this.useArchiveAll = useArchiveAll;
+            return this;
+        }
+
         public Builder withSkipFailedPlugins(boolean skipFailedPlugins) {
             this.skipFailedPlugins = skipFailedPlugins;
             return this;
@@ -401,6 +412,7 @@ public class Config {
                     doDownload,
                     useLatestSpecified,
                     useLatestAll,
+                    useArchiveAll,
                     skipFailedPlugins,
                     outputFormat,
                     hashFunction,

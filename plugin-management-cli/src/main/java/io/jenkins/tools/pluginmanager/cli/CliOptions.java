@@ -150,6 +150,12 @@ class CliOptions {
             handler = ExplicitBooleanOptionHandler.class)
     private boolean useLatestAll = true;
 
+    @Option(name = "--archive", usage = "Set to true to check archived update center repositories for plugin dependencies metadata first. " +
+            "If the metadata is found in the archive, it will be used instead of the latest update center metadata. " +
+            "By default, the latest update center metadata is used.",
+            handler = ExplicitBooleanOptionHandler.class)
+    private boolean useArchiveAll = false;
+
     @Option(name = "--help", aliases = {"-h"}, help = true)
     private boolean showHelp;
 
@@ -189,6 +195,7 @@ class CliOptions {
                 .withDoDownload(!isNoDownload())
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
+                .withUseArchiveAll(isUseArchiveAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
                 .withCredentials(credentials)
                 .withHashFunction(getHashFunction())
@@ -576,6 +583,17 @@ class CliOptions {
             return false;
         }
         return useLatestAll;
+    }
+
+    /**
+     * Returns whether the user wants to check archived update center repositories for plugin dependencies metadata first.
+     * If the metadata is found in the archive, it will be used instead of the latest update center metadata.
+     * This flag takes precedence over the latest versions preference.
+     *
+     * @return true if the user wants to check archived repositories first, false otherwise
+     */
+    public boolean isUseArchiveAll() {
+        return useArchiveAll;
     }
 
     // visible for testing

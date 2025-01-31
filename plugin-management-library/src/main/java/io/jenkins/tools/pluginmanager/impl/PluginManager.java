@@ -82,6 +82,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.resolveArchiveUpdateCenterUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathOntoUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
@@ -852,7 +853,25 @@ public class PluginManager implements Closeable {
 
         String cacheSuffix = getCacheSuffix(jenkinsVersion);
         try {
-            URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
+
+            URL ucUrl = cfg.getJenkinsUc();
+
+            if (cfg.isUseArchiveAll()) {
+                URL archiveUcUrl = resolveArchiveUpdateCenterUrl(cacheSuffix, cfg.getJenkinsArchiveRepoMirror());
+                if (archiveUcUrl != null) {
+                    ucUrl = archiveUcUrl;
+                } else {
+                    logVerbose("No valid archive repository found for version " + jenkinsVersion + ". Falling back to the default repository.");
+                }
+            }
+
+            if (ucUrl == null) {
+                throw new IllegalStateException("No valid update center URL found for version " + jenkinsVersion);
+            }
+
+            URI ucUri = ucUrl.toURI();
+
+            URIBuilder uriBuilder = new URIBuilder(ucUri);
             if (jenkinsVersion != null) {
                 uriBuilder.addParameter("version", jenkinsVersion.toString()).build();
             }

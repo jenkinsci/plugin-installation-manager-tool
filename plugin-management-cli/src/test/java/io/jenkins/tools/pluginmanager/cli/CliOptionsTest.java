@@ -76,6 +76,7 @@ public class CliOptionsTest {
         assertThat(cfg.isShowAllWarnings()).isFalse();
         assertThat(cfg.isShowWarnings()).isFalse();
         assertThat(cfg.isHideWarnings()).isFalse();
+        assertThat(cfg.isUseArchiveAll()).isFalse();
         assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
@@ -304,6 +305,20 @@ public class CliOptionsTest {
         parser.parseArgument("--latest", "false");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestAll()).isFalse();
+    }
+
+    @Test
+    public void useArchiveTest() throws CmdLineException {
+        parser.parseArgument("--archive");
+        Config cfg = options.setup();
+        assertThat(cfg.isUseArchiveAll()).isTrue();
+    }
+
+    @Test
+    public void useNotArchiveTest() throws CmdLineException {
+        parser.parseArgument("--archive", "false");
+        Config cfg = options.setup();
+        assertThat(cfg.isUseArchiveAll()).isFalse();
     }
 
     @Test

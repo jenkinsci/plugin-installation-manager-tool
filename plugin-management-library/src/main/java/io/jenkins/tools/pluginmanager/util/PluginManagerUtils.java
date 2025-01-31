@@ -5,12 +5,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.Enumeration;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.jenkins.tools.pluginmanager.config.Settings;
 import org.apache.commons.io.IOUtils;
 
 import static java.util.Objects.requireNonNull;
@@ -173,6 +177,74 @@ public final class PluginManagerUtils {
                 }
             }
             return destDir;
+        }
+    }
+
+    /**
+     * Resolves the URL for the update center based on the cache suffix and the provided archive mirror URL.
+     *
+     * @param cacheSuffix The suffix for the Jenkins version (e.g., "-2.414.3")
+     * @param jenkinsArchiveRepoMirror The URL of the Jenkins archive repository mirror (optional)
+     * @return The resolved URL for the update center or null if not found
+     */
+    public static URL resolveArchiveUpdateCenterUrl(String cacheSuffix, URL jenkinsArchiveRepoMirror) {
+        if (cacheSuffix == null || !cacheSuffix.startsWith("-")) {
+            throw new IllegalArgumentException("Cache suffix must not be null and must start with a dash (-)");
+        }
+
+        String baseUrl = (jenkinsArchiveRepoMirror != null)
+                ? jenkinsArchiveRepoMirror + "updates/" : Settings.DEFAULT_ARCHIVE_REPO_MIRROR_LOCATION + "updates/";
+
+        String ucFile = "/update-center.json";
+        String[] possiblePaths = {
+                "stable" + cacheSuffix + ucFile,
+                "dynamic" + cacheSuffix + ucFile,
+                "dynamic-stable" + cacheSuffix + ucFile
+        };
+
+        // Check each possible URL until we find a valid one
+        for (String path : possiblePaths) {
+            URL url = constructUrl(baseUrl, path);
+            if (isValidUrl(url)) {
+                return url;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Checks if a given URL is valid by making an HTTP request and verifying the response code.
+     *
+     * @param url The URL to check
+     * @return true if the URL is valid (returns HTTP 200), false otherwise
+     */
+    private static boolean isValidUrl(URL url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(5000); // Timeout in case the server is slow to respond
+            connection.setReadTimeout(5000);
+            int responseCode = connection.getResponseCode();
+            return responseCode == HttpURLConnection.HTTP_OK;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Constructs a URL by combining a base URL and a path.
+     * If the resulting URL is invalid, an {@link IllegalArgumentException} is thrown.
+     *
+     * @param baseUrl the base URL to which the path will be appended (e.g., "https:// archives.jenkins.io/")
+     * @param path the path to append to the base URL (e.g., "updates/update-center.json")
+     * @return the constructed URL
+     * @throws IllegalArgumentException if the resulting URL is invalid
+     */
+    private static URL constructUrl(String baseUrl, String path) {
+        try {
+            return new URL(baseUrl + path);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid URL construction: " + baseUrl + path, e);
         }
     }
 
