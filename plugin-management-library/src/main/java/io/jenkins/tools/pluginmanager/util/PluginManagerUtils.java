@@ -1,6 +1,5 @@
 package io.jenkins.tools.pluginmanager.util;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,8 +13,10 @@ import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.jenkins.tools.pluginmanager.config.Settings;
 import org.apache.commons.io.IOUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import io.jenkins.tools.pluginmanager.config.Settings;
 
 import static java.util.Objects.requireNonNull;
 
@@ -220,6 +221,10 @@ public final class PluginManagerUtils {
      */
     private static boolean isValidUrl(URL url) {
         try {
+            String protocol = url.getProtocol();
+            if (!"http".equalsIgnoreCase(protocol) && !"https".equalsIgnoreCase(protocol)) {
+                return false;
+            }
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000); // Timeout in case the server is slow to respond
