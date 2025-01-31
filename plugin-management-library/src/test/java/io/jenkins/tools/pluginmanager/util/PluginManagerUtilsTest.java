@@ -2,10 +2,14 @@ package io.jenkins.tools.pluginmanager.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+
+import io.jenkins.tools.pluginmanager.config.Settings;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.resolveArchiveUpdateCenterUrl;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PluginManagerUtilsTest {
 
@@ -230,4 +234,40 @@ public class PluginManagerUtilsTest {
         assertThat(result).isEqualTo("http://bob.com");
     }
 
+    @Test
+    public void testResolveArchiveUpdateCenterUrl_Success() throws Exception {
+        URL mockUrl = new URL("https://archives.jenkins.io/updates/dynamic-stable-2.414.3/update-center.json");
+        URL result = resolveArchiveUpdateCenterUrl("-2.414.3", Settings.DEFAULT_ARCHIVE_REPO_MIRROR);
+
+        assertNotNull(result);
+        assertThat(result.toString()).isEqualTo(mockUrl.toString());
+    }
+
+    @Test
+    public void testResolveArchiveUpdateCenterUrl_InvalidCacheSuffix() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            resolveArchiveUpdateCenterUrl("invalidSuffix", new URL("https://example.com/"));
+        });
+    }
+
+    @Test
+    public void testResolveArchiveUpdateCenterUrl_NullCacheSuffix() {
+        assertThrows(IllegalArgumentException.class, () -> {
+            resolveArchiveUpdateCenterUrl(null, new URL("https://example.com/"));
+        });
+    }
+
+    @Test
+    public void testResolveArchiveUpdateCenterUrl_NoValidUrl() throws Exception {
+        URL result = resolveArchiveUpdateCenterUrl("-2.414.3", new URL("https://example.com/"));
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testResolveArchiveUpdateCenterUrl_InvalidBaseUrl() {
+        assertThrows(InvalidUrlException.class, () -> {
+            resolveArchiveUpdateCenterUrl("-2.414.3", new URL("ftp://invalid.url/"));
+        });
+    }
 }

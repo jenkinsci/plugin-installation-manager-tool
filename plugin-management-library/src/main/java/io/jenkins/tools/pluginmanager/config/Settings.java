@@ -1,7 +1,6 @@
 package io.jenkins.tools.pluginmanager.config;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
