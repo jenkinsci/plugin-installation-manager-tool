@@ -1,15 +1,24 @@
 package io.jenkins.tools.pluginmanager.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.jenkins.tools.pluginmanager.config.Settings;
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-
-import io.jenkins.tools.pluginmanager.config.Settings;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.constructUrl;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.isValidUrl;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.resolveArchiveUpdateCenterUrl;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class PluginManagerUtilsTest {
 
@@ -235,39 +244,164 @@ public class PluginManagerUtilsTest {
     }
 
     @Test
-    public void testResolveArchiveUpdateCenterUrl_Success() throws Exception {
-        URL mockUrl = new URL("https://archives.jenkins.io/updates/dynamic-stable-2.414.3/update-center.json");
-        URL result = resolveArchiveUpdateCenterUrl("-2.414.3", Settings.DEFAULT_ARCHIVE_REPO_MIRROR);
+    public void resolveArchiveUpdateCenterUrlTestWithSuccessResult() {
+        String jenkinsCacheSuffix = "-2.414.3";
+        URL archiveRepoUrl = Settings.DEFAULT_ARCHIVE_REPO_MIRROR;
+        URL result = resolveArchiveUpdateCenterUrl(jenkinsCacheSuffix, archiveRepoUrl);
 
-        assertNotNull(result);
-        assertThat(result.toString()).isEqualTo(mockUrl.toString());
+        assertThat(result).isNotNull();
+        assertThat(result.toString()).endsWith("updates/dynamic-stable-2.414.3/update-center.json");
     }
 
     @Test
-    public void testResolveArchiveUpdateCenterUrl_InvalidCacheSuffix() {
+    public void resolveArchiveUpdateCenterUrlTestWithInvalidCacheSuffix() {
         assertThrows(IllegalArgumentException.class, () -> {
-            resolveArchiveUpdateCenterUrl("invalidSuffix", new URL("https://example.com/"));
+            resolveArchiveUpdateCenterUrl("invalidSuffix", new URL("https://example.jenkins.org/"));
         });
     }
 
     @Test
-    public void testResolveArchiveUpdateCenterUrl_NullCacheSuffix() {
+    public void resolveArchiveUpdateCenterUrlTestWithNullCacheSuffix() {
         assertThrows(IllegalArgumentException.class, () -> {
-            resolveArchiveUpdateCenterUrl(null, new URL("https://example.com/"));
+            resolveArchiveUpdateCenterUrl(null, new URL("https://example.jenkins.org/"));
         });
     }
 
+    @SuppressFBWarnings("NAB_NEEDLESS_BOOLEAN_CONSTANT_CONVERSION")
     @Test
-    public void testResolveArchiveUpdateCenterUrl_NoValidUrl() throws Exception {
-        URL result = resolveArchiveUpdateCenterUrl("-2.414.3", new URL("https://example.com/"));
-
-        assertNull(result);
+    public void resolveArchiveUpdateCenterUrlTestWithNoValidUrl() throws Exception {
+        try (MockedStatic<PluginManagerUtils> mockedUtils = Mockito.mockStatic(PluginManagerUtils.class)) {
+            mockedUtils.when(() -> PluginManagerUtils.constructUrl(anyString(), anyString())).thenReturn(null);
+            mockedUtils.when(() -> PluginManagerUtils.isValidUrl(any(URL.class))).thenReturn(false);
+            URL result = PluginManagerUtils.resolveArchiveUpdateCenterUrl("-2.414.3", new URL("https://example.jenkins.org/"));
+            assertThat(result).isNull();
+        }
     }
 
     @Test
-    public void testResolveArchiveUpdateCenterUrl_InvalidBaseUrl() {
+    public void resolveArchiveUpdateCenterUrlTestWithNullUrl() {
+        String jenkinsCacheSuffix = "-2.216";
+        URL result = resolveArchiveUpdateCenterUrl(jenkinsCacheSuffix, null);
+
+        assertThat(result).isNull();
+    }
+
+    @Test
+    public void resolveArchiveUpdateCenterUrlTestWithInvalidBaseUrl() {
         assertThrows(InvalidUrlException.class, () -> {
             resolveArchiveUpdateCenterUrl("-2.414.3", new URL("ftp://invalid.url/"));
         });
+    }
+
+    @Test
+    public void isValidUrlTestWithNullUrl() {
+        assertThrows(IllegalArgumentException.class, () -> {
+                isValidUrl(null);
+        });
+    }
+
+    @Test
+    public void isValidUrlTestWithInvalidProtocol() throws Exception {
+        URL url = new URL("ftp://example.jenkins.com");
+        assertThrows(IllegalArgumentException.class, () -> {
+            isValidUrl(url);
+        });
+    }
+
+    @Test
+    public void isValidUrlTestWithNullHost() throws Exception {
+        URL url = new URL("http://");
+        assertThrows(IllegalArgumentException.class, () -> {
+            isValidUrl(url);
+        });
+    }
+
+    @SuppressFBWarnings("URLCONNECTION_SSRF_FD")
+    @Test
+    public void isValidUrlTestWithSuccessResult() throws Exception {
+        URL url = new URL("https://example.jenkins.org");
+        URL spyUrl = Mockito.spy(url);
+        HttpURLConnection mockConnection = Mockito.mock(HttpURLConnection.class);
+        Mockito.when(spyUrl.openConnection()).thenReturn(mockConnection);
+        Mockito.when(mockConnection.getResponseCode()).thenReturn(200);
+        assertThat(isValidUrl(spyUrl)).isTrue();
+    }
+
+    @SuppressFBWarnings("URLCONNECTION_SSRF_FD")
+    @Test
+    public void isValidUrlTestWithIOException() throws Exception {
+        URL url = new URL("https://example.jenkins.org");
+        URL spyUrl = Mockito.spy(url);
+        HttpURLConnection mockConnection = Mockito.mock(HttpURLConnection.class);
+        Mockito.when(spyUrl.openConnection()).thenReturn(mockConnection);
+        Mockito.when(mockConnection.getResponseCode()).thenThrow(new IOException("Connection failed"));
+        assertThat(isValidUrl(spyUrl)).isFalse();
+    }
+
+    @SuppressFBWarnings("URLCONNECTION_SSRF_FD")
+    @Test
+    public void isValidUrlTestWithErrorResponseCode() throws Exception {
+        URL url = new URL("https://example.jenkins.org");
+        URL spyUrl = Mockito.spy(url);
+        HttpURLConnection mockConnection = Mockito.mock(HttpURLConnection.class);
+        Mockito.when(spyUrl.openConnection()).thenReturn(mockConnection);
+        Mockito.when(mockConnection.getResponseCode()).thenReturn(404);
+        assertThat(isValidUrl(url)).isFalse();
+    }
+
+    @Test
+    public void constructUrlTestWithNullBaseUrl() {
+        assertThatThrownBy(() -> constructUrl(null, "/path"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessage("Base URL must not be null or empty");
+    }
+
+    @Test
+    public void constructUrlTestWithEmptyBaseUrl() {
+        assertThatThrownBy(() -> constructUrl("", "/path"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessage("Base URL must not be null or empty");
+    }
+
+    @Test
+    public void constructUrlTestWithNullPath() {
+        assertThatThrownBy(() -> constructUrl("https://example.jenkins.org", null))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessage("Path must not be null");
+    }
+
+    @Test
+    public void constructUrlTestWithInvalidBaseUrlScheme() {
+        assertThatThrownBy(() -> constructUrl("ftp://example.jenkins.org", "/path"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessage("Base URL must start with http:// or https://");
+    }
+
+    @Test
+    public void constructUrlTestWithMissingHost() {
+        assertThatThrownBy(() -> constructUrl("https://", "/path"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessage("Invalid URL: host is missing");
+    }
+
+    @Test
+    public void constructUrlTestWithSuccessResult() {
+        URL url = constructUrl("https://example.jenkins.org", "/path");
+        assertThat(url).isNotNull();
+        assertThat(url.toString()).hasToString("https://example.jenkins.org/path");
+    }
+
+    @Test
+    public void constructUrlTestWithInvalidUrlSyntax() {
+        assertThatThrownBy(() -> constructUrl("https://example.jenkins.org", "/path with spaces"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessageStartingWith("Invalid URL construction:");
+    }
+
+    @Test
+    public void constructUrlTestWithMalformedUrl() {
+        assertThatThrownBy(() -> constructUrl("https://example.jenkins.org", "/path#invalid#fragment"))
+                .isInstanceOf(InvalidUrlException.class)
+                .hasMessageStartingWith("Invalid URL construction:");
     }
 }

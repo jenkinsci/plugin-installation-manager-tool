@@ -6,7 +6,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -19,6 +23,12 @@ import org.apache.commons.io.IOUtils;
 import static java.util.Objects.requireNonNull;
 
 public final class PluginManagerUtils {
+
+    /**
+     * The list of possible repository path prefixes used to resolve the update center URL.
+     * These prefixes are combined with the cache suffix to form the full path to the update center JSON file.
+     */
+    private static final String[] DEFAULT_ARCHIVE_REPOS_PATH_PREFIXES  = { "stable", "dynamic", "dynamic-stable" };
 
     private PluginManagerUtils() {
     }
@@ -180,14 +190,15 @@ public final class PluginManagerUtils {
     }
 
     /**
-     * Resolves the URL for the update center based on the cache suffix and the provided archive mirror URL.
+     * Resolves the URL for the update center based on the cache suffix
+     * and the provided archive mirror URL.
      *
-     * @param cacheSuffix The suffix for the Jenkins version (e.g., "-2.414.3")
+     * @param cacheSuffix              The suffix for the Jenkins version (e.g., "-2.414.3")
      * @param jenkinsArchiveRepoMirror The URL of the Jenkins archive repository mirror (optional)
      * @return The resolved URL for the update center or null if not found
      * @throws InvalidUrlException if the URL construction or validation fails
      */
-    public static URL resolveArchiveUpdateCenterUrl(String cacheSuffix, URL jenkinsArchiveRepoMirror) {
+    public static URL resolveArchiveUpdateCenterUrl(final String cacheSuffix, final URL jenkinsArchiveRepoMirror) {
         if (cacheSuffix == null || !cacheSuffix.startsWith("-")) {
             throw new IllegalArgumentException("Cache suffix must not be null and must start with a dash (-)");
         }
@@ -196,14 +207,10 @@ public final class PluginManagerUtils {
                 ? jenkinsArchiveRepoMirror + "updates/" : Settings.DEFAULT_ARCHIVE_REPO_MIRROR_LOCATION + "updates/";
 
         String ucFile = "/update-center.json";
-        String[] possiblePaths = {
-                "stable" + cacheSuffix + ucFile,
-                "dynamic" + cacheSuffix + ucFile,
-                "dynamic-stable" + cacheSuffix + ucFile
-        };
 
         // Check each possible URL until we find a valid one
-        for (String path : possiblePaths) {
+        for (String prefix : DEFAULT_ARCHIVE_REPOS_PATH_PREFIXES) {
+            String path = prefix + cacheSuffix + ucFile;
             URL url = constructUrl(baseUrl, path);
             if (isValidUrl(url)) {
                 return url;
@@ -219,7 +226,7 @@ public final class PluginManagerUtils {
      * @return true if the URL is valid (returns HTTP 200), false otherwise
      */
     @SuppressFBWarnings("URLCONNECTION_SSRF_FD")
-    private static boolean isValidUrl(final URL url) {
+    static boolean isValidUrl(final URL url) {
         if (url == null) {
             throw new IllegalArgumentException("URL must not be null");
         }
@@ -229,16 +236,17 @@ public final class PluginManagerUtils {
             throw new IllegalArgumentException("Invalid protocol: " + protocol);
         }
 
-        if (url.getHost() == null) {
+        if (url.getHost().isEmpty()) {
             throw new IllegalArgumentException("URL must have a valid host");
         }
 
         HttpURLConnection connection = null;
         try {
+            int timeout = 5000;
             connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("HEAD"); // Use HEAD to avoid downloading the entire resource
-            connection.setConnectTimeout(5000); // Timeout in case the server is slow to respond
-            connection.setReadTimeout(5000);
+            connection.setRequestMethod("HEAD");
+            connection.setConnectTimeout(timeout); // Timeout in case the server is slow to respond
+            connection.setReadTimeout(timeout);
             connection.setInstanceFollowRedirects(false); // Disable automatic redirects
 
             int responseCode = connection.getResponseCode();
@@ -247,7 +255,7 @@ public final class PluginManagerUtils {
             return false;
         } finally {
             if (connection != null) {
-                connection.disconnect(); // Ensure the connection is closed
+                connection.disconnect();
             }
         }
     }
@@ -257,12 +265,12 @@ public final class PluginManagerUtils {
      * If the resulting URL is invalid, throws a custom unchecked exception.
      *
      * @param baseUrl the base URL to which the path will be appended (e.g., "https://archives.jenkins.io/")
-     * @param path the path to append to the base URL (e.g., "updates/update-center.json")
+     * @param path    the path to append to the base URL (e.g., "updates/update-center.json")
      * @return the constructed URL
      * @throws InvalidUrlException if the URL construction fails
      */
     @SuppressFBWarnings("EXS_EXCEPTION_SOFTENING_NO_CONSTRAINTS")
-    private static URL constructUrl(String baseUrl, String path) throws InvalidUrlException {
+    static URL constructUrl(final String baseUrl, final String path) throws InvalidUrlException {
 
         if (baseUrl == null || baseUrl.isEmpty()) {
             throw new InvalidUrlException("Base URL must not be null or empty");
@@ -272,15 +280,15 @@ public final class PluginManagerUtils {
             throw new InvalidUrlException("Path must not be null");
         }
 
-        if (!baseUrl.matches("^(https?://).+")) {
+        if (!baseUrl.matches("^(https?://).*")) {
             throw new InvalidUrlException("Base URL must start with http:// or https://");
         }
 
         String urlString = baseUrl + path;
         try {
             URI uri = new URI(urlString);
-            if (uri.getScheme() == null || uri.getHost() == null) {
-                throw new InvalidUrlException("Invalid URL: scheme or host is missing");
+            if (uri.getHost() == null) {
+                throw new InvalidUrlException("Invalid URL: host is missing");
             }
             return uri.toURL();
         } catch (URISyntaxException | MalformedURLException e) {

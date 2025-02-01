@@ -8,14 +8,14 @@ import static org.junit.Assert.assertEquals;
 public class ConfigArchiveRepoTest {
 
     @Test
-    public void testDefaultArchiveRepoMirror() {
+    public void defaultArchiveRepoMirrorTest() {
         // default archive url
         Config config = Config.builder().build();
         assertEquals(Settings.DEFAULT_ARCHIVE_REPO_MIRROR, config.getJenkinsArchiveRepoMirror());
     }
 
     @Test
-    public void testSetCustomArchiveRepoMirror() throws Exception {
+    public void setCustomArchiveRepoMirrorTest() throws Exception {
         // custom archive url
         URL customUrl = new URL("https://mirrors.jenkins-ci.org/");
         Config config = Config.builder()
