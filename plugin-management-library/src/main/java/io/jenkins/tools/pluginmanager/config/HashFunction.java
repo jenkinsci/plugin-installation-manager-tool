@@ -5,14 +5,14 @@ public enum HashFunction {
     SHA256("sha256"),
     SHA512("sha512");
 
-    private String hashFunctionName;
+    private final String hashFunctionName;
 
     HashFunction(String hashFunctionName) {
         this.hashFunctionName = hashFunctionName;
     }
 
     @Override
-    public String toString(){
+    public String toString() {
         return hashFunctionName;
     }
 }
