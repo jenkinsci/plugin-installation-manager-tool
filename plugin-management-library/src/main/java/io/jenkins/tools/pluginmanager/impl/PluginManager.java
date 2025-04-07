@@ -1290,7 +1290,7 @@ public class PluginManager implements Closeable {
      * @param maxRetries   Maximum number of times to retry the download before failing
      * @return true if download is successful, false otherwise
      */
-    @SuppressFBWarnings({"PATH_TRAVERSAL_IN", "HTTP_PARAMETER_POLLUTION"})
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public boolean downloadToFile(String urlString, Plugin plugin, @CheckForNull File fileLocation, int maxRetries) {
         File pluginFile;
         if (fileLocation == null) {
