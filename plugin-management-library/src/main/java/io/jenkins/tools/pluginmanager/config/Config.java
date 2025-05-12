@@ -22,6 +22,7 @@ import java.util.List;
  * Defaults for update centers will be set for you
  */
 public class Config {
+    private final Path pluginFilePath;
     private final File pluginDir;
     private final boolean cleanPluginDir;
     private final boolean showWarnings;
@@ -58,6 +59,7 @@ public class Config {
     private final LogOutput logOutput;
 
     private Config(
+            Path pluginFilePath,
             File pluginDir,
             boolean cleanPluginDir,
             boolean showWarnings,
@@ -81,6 +83,7 @@ public class Config {
             List<Credentials> credentials,
             Path cachePath,
             boolean hideWarnings) {
+        this.pluginFilePath = pluginFilePath;
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -107,6 +110,9 @@ public class Config {
         this.hideWarnings = hideWarnings;
     }
 
+    public Path getPluginFilePath(){
+        return pluginFilePath;
+    }
     public File getPluginDir() {
         return pluginDir;
     }
@@ -214,6 +220,7 @@ public class Config {
     }
 
     public static class Builder {
+        private Path pluginFilePath;
         private File pluginDir;
         private boolean cleanPluginDir;
         private boolean showWarnings;
@@ -241,6 +248,10 @@ public class Config {
         private Builder() {
         }
 
+        public Builder withPluginFile(Path pluginFilePath) {
+            this.pluginFilePath = pluginFilePath;
+            return this;
+        }
         public Builder withPluginDir(File pluginDir) {
             this.pluginDir = pluginDir;
             return this;
@@ -370,6 +381,7 @@ public class Config {
 
         public Config build() {
             return new Config(
+                    pluginFilePath,
                     pluginDir,
                     cleanPluginDir,
                     showWarnings,
