@@ -46,10 +46,12 @@ public class Config {
     private final URL jenkinsUc;
     private final URL jenkinsUcExperimental;
     private final URL jenkinsIncrementalsRepoMirror;
+    private final URL jenkinsArchiveRepoMirror;
     private final URL jenkinsPluginInfo;
     private final boolean doDownload;
     private final boolean useLatestSpecified;
     private final boolean useLatestAll;
+    private final boolean useArchiveAll;
     private final boolean skipFailedPlugins;
     @NonNull
     private final OutputFormat outputFormat;
@@ -71,10 +73,12 @@ public class Config {
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
+            URL jenkinsArchiveRepoMirror,
             URL jenkinsPluginInfo,
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
+            boolean useArchiveAll,
             boolean skipFailedPlugins,
             OutputFormat outputFormat,
             HashFunction hashFunction,
@@ -94,10 +98,12 @@ public class Config {
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
+        this.jenkinsArchiveRepoMirror = jenkinsArchiveRepoMirror;
         this.jenkinsPluginInfo = jenkinsPluginInfo;
         this.doDownload = doDownload;
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
+        this.useArchiveAll = useArchiveAll;
         this.skipFailedPlugins = skipFailedPlugins;
         this.outputFormat = outputFormat;
         this.credentials = credentials;
@@ -160,6 +166,10 @@ public class Config {
         return jenkinsIncrementalsRepoMirror;
     }
 
+    public URL getJenkinsArchiveRepoMirror() {
+        return jenkinsArchiveRepoMirror;
+    }
+
     public URL getJenkinsPluginInfo() {
         return jenkinsPluginInfo;
     }
@@ -183,6 +193,8 @@ public class Config {
     }
 
     public boolean isUseLatestAll() { return useLatestAll; }
+
+    public boolean isUseArchiveAll() { return useArchiveAll; }
 
     public boolean isSkipFailedPlugins() {
         return skipFailedPlugins;
@@ -228,10 +240,12 @@ public class Config {
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
+        private URL jenkinsArchiveRepoMirror = Settings.DEFAULT_ARCHIVE_REPO_MIRROR;
         private URL jenkinsPluginInfo = Settings.DEFAULT_PLUGIN_INFO;
         private boolean doDownload;
         private boolean useLatestSpecified;
         private boolean useLatestAll;
+        private boolean useArchiveAll;
         private boolean skipFailedPlugins;
         private OutputFormat outputFormat = OutputFormat.STDOUT;
         private List<Credentials> credentials = Collections.emptyList();
@@ -317,6 +331,11 @@ public class Config {
             return this;
         }
 
+        public Builder withJenkinsArchiveRepoMirror(URL jenkinsArchiveRepoMirror) {
+            this.jenkinsArchiveRepoMirror = jenkinsArchiveRepoMirror;
+            return this;
+        }
+
         public Builder withJenkinsPluginInfo(URL jenkinsPluginInfo) {
             this.jenkinsPluginInfo = jenkinsPluginInfo;
             return this;
@@ -334,6 +353,11 @@ public class Config {
 
         public Builder withUseLatestAll(boolean useLatestAll) {
             this.useLatestAll = useLatestAll;
+            return this;
+        }
+
+        public Builder withUseArchiveAll(boolean useArchiveAll) {
+            this.useArchiveAll = useArchiveAll;
             return this;
         }
 
@@ -383,10 +407,12 @@ public class Config {
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
+                    jenkinsArchiveRepoMirror,
                     jenkinsPluginInfo,
                     doDownload,
                     useLatestSpecified,
                     useLatestAll,
+                    useArchiveAll,
                     skipFailedPlugins,
                     outputFormat,
                     hashFunction,
