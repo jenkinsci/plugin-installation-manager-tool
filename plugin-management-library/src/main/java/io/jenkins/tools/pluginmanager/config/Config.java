@@ -24,7 +24,6 @@ import java.util.List;
 public class Config {
     private final File pluginDir;
     private final boolean cleanPluginDir;
-    private final boolean showWarnings;
     private final boolean hideWarnings;
     private final boolean showAllWarnings;
     private final boolean showAvailableUpdates;
@@ -60,7 +59,6 @@ public class Config {
     private Config(
             File pluginDir,
             boolean cleanPluginDir,
-            boolean showWarnings,
             boolean showAllWarnings,
             boolean showAvailableUpdates,
             boolean showPluginsToBeDownloaded,
@@ -83,7 +81,6 @@ public class Config {
             boolean hideWarnings) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
-        this.showWarnings = showWarnings;
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
@@ -116,7 +113,7 @@ public class Config {
     }
 
     public boolean isShowWarnings() {
-        return showWarnings;
+        return !hideWarnings;
     }
 
     public boolean isHideWarnings() {
@@ -216,7 +213,6 @@ public class Config {
     public static class Builder {
         private File pluginDir;
         private boolean cleanPluginDir;
-        private boolean showWarnings;
         private boolean hideWarnings;
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
@@ -252,7 +248,7 @@ public class Config {
         }
 
         public Builder withShowWarnings(boolean showWarnings) {
-            this.showWarnings = showWarnings;
+            this.hideWarnings = !showWarnings;
             return this;
         }
 
@@ -372,7 +368,6 @@ public class Config {
             return new Config(
                     pluginDir,
                     cleanPluginDir,
-                    showWarnings,
                     showAllWarnings,
                     showAvailableUpdates,
                     showPluginsToBeDownloaded,
