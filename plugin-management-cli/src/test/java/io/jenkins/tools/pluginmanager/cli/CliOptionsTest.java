@@ -32,7 +32,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
-
 public class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
@@ -77,6 +76,7 @@ public class CliOptionsTest {
         assertThat(cfg.isShowAllWarnings()).isFalse();
         assertThat(cfg.isShowWarnings()).isFalse();
         assertThat(cfg.isHideWarnings()).isFalse();
+        assertThat(cfg.isUseArchiveAll()).isFalse();
         assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
@@ -197,16 +197,19 @@ public class CliOptionsTest {
         String ucEnvVar = "https://updates.jenkins.io/env";
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
+        String archiveEnvVar = "https://mirrors.jenkins-ci.org/archive/env";
         String pluginInfoEnvVar = "https://updates.jenkins.io/current/plugin-versions/env";
 
         String ucCli = "https://updates.jenkins.io/cli";
         String experiementalCli = "https://updates.jenkins.io/experimental/cli";
         String incrementalsCli = "https://repo.jenkins-ci.org/incrementals/cli";
+        String archiveCli = "https://mirrors.jenkins-ci.org/archive/cli";
         String pluginInfoCli = "https://updates.jenkins.io/current/plugin-versions/cli";
 
         parser.parseArgument("--jenkins-update-center", ucCli,
                 "--jenkins-experimental-update-center", experiementalCli,
                 "--jenkins-incrementals-repo-mirror", incrementalsCli,
+                "--jenkins-archive-repo-mirror", archiveCli,
                 "--jenkins-plugin-info", pluginInfoCli);
 
         Config cfg = options.setup();
@@ -214,6 +217,7 @@ public class CliOptionsTest {
         assertThat(cfg.getJenkinsUc()).hasToString(ucCli + "/update-center.json");
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(experiementalCli + "/update-center.json");
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(incrementalsCli);
+        assertThat(cfg.getJenkinsArchiveRepoMirror()).hasToString(archiveCli);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(pluginInfoCli);
     }
 
@@ -301,6 +305,20 @@ public class CliOptionsTest {
         parser.parseArgument("--latest", "false");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestAll()).isFalse();
+    }
+
+    @Test
+    public void useArchiveTest() throws CmdLineException {
+        parser.parseArgument("--archive");
+        Config cfg = options.setup();
+        assertThat(cfg.isUseArchiveAll()).isTrue();
+    }
+
+    @Test
+    public void useNotArchiveTest() throws CmdLineException {
+        parser.parseArgument("--archive", "false");
+        Config cfg = options.setup();
+        assertThat(cfg.isUseArchiveAll()).isFalse();
     }
 
     @Test
