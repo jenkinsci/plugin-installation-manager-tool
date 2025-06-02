@@ -41,6 +41,7 @@ public class CliOptionsTest {
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+
     @Before
     public void createParser() {
         options = new CliOptions();
@@ -383,4 +384,24 @@ public class CliOptionsTest {
         Plugin[] expectedPluginsAsArray = expectedPlugins.toArray(new Plugin[0]);
         assertThat(cfg.getPlugins()).containsExactlyInAnyOrder(expectedPluginsAsArray);
     }
+
+    @Test
+    public  void verboseEnabledContainingPluginInformation() throws Exception{
+
+        String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
+
+        parser.parseArgument("--war", jenkinsWar);
+
+        String pluginDir = temporaryFolder.newFolder("plugins").toString();
+
+        parser.parseArgument("--war",jenkinsWar,"--plugin-download-directory",pluginDir,"--plugins","delivery-pipeline-plugin:1.3.2 deployit-plugin","--verbose");
+
+        String stdOut = tapSystemOutNormalized(() -> {
+               Config cfg = options.setup();
+        });
+
+        assertThat(stdOut).isEmpty();
+
+    }
+
 }
