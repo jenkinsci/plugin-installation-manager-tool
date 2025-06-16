@@ -107,6 +107,9 @@ public class PluginListParser {
                         if (!isURL(url)) {
                             url = null;
                         }
+                        else if(isHpi(url)){
+                            System.out.println(url+" is a local .hpi file");
+                        }
                         plugin = new Plugin(name, version, url, groupId);
                     }
                     pluginsFromYaml.add(plugin);
@@ -167,7 +170,11 @@ public class PluginListParser {
         if (pluginInfo.length >= 3) {
             if (isURL(pluginInfo[2])) {
                 pluginUrl = pluginInfo[2];
-            } else {
+            }
+            else if(isHpi(pluginUrl)){
+                System.out.println(pluginName + " was supplied with a .hpi file");
+            }
+            else {
                 System.err.println("Invalid URL " + pluginInfo[2] + " , will ignore");
             }
         }
@@ -181,5 +188,16 @@ public class PluginListParser {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static boolean isHpi(String url){
+        try{
+            if(url.endsWith("hpi")){
+            return true;
+        }
+        return false;
+    }catch(Exception notAnHPI){
+        return false;
+    }
     }
 }
