@@ -86,6 +86,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.appendPathO
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.dirName;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePath;
 import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossibleWrapperText;
+import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.resolveArchiveUpdateCenterUrl;
 
 public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
@@ -120,7 +121,6 @@ public class PluginManager implements Closeable {
     private final LogOutput logOutput;
 
     private static final int DEFAULT_MAX_RETRIES = 3;
-    private static final String MIRROR_FALLBACK_BASE_URL = "https://archives.jenkins.io/";
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     public PluginManager(Config cfg) {
@@ -853,7 +853,25 @@ public class PluginManager implements Closeable {
 
         String cacheSuffix = getCacheSuffix(jenkinsVersion);
         try {
-            URIBuilder uriBuilder = new URIBuilder(cfg.getJenkinsUc().toURI());
+
+            URL ucUrl = cfg.getJenkinsUc();
+
+            if (cfg.isUseArchiveAll()) {
+                URL archiveUcUrl = resolveArchiveUpdateCenterUrl(cacheSuffix, cfg.getJenkinsArchiveRepoMirror());
+                if (archiveUcUrl != null) {
+                    ucUrl = archiveUcUrl;
+                } else {
+                    logVerbose("No valid archive repository found for version " + jenkinsVersion + ". Falling back to the default repository.");
+                }
+            }
+
+            if (ucUrl == null) {
+                throw new IllegalStateException("No valid update center URL found for version " + jenkinsVersion);
+            }
+
+            URI ucUri = ucUrl.toURI();
+
+            URIBuilder uriBuilder = new URIBuilder(ucUri);
             if (jenkinsVersion != null) {
                 uriBuilder.addParameter("version", jenkinsVersion.toString()).build();
             }
@@ -1305,10 +1323,10 @@ public class PluginManager implements Closeable {
         if(urlString.startsWith("http://") || urlString.startsWith("https://")){
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
-            if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
-                logMessage("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+            if (!success && !urlString.startsWith(cfg.getJenkinsArchiveRepoMirror().toString())) {
+                logMessage("Downloading from mirrors failed, falling back to " + cfg.getJenkinsArchiveRepoMirror().toString());
                 // as fallback try to directly download from Jenkins server (only if mirrors fail)
-                urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
+                urlString = appendPathOntoUrl(cfg.getJenkinsArchiveRepoMirror().toString(), "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
             }
         } else if (urlString.startsWith("file://")){
