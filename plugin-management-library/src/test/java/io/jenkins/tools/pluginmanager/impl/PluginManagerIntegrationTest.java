@@ -17,50 +17,48 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.CleanupMode;
+import org.junit.jupiter.api.io.TempDir;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOut;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErr;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for {@link PluginManager} which operate with real data.
  * No mocks here.
  */
-public class PluginManagerIntegrationTest {
+class PluginManagerIntegrationTest {
 
-    static JSONObject latestUcJson;
-    static File pluginVersionsFile;
+    private static JSONObject latestUcJson;
+    private static File pluginVersionsFile;
 
-    @ClassRule
-    public static TemporaryFolder classTmpDir = new TemporaryFolder();
-    @Rule
-    public TemporaryFolder tmpDir = new TemporaryFolder();
+    @TempDir(cleanup = CleanupMode.NEVER)
+    private static File classTmpDir;
+    @TempDir(cleanup = CleanupMode.NEVER)
+    private File tmpDir;
 
-    public static File jenkinsWar;
-    public static File cacheDir;
-    public File pluginsDir;
+    private static File jenkinsWar;
+    private static File cacheDir;
+    private File pluginsDir;
 
-    // TODO: Convert to a rule
-    public interface Configurator {
+    private interface Configurator {
         void configure(Config.Builder configBuilder);
     }
 
-    public PluginManager initPluginManager(Configurator configurator) throws IOException {
+    private PluginManager initPluginManager(Configurator configurator) throws IOException {
         return initPluginManagerWithSecurityWarning(false, configurator);
     }
 
-    public PluginManager initPluginManagerWithSecurityWarning(boolean showSecurityWarnings, Configurator configurator) throws IOException {
+    private PluginManager initPluginManagerWithSecurityWarning(boolean showSecurityWarnings, Configurator configurator) throws IOException {
         Config.Builder configBuilder = Config.builder()
                 .withJenkinsWar(jenkinsWar.getAbsolutePath())
                 .withPluginDir(pluginsDir)
@@ -92,7 +90,7 @@ public class PluginManagerIntegrationTest {
     }
 
     private static void unzipResource(Class<?> clazz, String resourceName, String fileName, File target) throws IOException {
-        final File archivePath = new File(classTmpDir.getRoot(), target.toPath().getFileName() + ".zip");
+        final File archivePath = new File(classTmpDir, target.toPath().getFileName() + ".zip");
         try (InputStream archive = clazz.getResourceAsStream(resourceName)) {
             if (archive == null) {
                 throw new IOException("Cannot find " + resourceName + " in " + clazz);
@@ -111,34 +109,34 @@ public class PluginManagerIntegrationTest {
         }
     }
 
-    @BeforeClass
-    public static void setupCaches() throws Exception {
-        File updatesJSON = new File(classTmpDir.getRoot(), "updates.json");
+    @BeforeAll
+    static void setupCaches() throws Exception {
+        File updatesJSON = new File(classTmpDir, "updates.json");
         unzipResource(PluginManagerIntegrationTest.class, "updates.zip", "updates.json", updatesJSON);
         try (InputStream istream = new FileInputStream(updatesJSON)) {
             latestUcJson = new JSONObject(IOUtils.toString(istream, StandardCharsets.UTF_8));
         }
 
-        pluginVersionsFile = new File(classTmpDir.getRoot(), "plugin-versions.json");
+        pluginVersionsFile = new File(classTmpDir, "plugin-versions.json");
         unzipResource(PluginManagerIntegrationTest.class, "plugin-versions.zip", "plugin-versions.json", pluginVersionsFile);
 
         //TODO: Use real 2.222.1 war instead
-        jenkinsWar = new File(classTmpDir.getRoot(), "jenkins.war");
+        jenkinsWar = new File(classTmpDir, "jenkins.war");
         try (InputStream war = PluginManagerIntegrationTest.class.getResourceAsStream("/bundledplugintest.war")) {
             Files.copy(war, jenkinsWar.toPath());
         }
 
-        cacheDir = classTmpDir.newFolder("cache");
+        cacheDir = newFolder(classTmpDir, "cache");
     }
 
-    @Before
-    public void before() throws Exception {
-        pluginsDir = tmpDir.newFolder("pluginsDir");
+    @BeforeEach
+    void before() {
+        pluginsDir = newFolder(tmpDir, "pluginsDir");
     }
 
     // https://github.com/jenkinsci/plugin-installation-manager-tool/issues/101
     @Test
-    public void showAvailableUpdates_shouldNotFailOnUIThemes() throws Exception {
+    void showAvailableUpdates_shouldNotFailOnUIThemes() throws Exception {
         Plugin pluginDockerCommons = new Plugin("docker-commons", "1.16", null, null);
         Plugin pluginYAD = new Plugin("yet-another-docker-plugin", "0.2.0", null, null);
         Plugin pluginIconShim = new Plugin("icon-shim", "2.0.3", null, null);
@@ -151,10 +149,11 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void securityWarningsShownByDefaultTest() throws Exception {
+    void securityWarningsShownByDefaultTest() throws Exception {
         Plugin pluginScriptSecurityWithSecurityWarning = new Plugin("script-security", "1.30", null, null);
         PluginManager pluginManager = initPluginManagerWithSecurityWarning(true,
-                configBuilder -> configBuilder.withPlugins(Arrays.asList(pluginScriptSecurityWithSecurityWarning)));
+                configBuilder -> configBuilder.withPlugins(
+                    List.of(pluginScriptSecurityWithSecurityWarning)));
 
         String output = tapSystemErr(
                 () -> pluginManager.start(false));
@@ -162,10 +161,11 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void securityWarningsNotShownTest() throws Exception {
+    void securityWarningsNotShownTest() throws Exception {
         Plugin pluginScriptSecurityWithSecurityWarning = new Plugin("script-security", "1.30", null, null);
         PluginManager pluginManager = initPluginManagerWithSecurityWarning(false,
-                configBuilder -> configBuilder.withPlugins(Arrays.asList(pluginScriptSecurityWithSecurityWarning)));
+                configBuilder -> configBuilder.withPlugins(
+                    List.of(pluginScriptSecurityWithSecurityWarning)));
 
         String output = tapSystemErr(
                 () -> pluginManager.start(false));
@@ -173,7 +173,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void findPluginsAndDependenciesTest() throws IOException {
+    void findPluginsAndDependenciesTest() throws IOException {
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         Plugin plugin2 = new Plugin("plugin2", "2.0", null, null);
         Plugin plugin3 = new Plugin("plugin3", "3.0", null, null);
@@ -206,7 +206,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void failsIfTopLevelDeclaresNewVersionThanRequiredDependency() throws IOException {
+    void failsIfTopLevelDeclaresNewVersionThanRequiredDependency() throws IOException {
         // given
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
@@ -226,7 +226,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void failsWithMultiplePrerequisitesNotMet() throws IOException {
+    void failsWithMultiplePrerequisitesNotMet() throws IOException {
         // given
         Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
         Plugin replaced = new Plugin("replaced", "1.0", null, null).withoutDependencies();
@@ -242,14 +242,15 @@ public class PluginManagerIntegrationTest {
 
         // then
         assertThatThrownBy(pluginManager::start)
-                .hasMessage("Multiple plugin prerequisites not met:\n" +
-                        "Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0,\n" +
-                        "Plugin plugin2:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0")
+                .hasMessage("""
+                    Multiple plugin prerequisites not met:
+                    Plugin plugin1:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0,
+                    Plugin plugin2:1.0 depends on replaced:1.0.1, but there is an older version defined on the top level - replaced:1.0""")
                 .isInstanceOf(AggregatePluginPrerequisitesNotMetException.class);
     }
 
     @Test
-    public void allowsLatestTopLevelDependency() throws IOException {
+    void allowsLatestTopLevelDependency() throws IOException {
         // given
         Plugin plugin1 = new Plugin("plugin1", "latest", null, null);
         Plugin replaced = new Plugin("replaced", "latest", null, null).withoutDependencies();
@@ -268,7 +269,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void latestAllPinnedPluginsIsLowerThanLatest() throws Exception {
+    void latestAllPinnedPluginsIsLowerThanLatest() throws Exception {
         // given
         Plugin mailer = new Plugin("mailer", "1.34", null, null);
         Plugin pinnedDisplayUrlApi = new Plugin("display-url-api", "2.3.4", null, null);
@@ -287,7 +288,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void latestSpecifiedPinnedPluginsIsLowerThanLatest() throws Exception {
+    void latestSpecifiedPinnedPluginsIsLowerThanLatest() throws Exception {
         // given
         Plugin testweaver = new Plugin("testweaver", "1.0.1", null, null);
         Plugin pinnedStructs = new Plugin("structs", "1.18", null, null);
@@ -306,7 +307,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void latestSpecifiedNoPinned() throws Exception {
+    void latestSpecifiedNoPinned() throws Exception {
         // given
         Plugin testweaver = new Plugin("testweaver", "latest", null, null);
         Plugin structs = new Plugin("structs", "1.7", null, null);
@@ -325,8 +326,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void verifyDownloads_smoke() throws Exception {
-
+    void verifyDownloads_smoke() throws Exception {
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
         List<Plugin> requestedPlugins_1 = Collections.singletonList(initialTrileadAPI);
@@ -353,8 +353,7 @@ public class PluginManagerIntegrationTest {
      * This test ensures this mode actually works.
      */
     @Test
-    public void verifyDownloads_toUnzipped() throws Exception {
-
+    void verifyDownloads_toUnzipped() throws Exception {
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
         List<Plugin> requestedPlugins_1 = Collections.singletonList(initialTrileadAPI);
@@ -383,8 +382,7 @@ public class PluginManagerIntegrationTest {
     }
 
     @Test
-    public void verifyBackups() throws Exception {
-
+    void verifyBackups() throws Exception {
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);
         File pluginArchive = new File(pluginsDir, initialTrileadAPI.getArchiveFileName());
@@ -409,11 +407,9 @@ public class PluginManagerIntegrationTest {
         assertTrue(pluginBackup.exists());
     }
 
-    //TODO: Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)
     @Test
-    @Ignore
-    public void verifyDownloads_withDependencies() throws Exception {
-
+    @Disabled("Enable as auto-test once it can run without big traffic overhead (15 plugin downloads)")
+    void verifyDownloads_withDependencies() throws Exception {
         // First cycle, empty dir
         Plugin initialWorkflowJob = new Plugin("workflow-job", "2.39", null, null);
         List<Plugin> requestedPlugins_1 = Collections.singletonList(initialWorkflowJob);
@@ -435,11 +431,18 @@ public class PluginManagerIntegrationTest {
         assertPluginInstalled(utilitySteps);
     }
 
-    public void assertPluginInstalled(Plugin plugin) throws IOException, AssertionError {
+    private void assertPluginInstalled(Plugin plugin) throws IOException, AssertionError {
         File pluginArchive = new File(pluginsDir, plugin.getArchiveFileName());
 
-        assertTrue("Plugin is not installed: " + plugin, pluginArchive.exists());
+        assertTrue(pluginArchive.exists(), "Plugin is not installed: " + plugin);
         Plugin installed = ManifestTools.readPluginFromFile(pluginArchive);
         assertThat(installed.getVersion()).isEqualByComparingTo(plugin.getVersion());
+    }
+
+    private static File newFolder(File root, String... subDirs) {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        assertTrue(result.mkdirs(), "Couldn't create folders " + result);
+        return result;
     }
 }

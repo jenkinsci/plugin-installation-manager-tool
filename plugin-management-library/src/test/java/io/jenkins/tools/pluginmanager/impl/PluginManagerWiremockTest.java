@@ -7,19 +7,18 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.proxyAllTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PluginManagerWiremockTest {
+class PluginManagerWiremockTest {
 
     private PluginManager pm;
     private Config cfg;
@@ -29,20 +28,20 @@ public class PluginManagerWiremockTest {
 
     private final boolean record = Boolean.parseBoolean(System.getProperty("pluginmanager.record", "false"));
 
-    @Rule
-    public final TemporaryFolder folder = new TemporaryFolder();
+    @TempDir
+    private File folder;
 
-    @Before
-    public void proxyToWireMock() throws IOException {
+    @BeforeEach
+    void proxyToWireMock() {
         archives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
         archives.start();
         protectedArchives = new WireMockServer(WireMockConfiguration.options().dynamicPort().notifier(new ConsoleNotifier(true)));
         protectedArchives.start();
         cfg = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
-                .withPluginDir(new File(folder.getRoot(), "plugins"))
+                .withPluginDir(new File(folder, "plugins"))
                 .withCredentials(Collections.singletonList(new Credentials("myuser", "mypassword", "localhost", protectedArchives.port())))
-                .withCachePath(folder.newFolder().toPath())
+                .withCachePath(newFolder(folder, "junit").toPath())
                 .build();
         pm = new PluginManager(cfg);
 
@@ -52,8 +51,8 @@ public class PluginManagerWiremockTest {
         // the mappings from src/test/resources/mappings are used otherwise
     }
 
-    @After
-    public void noMoreWireMock() {
+    @AfterEach
+    void noMoreWireMock() {
         if (record) {
             archives.snapshotRecord();
         }
@@ -62,30 +61,36 @@ public class PluginManagerWiremockTest {
     }
 
     @Test
-    public void downloadToFileTest() {
+    void downloadToFileTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
         int wireMockPort = archives.port();
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/plugins/mailer/1.32/mailer.hpi", plugin, null)).isTrue();
     }
 
     @Test
-    public void downloadToFileWithBasicAuthTest() {
+    void downloadToFileWithBasicAuthTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
         int wireMockPort = protectedArchives.port();
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/protectedplugins/mailer/1.32/mailer.hpi", plugin, null)).isTrue();
     }
 
     @Test
-    public void downloadToFileWithBasicAuthAndIncorrectCredentialsTest() {
+    void downloadToFileWithBasicAuthAndIncorrectCredentialsTest() {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
         int wireMockPort = archives.port(); // no credentials configured for this port
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/protectedplugins/mailer/1.32/mailer.hpi", plugin, null)).isFalse();
     }
 
     @Test
-    public void getJsonWithBasicAuth() throws IOException{
+    void getJsonWithBasicAuth() throws Exception {
         int wireMockPort = protectedArchives.port();
         assertThat(pm.getJson(new URL("http://localhost:" + wireMockPort + "/update-center.json"), "cache-key")).isNotNull();
     }
 
+    private static File newFolder(File root, String... subDirs) {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        assertTrue(result.mkdirs(), "Couldn't create folders " + result);
+        return result;
+    }
 }

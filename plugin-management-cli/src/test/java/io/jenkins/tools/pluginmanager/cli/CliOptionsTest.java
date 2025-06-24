@@ -8,16 +8,13 @@ import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
@@ -28,21 +25,21 @@ import static java.util.Arrays.asList;
 import static org.apache.commons.io.IOUtils.toInputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
-
-public class CliOptionsTest {
+class CliOptionsTest {
     private CliOptions options;
     private CmdLineParser parser;
-    List<Plugin> txtRequestedPlugins;
+    private List<Plugin> txtRequestedPlugins;
 
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    private File temporaryFolder;
 
-    @Before
-    public void createParser() {
+    @BeforeEach
+    void createParser() {
         options = new CliOptions();
         parser = new CmdLineParser(options);
 
@@ -67,7 +64,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupDefaultsTest() throws Exception {
+    void setupDefaultsTest() throws Exception {
         parser.parseArgument();
 
         Config cfg = options.setup();
@@ -84,12 +81,11 @@ public class CliOptionsTest {
         assertThat(cfg.getHashFunction()).isEqualTo(Settings.DEFAULT_HASH_FUNCTION);
     }
 
-
     @Test
-    public void setupAliasTest() throws CmdLineException, IOException, URISyntaxException {
+    void setupAliasTest() throws Exception {
         File pluginTxtFile = new File(this.getClass().getResource("/emptyplugins.txt").toURI());
         File jenkinsWar = new File(this.getClass().getResource("/jenkinstest.war").toURI());
-        File pluginDir = temporaryFolder.newFolder("plugins");
+        File pluginDir = newFolder(temporaryFolder, "plugins");
 
         parser.parseArgument("-f", pluginTxtFile.toString(),
                 "-d", pluginDir.toString(),
@@ -108,10 +104,10 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupPluginsTest() throws Exception {
+    void setupPluginsTest() throws Exception {
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.txt").toURI());
 
-        File pluginFile = temporaryFolder.newFile("plugins.txt");
+        File pluginFile = newFile(temporaryFolder, "plugins.txt");
         FileUtils.copyFile(pluginTxtFile, pluginFile);
 
         parser.parseArgument("--plugin-file", pluginFile.toString(),
@@ -131,12 +127,11 @@ public class CliOptionsTest {
         assertThat(stdOut).isEmpty();
     }
 
-
     @Test
-    public void setupPluginsTest2() throws CmdLineException, IOException, URISyntaxException {
+    void setupPluginsTest2() throws Exception {
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.yaml").toURI());
 
-        File pluginFile = temporaryFolder.newFile("plugins.yaml");
+        File pluginFile = newFile(temporaryFolder, "plugins.yaml");
         FileUtils.copyFile(pluginTxtFile, pluginFile);
 
         parser.parseArgument("--plugin-file", pluginFile.toString(),
@@ -153,10 +148,10 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupPluginsBadExtension() throws CmdLineException, IOException, URISyntaxException {
+    void setupPluginsBadExtension() throws Exception {
         File pluginTxtFile = new File(this.getClass().getResource("/plugins.t").toURI());
 
-        File pluginFile = temporaryFolder.newFile("plugins.t");
+        File pluginFile = newFile(temporaryFolder, "plugins.t");
         FileUtils.copyFile(pluginTxtFile, pluginFile);
 
         parser.parseArgument("--plugin-file", pluginFile.toString());
@@ -166,7 +161,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupWarTest() throws CmdLineException {
+    void setupWarTest() throws Exception {
         String jenkinsWar = this.getClass().getResource("/jenkinstest.war").toString();
 
         parser.parseArgument("--war", jenkinsWar);
@@ -176,15 +171,15 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupJenkinsVersion() throws CmdLineException {
+    void setupJenkinsVersion() throws Exception {
         parser.parseArgument("--jenkins-version", "2.263.1");
         Config cfg = options.setup();
         assertThat(cfg.getJenkinsVersion()).isEqualTo(new VersionNumber("2.263.1"));
     }
 
     @Test
-    public void setupPluginDirTest() throws CmdLineException, IOException {
-        String pluginDir = temporaryFolder.newFolder("plugins").toString();
+    void setupPluginDirTest() throws Exception {
+        String pluginDir = newFolder(temporaryFolder, "plugins").toString();
 
         parser.parseArgument("--plugin-download-directory", pluginDir);
 
@@ -193,7 +188,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupUpdateCenterCliTest() throws Exception {
+    void setupUpdateCenterCliTest() throws Exception {
         String ucEnvVar = "https://updates.jenkins.io/env";
         String experimentalUcEnvVar = "https://updates.jenkins.io/experimental/env";
         String incrementalsEnvVar = "https://repo.jenkins-ci.org/incrementals/env";
@@ -218,7 +213,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupSecurityWarningsTest() throws CmdLineException {
+    void setupSecurityWarningsTest() throws Exception {
         parser.parseArgument("--view-all-security-warnings", "--view-security-warnings");
         Config cfg = options.setup();
         assertThat(cfg.isShowAllWarnings()).isTrue();
@@ -226,14 +221,14 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void setupHideSecurityWarningsTest() throws CmdLineException {
+    void setupHideSecurityWarningsTest() throws Exception {
         parser.parseArgument("--hide-security-warnings");
         Config cfg = options.setup();
         assertThat(cfg.isHideWarnings()).isTrue();
     }
 
     @Test
-    public void showVersionTest() throws Exception {
+    void showVersionTest() throws Exception {
         CliOptions optionsWithVersion = new CliOptions() {
             @Override
             public InputStream getPropertiesInputStream(String path) {
@@ -252,7 +247,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void showVersionErrorTest() throws CmdLineException {
+    void showVersionErrorTest() throws Exception {
         CliOptions cliOptionsSpy = spy(options);
         parser.parseArgument("--version");
         doReturn(null).when(cliOptionsSpy).getPropertiesInputStream(any(String.class));
@@ -262,49 +257,49 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void noDownloadTest() throws CmdLineException {
+    void noDownloadTest() throws Exception {
         parser.parseArgument("--no-download");
         Config cfg = options.setup();
         assertThat(cfg.doDownload()).isFalse();
     }
 
     @Test
-    public void downloadTest() throws CmdLineException {
+    void downloadTest() throws Exception {
         parser.parseArgument();
         Config cfg = options.setup();
         assertThat(cfg.doDownload()).isTrue();
     }
 
     @Test
-    public void useLatestSpecifiedTest() throws CmdLineException {
+    void useLatestSpecifiedTest() throws Exception {
         parser.parseArgument("--latest", "false", "--latest-specified");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestSpecified()).isTrue();
     }
 
     @Test
-    public void useNotLatestSpecifiedTest() throws CmdLineException {
+    void useNotLatestSpecifiedTest() throws Exception {
         parser.parseArgument();
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestSpecified()).isFalse();
     }
 
     @Test
-    public void useLatestTest() throws CmdLineException {
+    void useLatestTest() throws Exception {
         parser.parseArgument("--latest");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestAll()).isTrue();
     }
 
     @Test
-    public void useNotLatestTest() throws CmdLineException {
+    void useNotLatestTest() throws Exception {
         parser.parseArgument("--latest", "false");
         Config cfg = options.setup();
         assertThat(cfg.isUseLatestAll()).isFalse();
     }
 
     @Test
-    public void useLatestSpecifiedAndLatestAllTest() throws CmdLineException {
+    void useLatestSpecifiedAndLatestAllTest() throws Exception {
         parser.parseArgument("--latest", "--latest-specified");
 
         Config cfg = options.setup();
@@ -316,7 +311,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void credentialsTest() throws CmdLineException {
+    void credentialsTest() throws Exception {
         parser.parseArgument("--credentials", "myhost:myuser:mypass,myhost2:1234:myuser2:mypass2");
 
         Config cfg = options.setup();
@@ -326,13 +321,13 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void invalidCredentialsTest() {
+    void invalidCredentialsTest() {
         assertThatThrownBy(() -> parser.parseArgument("--credentials", "myhost:myuser,myhost2:1234:myuser2:mypass2"))
         .isInstanceOf(CmdLineException.class).hasMessageContaining("Require at least a value containing 2 colons but found \"myhost:myuser\". The value must adhere to the grammar \"<host>[:port]:<username>:<password>\"");
     }
 
     @Test
-    public void outputFormatDefaultTest() throws CmdLineException {
+    void outputFormatDefaultTest() throws Exception {
         parser.parseArgument("--plugins", "foo");
 
         assertThat(options.getOutputFormat()).isEqualTo(OutputFormat.STDOUT);
@@ -341,7 +336,7 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void outputFormatTest() throws CmdLineException {
+    void outputFormatTest() throws Exception {
         parser.parseArgument("--plugins", "foo", "--output", "yaml");
 
         assertThat(options.getOutputFormat()).isEqualTo(OutputFormat.YAML);
@@ -350,37 +345,46 @@ public class CliOptionsTest {
     }
 
     @Test
-    public void verboseTest() throws Exception {
+    void verboseTest() throws Exception {
         parser.parseArgument("--plugins", "foo", "--verbose");
 
-        String stdOut = tapSystemOutNormalized(() -> {
-            options.setup();
-        });
+        String stdOut = tapSystemOutNormalized(() ->
+            options.setup());
         assertThat(stdOut).isEmpty();
 
-        String stdErr = tapSystemErrNormalized(() -> {
-            options.setup();
-        });
+        String stdErr = tapSystemErrNormalized(() ->
+            options.setup());
         assertThat(stdErr).isNotEmpty();
     }
 
     @Test
-    public void verboseDisabledTest() throws Exception {
+    void verboseDisabledTest() throws Exception {
         parser.parseArgument("--plugins", "foo");
 
-        String stdOut = tapSystemOutNormalized(() -> {
-            options.setup();
-        });
+        String stdOut = tapSystemOutNormalized(() ->
+            options.setup());
         assertThat(stdOut).isEmpty();
 
-        String stdErr = tapSystemErrNormalized(() -> {
-            options.setup();
-        });
+        String stdErr = tapSystemErrNormalized(() ->
+            options.setup());
         assertThat(stdErr).isEmpty();
     }
 
-    private void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {
+    private static void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {
         Plugin[] expectedPluginsAsArray = expectedPlugins.toArray(new Plugin[0]);
         assertThat(cfg.getPlugins()).containsExactlyInAnyOrder(expectedPluginsAsArray);
+    }
+
+    private static File newFolder(File root, String... subDirs) {
+        String subFolder = String.join("/", subDirs);
+        File result = new File(root, subFolder);
+        assertTrue(result.mkdirs(), "Couldn't create folders " + result);
+        return result;
+    }
+
+    private static File newFile(File parent, String child) throws Exception {
+        File result = new File(parent, child);
+        assertTrue(result.createNewFile(), "Couldn't create file " + result);
+        return result;
     }
 }
