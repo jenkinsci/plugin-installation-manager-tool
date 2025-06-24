@@ -2,16 +2,16 @@ package io.jenkins.tools.pluginmanager.parsers;
 
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AvailableUpdatesStdOutPluginOutputConverterTest extends BaseParserTest {
+class AvailableUpdatesStdOutPluginOutputConverterTest extends BaseParserTest {
 
     @Test
-    public void convert() {
+    void convert() {
         List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.31"));
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(originalPlugins);
 
@@ -22,7 +22,7 @@ public class AvailableUpdatesStdOutPluginOutputConverterTest extends BaseParserT
     }
 
     @Test
-    public void convertNoUpdated() {
+    void convertNoUpdated() {
         List<Plugin> originalPlugins = singletonList(plugin("mailer", "1.32.1"));
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(originalPlugins);
 

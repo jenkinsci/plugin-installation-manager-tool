@@ -4,19 +4,19 @@ import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.HashFunction;
 import java.io.File;
 import java.net.URL;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class ChecksumTest {
+class ChecksumTest {
 
     private PluginManager pm;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         Config cfg = Config.builder()
                 .withJenkinsWar("")
                 .withIsVerbose(true)
@@ -27,7 +27,7 @@ public class ChecksumTest {
     }
 
     @Test
-    public void mailerPluginChecksumsMatch() {
+    void mailerPluginChecksumsMatch() {
         Plugin mailer = new Plugin("mailer", "1.32", null, null);
         mailer.setChecksum("BChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
 
@@ -38,7 +38,7 @@ public class ChecksumTest {
     }
 
     @Test
-    public void mailerPluginInvalidChecksums() {
+    void mailerPluginInvalidChecksums() {
         Plugin mailer = new Plugin("mailer", "1.32", null, null);
         mailer.setChecksum("jBChiuBjHIiPxWZrBuVqB+QwxKWFknoim5jnCr4I55Lc=");
 

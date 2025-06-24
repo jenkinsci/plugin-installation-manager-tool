@@ -15,12 +15,12 @@ import org.junit.jupiter.api.Test;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class PluginManagerUpdatesTest {
+class PluginManagerUpdatesTest {
 
     private PluginManager pm;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         Config cfg = Config.builder()
                 .withJenkinsWar(Settings.DEFAULT_WAR)
                 .build();
@@ -35,7 +35,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void simpleUpdate() {
+    void simpleUpdate() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(plugin("mailer", "1.31")));
 
         assertThat(latestVersionsOfPlugins)
@@ -43,7 +43,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void latestIsNotUpdated() {
+    void latestIsNotUpdated() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(plugin("mailer", null)));
 
         assertThat(latestVersionsOfPlugins)
@@ -64,7 +64,7 @@ public class PluginManagerUpdatesTest {
 
     @Test
     @Disabled("Need another source of data for incrementals, add later")
-    public void updateIncremental() {
+    void updateIncremental() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 pluginIncremental("mailer", "org.jenkins-ci.plugins", "1.31-rc315.eb08e134da74")
         ));
@@ -74,7 +74,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void incrementalIsnotUpgradedToGA() {
+    void incrementalIsnotUpgradedToGA() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 pluginIncremental("mailer", "org.jenkins-ci.plugins", "1.31-rc316.fb08e134da74")
         ));
@@ -84,7 +84,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void nonExistentPlugin() {
+    void nonExistentPlugin() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(plugin("non-existing-plugin", "1.31")));
 
         assertThat(latestVersionsOfPlugins)
@@ -92,7 +92,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void pluginHasCustomUrl() {
+    void pluginHasCustomUrl() {
         Plugin mailer = pluginUrl("mailer", "http://archives.jenkins-ci.org/plugins/mailer/1.31/mailer.hpi");
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 mailer)
@@ -103,7 +103,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void pluginIsFromExperimentalUpdateCenter() {
+    void pluginIsFromExperimentalUpdateCenter() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 plugin("help-editor", "0.1-beta-1"))
         );
@@ -113,7 +113,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void currentPluginIsExperimentalButGAVersionIsNewer() {
+    void currentPluginIsExperimentalButGAVersionIsNewer() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
                 plugin("mailer", "1.31-beta-1"))
         );
@@ -123,7 +123,7 @@ public class PluginManagerUpdatesTest {
     }
 
     @Test
-    public void newerExperimentalIsNotDowngradedToGA() {
+    void newerExperimentalIsNotDowngradedToGA() {
         List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(
             plugin("mailer", "1.33-beta-1"))
         );
@@ -145,5 +145,4 @@ public class PluginManagerUpdatesTest {
     private Plugin pluginIncremental(String name, String groupId, String version) {
         return new Plugin(name, version, null, groupId);
     }
-
 }

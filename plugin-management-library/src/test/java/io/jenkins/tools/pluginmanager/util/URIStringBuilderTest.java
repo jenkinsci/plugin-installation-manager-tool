@@ -1,21 +1,21 @@
 package io.jenkins.tools.pluginmanager.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class URIStringBuilderTest {
+class URIStringBuilderTest {
 
     @Test
-    public void constructorTest() {
+    void constructorTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .build();
         assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
-    public void constructorDomainInPathTest() {
+    void constructorDomainInPathTest() {
         String result = new URIStringBuilder("http://")
                 .addPath("bob.com")
                 .build();
@@ -23,21 +23,21 @@ public class URIStringBuilderTest {
     }
 
     @Test
-    public void constructorWithTrailingSlashTest() {
+    void constructorWithTrailingSlashTest() {
         String result = new URIStringBuilder("http://bob.com/")
                 .build();
         assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
-    public void dontAddPathTest() {
+    void dontAddPathTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .build();
         assertThat(result).isEqualTo("http://bob.com");
     }
 
     @Test
-    public void addPathTest() {
+    void addPathTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .addPath("path/to")
                 .addPath("file.html")
@@ -46,7 +46,7 @@ public class URIStringBuilderTest {
     }
 
     @Test
-    public void addPathWithBlankSectionTest() {
+    void addPathWithBlankSectionTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .addPath("path/to")
                 .addPath("")
@@ -56,7 +56,7 @@ public class URIStringBuilderTest {
     }
 
     @Test
-    public void buildTest() {
+    void buildTest() {
         String result = new URIStringBuilder("http://bob.com")
                 .addPath("file.html")
                 .build();
