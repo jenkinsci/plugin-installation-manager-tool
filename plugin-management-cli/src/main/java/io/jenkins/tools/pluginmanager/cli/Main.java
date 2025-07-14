@@ -40,6 +40,7 @@ public class Main {
                 return;
             }
 
+
             Config cfg = options.setup();
             try (PluginManager pm = new PluginManager(cfg)) {
                 if (options.isShowAvailableUpdates()) {
