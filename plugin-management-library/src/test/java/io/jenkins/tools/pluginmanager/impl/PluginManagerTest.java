@@ -896,8 +896,10 @@ class PluginManagerTest {
 
         installedPlugins.put("git", new Plugin("git", "1.1.1", null, null));
         installedPlugins.put("git-client", new Plugin("git-client","2.7.5", null, null));
+        installedPlugins.put("ssh-credentials", new Plugin("structs", "1.12", null, null));
 
         bundledPlugins.put("structs", new Plugin("structs", "1.16", null, null));
+        bundledPlugins.put("ssh-credentials", new Plugin("structs", "1.14", null, null));
 
         pm.setInstalledPluginVersions(installedPlugins);
         pm.setBundledPluginVersions(bundledPlugins);
@@ -907,8 +909,7 @@ class PluginManagerTest {
         assertThat(actualPlugins)
                 .containsExactlyInAnyOrder(
                         new Plugin("credentials", "2.1.14", null, null),
-                        new Plugin("structs", "1.18", null, null),
-                        new Plugin("ssh-credentials", "1.13", null, null));
+                        new Plugin("structs", "1.18", null, null));
     }
 
     @Test
