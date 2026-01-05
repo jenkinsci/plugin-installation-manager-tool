@@ -183,6 +183,10 @@ Proxy support is available using standard [Java networking system properties](ht
 java -Dhttp.proxyPort=3128 -Dhttp.proxyHost=myproxy.example.com -Dhttps.proxyPort=3128 -Dhttps.proxyHost=myproxy.example.com -jar jenkins-plugin-manager-*.jar
 ```
 
+Alternatively you can instruct the jdk to use the proxy configured in your system without the need to provide the exact details.
+```bash
+java -Djava.net.useSystemProxies=true -jar jenkins-plugin-manager-*.jar
+```
 
 ## Other Information
 The plugin manager tries to use update center data to get the latest information about a plugin's dependencies. If this information is unavailable, it will use the dependency information from the downloaded plugin's MANIFEST.MF file. By default, the versions of the plugin dependencies are determined by the update center metadata or the plugin MANIFEST.MF file, but the user can specify other behavior using the `latest` or `latest-specified` options.
