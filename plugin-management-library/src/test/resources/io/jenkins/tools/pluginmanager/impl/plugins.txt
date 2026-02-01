@@ -31,7 +31,7 @@ locale:1.4
 lockable-resources:2.8
 mailer:1.32
 manage-permission:1.0.1
-matrix-auth:2.6.1
+matrix-auth:2.6.11
 maven-plugin:3.6
 momentjs:1.1.1
 monitoring:1.83.0
