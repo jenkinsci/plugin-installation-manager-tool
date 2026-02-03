@@ -19,10 +19,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.ExplicitBooleanOptionHandler;
@@ -182,7 +185,7 @@ class CliOptions {
                 .withUseLatestSpecified(isUseLatestSpecified())
                 .withUseLatestAll(isUseLatestAll())
                 .withSkipFailedPlugins(isSkipFailedPlugins())
-                .withCredentials(credentials)
+                .withCredentials(getCredentials())
                 .withHashFunction(getHashFunction())
                 .build();
     }
@@ -569,6 +572,35 @@ class CliOptions {
             return HashFunction.valueOf(fromEnv.toUpperCase());
         } else {
             return Settings.DEFAULT_HASH_FUNCTION;
+        }
+    }
+
+    /**
+     * Determines the credentials to use. If a value is set via CLI option, it will override a value
+     * set via environment variable. If neither are set, none is used.
+     *
+     * @return the list of credentials to use
+     */
+    private List<Credentials> getCredentials() {
+        if (credentials != null) {
+            logVerbose("Using credentials from CLI");
+            return credentials;
+        }
+
+        String fromEnv = System.getenv("JENKINS_UC_CREDENTIALS");
+        if (StringUtils.isEmpty(fromEnv)) {
+            logVerbose("No CLI option or environment variable set for credentials, not using any");
+            return Collections.emptyList();
+        }
+
+        try {
+            logVerbose("Using credentials from JENKINS_UC_CREDENTIALS environment variable");
+
+            CmdLineParser parser = new CmdLineParser(this);
+            parser.parseArgument("--credentials", fromEnv);
+            return credentials;
+        } catch (CmdLineException e) {
+            throw new PluginInputException("Error parsing JENKINS_UC_CREDENTIALS: " + e.getMessage());
         }
     }
 
