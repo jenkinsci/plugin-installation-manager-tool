@@ -72,7 +72,7 @@ class CliOptionsTest {
         assertThat(cfg.getPluginDir()).hasToString(Settings.DEFAULT_PLUGIN_DIR_LOCATION);
         assertThat(cfg.getJenkinsWar()).isEqualTo(Settings.DEFAULT_WAR);
         assertThat(cfg.isShowAllWarnings()).isFalse();
-        assertThat(cfg.isShowWarnings()).isFalse();
+        assertThat(cfg.isShowWarnings()).isTrue();
         assertThat(cfg.isHideWarnings()).isFalse();
         assertThat(cfg.getJenkinsUc()).hasToString(Settings.DEFAULT_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
