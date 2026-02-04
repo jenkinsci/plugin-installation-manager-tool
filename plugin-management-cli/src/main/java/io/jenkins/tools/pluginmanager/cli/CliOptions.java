@@ -18,6 +18,7 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -165,6 +166,7 @@ class CliOptions {
      */
     Config setup() {
         return Config.builder()
+                .withPluginFile(getPluginFilePath())
                 .withPlugins(getPlugins())
                 .withPluginDir(getPluginDir())
                 .withCleanPluginsDir(isCleanPluginDir())
@@ -212,6 +214,14 @@ class CliOptions {
             }
         }
         return pluginFile;
+    }
+    private Path getPluginFilePath() {
+        File pluginFile = getPluginFile();
+        if (pluginFile != null) {
+            return pluginFile.toPath();
+        } else {
+            return null;
+        }
     }
 
     /**
