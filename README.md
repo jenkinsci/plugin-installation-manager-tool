@@ -29,7 +29,7 @@ java -jar jenkins-plugin-manager-*.jar --war /your/path/to/jenkins.war --plugin-
 Alternatively, build and run the plugin manager yourself from source:
 
 ```bash
-mvn clean install 
+mvn clean install
 java -jar plugin-management-cli/target/jenkins-plugin-manager-*.jar --war /file/path/jenkins.war --plugin-download-directory /your/path/to/plugins/ --plugin-file /file/path/plugins.txt --plugins delivery-pipeline-plugin:1.3.2 deployit-plugin
 ```
 
@@ -44,7 +44,7 @@ exit
 ```
 
 ## CLI Options
-* `--plugin-file` or `-f`: (optional) Path to the plugins.txt, or plugins.yaml file, which contains a list of plugins to install. If this file does not exist, or if the file exists, but does not have a .txt or .yaml/.yml extension, then an error will be thrown. 
+* `--plugin-file` or `-f`: (optional) Path to the plugins.txt, or plugins.yaml file, which contains a list of plugins to install. If this file does not exist, or if the file exists, but does not have a .txt or .yaml/.yml extension, then an error will be thrown.
 * `--plugin-download-directory` or `-d`: (optional) Directory in which to install plugins. This configuration can also be made via the PLUGIN_DIR environment variable. The directory will be first deleted, then recreated. If no directory configuration is provided, the defaults are C:\ProgramData\Jenkins\Reference\Plugins if the detected operating system is Microsoft Windows, or /usr/share/jenkins/ref/plugins otherwise.
 * `--plugins` or `-p`: (optional) List of plugins to install (see plugin format below), separated by a space.
 * `--clean-download-directory`: (optional) If sets, cleans the plugin download directory before plugin installation. Otherwise the tool performs plugin download and reports compatibility issues, if any.
@@ -68,7 +68,7 @@ exit
 * `--no-download`: (optional) Do not download plugins. By default plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
 Jenkins in a broken state.
-* `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports). Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
+* `--credentials`: (optional) Comma-separated list of credentials to use for Basic Authentication for specific hosts (and optionally ports), can also be set via the JENKINS_UC_CREDENTIALS environment variable, with CLI having precedence. Each value must adhere to format `<host>[:port]:<username>:<password>`. The password must not contain a `,`! The credentials are not used preemptively.
 
 ## Advanced configuration
 
@@ -78,7 +78,7 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 * `JENKINS_UC_DOWNLOAD`: *DEPRECATED* use `JENKINS_UC_DOWNLOAD_URL` instead.
 
 * `JENKINS_UC_DOWNLOAD_URL`: used to configure a custom URL from where plugins will be downloaded from. When this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD_URL}`. Often used to cache or to proxy the Jenkins plugin download site.
-If set then all plugins will be downloaded through that URL. 
+If set then all plugins will be downloaded through that URL.
 
 * `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
 
@@ -93,7 +93,7 @@ The following custom version specifiers can also be used:
 
 * `latest` - downloads the latest version from a version specific update center if one exists for the version in the Jenkins war file. If no version specific update center exists, will use the main update center [https://updates.jenkins.io](https://updates.jenkins.io)
 * `experimental` - downloads the latest version from the [experimental update center](https://jenkins.io/doc/developer/publishing/releasing-experimental-updates/), which offers Alpha and Beta versions of plugins. Default value: [https://updates.jenkins.io/experimental](https://updates.jenkins.io/experimental)
-* `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).  
+* `incrementals;org.jenkins-ci.plugins.workflow;2.19-rc289.d09828a05a74` - downloads the plugin from the [incrementals repo](https://jenkins.io/blog/2018/05/15/incremental-deployment/). For this option you need to specify groupId of the plugin. Note that this value may change between plugin versions without notice. More information on incrementals and their use for Docker images can be found [here](https://github.com/jenkinsci/incrementals-tools#updating-versions-for-jenkins-docker-images).
 
 A set of plugins can also be provided through a YAML file, using the following format:
 
