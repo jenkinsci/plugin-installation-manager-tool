@@ -1,0 +1,6 @@
+plugins:
+  - artifactId: git
+    source:
+      url: file:///usr/share/jenkins/ref/plugins/git-4.8.2_CMT.hpi
+  - artifactId: junit
+  - artifactId: javadoc

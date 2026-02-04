@@ -34,6 +34,7 @@ public class Plugin {
         }
         this.version = new VersionNumber(version);
         this.url = url;
+
         this.dependencies = new ArrayList<>();
         this.parent = this;
         this.groupId = groupId;

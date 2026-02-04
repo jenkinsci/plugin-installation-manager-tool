@@ -1,5 +1,4 @@
 package io.jenkins.tools.pluginmanager.cli;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -76,7 +75,7 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showAvailableUpdates;
 
-    @Option(name = "--output", usage = "Output format for available updates",   aliases = "-o")
+    @Option(name = "--output", usage = "Output format for available updates", aliases = "-o")
     private OutputFormat outputFormat = OutputFormat.STDOUT;
 
     /**
@@ -157,6 +156,8 @@ class CliOptions {
     @Option(name = "--credentials", usage = "Comma-separated list of credentials in format '<host>[:port]:<username>:<password>'. The password must not contain space or ','",
             handler = MultiCredentialsOptionHandler.class)
     private List<Credentials> credentials;
+
+
 
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
@@ -275,6 +276,9 @@ class CliOptions {
     private List<Plugin> getPlugins() {
         PluginListParser pluginParser = new PluginListParser(verbose);
         List<Plugin> requestedPlugins = new ArrayList<>(pluginParser.parsePluginsFromCliOption(plugins));
+        for(Plugin plugin:requestedPlugins){
+            logVerbose(plugin.getName()+" Added By Mukund ");
+        }
 
         File pluginFile = getPluginFile();
         if (pluginFile != null) {
@@ -430,10 +434,10 @@ class CliOptions {
             try {
                 jenkinsIncrementalsRepo = new URL(System.getenv("JENKINS_INCREMENTALS_REPO_MIRROR"));
             } catch (MalformedURLException e) {
-            /* Spotbugs 4.7.0 warns when throwing a runtime exception,
-             * but the program cannot do anything with a malformed URL.
-             * Spotbugs warning is ignored.
-             */
+                /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+                 * but the program cannot do anything with a malformed URL.
+                 * Spotbugs warning is ignored.
+                 */
                 throw new RuntimeException(e);
             }
 
@@ -509,6 +513,13 @@ class CliOptions {
      */
     public boolean isShowHelp() {
         return showHelp;
+    }
+
+    /**
+     * Shows if the version was made by mukund
+     */
+    public boolean isVersionMadeBy() {
+        return true;
     }
 
     /**
