@@ -158,6 +158,9 @@ class CliOptions {
             handler = MultiCredentialsOptionHandler.class)
     private List<Credentials> credentials;
 
+    @Option(name = "--skip-broken", usage = "Lists skipped plugins when enabled", handler = BooleanOptionHandler.class)
+    private boolean skipBroken;
+
     /**
      * Creates a configuration class with configurations specified from the CLI and/or environment variables.
      *
@@ -187,6 +190,7 @@ class CliOptions {
                 .withSkipFailedPlugins(isSkipFailedPlugins())
                 .withCredentials(getCredentials())
                 .withHashFunction(getHashFunction())
+                .withSkipBroken(isSkipBroken())
                 .build();
     }
 
@@ -344,6 +348,15 @@ class CliOptions {
 
     public boolean isVerbose() {
         return verbose;
+    }
+
+    /**
+     * Gets the value corresponding to if user selected to list skipped plugins
+     *
+     * @return true if user selected CLI Option to list skipped plugins
+     */
+    private boolean isSkipBroken() {
+        return skipBroken;
     }
 
     /**
