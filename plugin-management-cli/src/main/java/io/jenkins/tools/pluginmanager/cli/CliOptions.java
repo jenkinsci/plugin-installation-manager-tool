@@ -313,7 +313,7 @@ class CliOptions {
      * @return true if user selected CLI Option to see warnings for specified plugins
      */
     private boolean isShowWarnings() {
-        return showWarnings;
+        return !hideWarnings;
     }
 
     /**
