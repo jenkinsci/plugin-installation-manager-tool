@@ -12,6 +12,7 @@ The plugin manager downloads plugins and their dependencies into a folder so tha
 - [Getting Started](#getting-started)
 - [CLI Options](#cli-options)
 - [Advanced configuration](#advanced-configuration)
+- [Mirror setup](#mirror-setup)
 - [Plugin Input Format](#plugin-input-format)
 - [Updating plugins](#updating-plugins)
 - [Examples](#examples)
@@ -77,10 +78,53 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 
 * `JENKINS_UC_DOWNLOAD`: *DEPRECATED* use `JENKINS_UC_DOWNLOAD_URL` instead.
 
-* `JENKINS_UC_DOWNLOAD_URL`: used to configure a custom URL from where plugins will be downloaded from. When this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD_URL}`. Often used to cache or to proxy the Jenkins plugin download site.
-If set then all plugins will be downloaded through that URL.
+* `JENKINS_UC_DOWNLOAD_URL`: configures a custom base URL from which plugins are downloaded. When set, it overrides any download URL found in the update-center JSON. The final download URL for each plugin is constructed as:
+
+  ```
+  ${JENKINS_UC_DOWNLOAD_URL}/<plugin-name>/<plugin-version>/<plugin-name>.hpi
+  ```
+
+  No path segments are inserted automatically: whatever path your mirror serves plugin binaries under (e.g. `/download/plugins`) must be part of the value. See [Mirror setup](#mirror-setup) for a configuration example.
+
+  This applies to download URLs constructed from update-center metadata. Per-plugin URLs explicitly set in the plugin input (e.g. `artifactId::https://.../foo.hpi` in `plugins.txt`, or a `source.url` in the YAML plugin file) take precedence over `JENKINS_UC_DOWNLOAD_URL`.
 
 * `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
+
+## Mirror setup
+
+When PIMT runs against a proxy mirror of `updates.jenkins.io`, the update-center JSON is fetched from the mirror but the URLs *inside* that JSON still point at `https://updates.jenkins.io/...`. Mirrors typically do not rewrite JSON content, so plugin downloads would otherwise bypass the mirror. `JENKINS_UC_DOWNLOAD_URL` overrides those URLs at download time, so the JSON itself does not need to be rewritten.
+
+### What you need to configure
+
+To route plugin traffic through a mirror, two things must be true:
+
+1. The update-center JSON (and any other metadata you use) is fetched from the mirror. Each metadata resource has both a CLI flag and an environment variable; pick whichever fits your invocation:
+
+   | Resource                                  | CLI flag                                | Environment variable               | Required for                                  |
+   |-------------------------------------------|-----------------------------------------|------------------------------------|-----------------------------------------------|
+   | Main update-center JSON                   | `--jenkins-update-center`               | `JENKINS_UC`                       | Always                                        |
+   | Plugin-versions JSON                      | `--jenkins-plugin-info`                 | `JENKINS_PLUGIN_INFO`              | Always                                        |
+   | Experimental update-center JSON           | `--jenkins-experimental-update-center`  | `JENKINS_UC_EXPERIMENTAL`          | Only if you install `experimental` versions   |
+   | Incrementals repository                   | `--jenkins-incrementals-repo-mirror`    | `JENKINS_INCREMENTALS_REPO_MIRROR` | Only if you install `incrementals;...` plugins|
+
+2. Plugin binaries are also fetched from the mirror. This is what `JENKINS_UC_DOWNLOAD_URL` is for. **It has no CLI equivalent**, so it must be set as an environment variable. Without it, the download URLs from the JSON (which point at `updates.jenkins.io`) are used unchanged.
+
+### Minimal invocation
+
+A common setup uses CLI flags for the metadata locations and `JENKINS_UC_DOWNLOAD_URL` as the only environment variable:
+
+```bash
+JENKINS_UC_DOWNLOAD_URL="https://mirror.example.com/<updates-path>/download/plugins" \
+java -jar jenkins-plugin-manager-*.jar \
+    --war "$JENKINS_WAR" \
+    --plugin-download-directory "$JENKINS_HOME/plugins" \
+    --plugin-file "$PLUGINS_TXT" \
+    --jenkins-update-center "https://mirror.example.com/<updates-path>/update-center.actual.json" \
+    --jenkins-plugin-info "https://mirror.example.com/<updates-path>/current/plugin-versions.json" \
+    --latest false
+```
+
+Replace `<updates-path>` with the path your mirror uses for `updates.jenkins.io`. Add `--jenkins-experimental-update-center` and/or `--jenkins-incrementals-repo-mirror` only if you actually install `experimental` or `incrementals;...` plugins. The trailing `/download/plugins` segment on `JENKINS_UC_DOWNLOAD_URL` is required because PIMT does not insert it automatically.
 
 ## Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
