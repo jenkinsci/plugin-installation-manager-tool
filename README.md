@@ -64,6 +64,7 @@ exit
 * `--jenkins-experimental-update-center`: (optional) Sets the experimental update center, which can also be set via the JENKINS_UC_EXPERIMENTAL environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/experimental/update-center.actual.json
 * `--jenkins-incrementals-repo-mirror`: (optional) Sets the incrementals repository mirror, which can also be set via the JENKINS_INCREMENTALS_REPO_MIRROR environment variable. If a CLI option is entered, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://repo.jenkins-ci.org/incrementals.
 * `--jenkins-plugin-info`: (optional) Sets the location of plugin information, which can also be set via the JENKINS_PLUGIN_INFO environment variable. If a CLI option is provided, it will override what is set in the environment variable. If not set via CLI option or environment variable, will default to https://updates.jenkins.io/current/plugin-versions.json.
+* `--jenkins-update-center-download-url`: (optional) Sets a custom plugin download URL, which can also be set via the JENKINS_UC_DOWNLOAD_URL environment variable. If a CLI option is provided, it will override what is set in the environment variable. When set, replaces the plugin download URL from `update-center.json` with this value. Often used to cache or proxy the Jenkins plugin download site.
 * `--version` or `-v`: (optional) Displays the plugin management tool version and exits.
 * `--no-download`: (optional) Do not download plugins. By default plugins will be downloaded.
 * `--skip-failed-plugins`: (optional) Adds the option to skip plugins that fail to download - CAUTION should be used when passing this flag as it could leave
@@ -78,7 +79,7 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 * `JENKINS_UC_DOWNLOAD`: *DEPRECATED* use `JENKINS_UC_DOWNLOAD_URL` instead.
 
 * `JENKINS_UC_DOWNLOAD_URL`: used to configure a custom URL from where plugins will be downloaded from. When this value is set, it replaces the plugin download URL found in the `update-center.json` file with `${JENKINS_UC_DOWNLOAD_URL}`. Often used to cache or to proxy the Jenkins plugin download site.
-If set then all plugins will be downloaded through that URL.
+If set then all plugins will be downloaded through that URL. Can also be set via the `--jenkins-update-center-download-url` CLI option, which takes precedence over the environment variable.
 
 * `JENKINS_UC_HASH_FUNCTION`: used to configure the hash function which checks content from UCs. Currently `SHA1` (deprecated), `SHA256` (default), and `SHA512` can be specified.
 

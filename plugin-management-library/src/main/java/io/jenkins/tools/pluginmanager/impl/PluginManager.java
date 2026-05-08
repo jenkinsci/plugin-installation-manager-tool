@@ -1241,11 +1241,11 @@ public class PluginManager implements Closeable {
         }
 
         String jenkinsUcDownload = System.getenv("JENKINS_UC_DOWNLOAD");
-        String jenkinsUcDownloadUrl = System.getenv("JENKINS_UC_DOWNLOAD_URL");
+        URL jenkinsUcDownloadUrl = cfg.getJenkinsUcDownloadUrl();
 
         if (StringUtils.isNotEmpty(pluginUrl)) {
             urlString = pluginUrl;
-        } else if (StringUtils.isNotEmpty(jenkinsUcDownloadUrl)) {
+        } else if (jenkinsUcDownloadUrl != null) {
             urlString = appendPathOntoUrl(jenkinsUcDownloadUrl, pluginName, pluginVersion, pluginName + ".hpi");
         } else if (pluginVersion.equals(Plugin.LATEST) && !StringUtils.isEmpty(jenkinsUcLatest)) {
             urlString = appendPathOntoUrl(dirName(jenkinsUcLatest), "/latest", pluginName + ".hpi");
