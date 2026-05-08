@@ -125,6 +125,13 @@ class CliOptions {
             handler = URLOptionHandler.class)
     private URL jenkinsPluginInfo;
 
+    @Option(name = "--jenkins-update-center-download-url",
+            usage = "Sets a custom plugin download URL; will override JENKINS_UC_DOWNLOAD_URL environment variable. " +
+                    "When set, replaces the plugin download URL from update-center.json with this value. " +
+                    "If not set via CLI option or environment variable, the URL from update-center.json is used.",
+            handler = URLOptionHandler.class)
+    private URL jenkinsUcDownloadUrl;
+
     @Option(name = "--version", aliases = {"-v"}, usage = "View version and exit", handler = BooleanOptionHandler.class)
     private boolean showVersion;
 
@@ -172,6 +179,7 @@ class CliOptions {
                 .withJenkinsUcExperimental(getExperimentalUpdateCenter())
                 .withJenkinsIncrementalsRepoMirror(getIncrementalsMirror())
                 .withJenkinsPluginInfo(getPluginInfo())
+                .withJenkinsUcDownloadUrl(getJenkinsUcDownloadUrl())
                 .withJenkinsVersion(getJenkinsVersion())
                 .withJenkinsWar(getJenkinsWar())
                 .withShowWarnings(isShowWarnings())
@@ -475,6 +483,36 @@ class CliOptions {
             logVerbose("No CLI option or environment variable set for plugin info, using default of " + pluginInfo);
         }
         return pluginInfo;
+    }
+
+    /**
+     * Determines the custom plugin download URL. If a value is set via CLI option, it will override a value set
+     * via the JENKINS_UC_DOWNLOAD_URL environment variable. If neither is set, returns null so the URL from
+     * update-center.json is used.
+     *
+     * @return the plugin download URL, or null if not configured
+     */
+    private URL getJenkinsUcDownloadUrl() {
+        URL downloadUrl;
+        if (jenkinsUcDownloadUrl != null) {
+            downloadUrl = jenkinsUcDownloadUrl;
+            logVerbose("Using plugin download URL " + downloadUrl + " specified with CLI option");
+        } else if (!StringUtils.isEmpty(System.getenv("JENKINS_UC_DOWNLOAD_URL"))) {
+            try {
+                downloadUrl = new URL(System.getenv("JENKINS_UC_DOWNLOAD_URL"));
+            } catch (MalformedURLException e) {
+                /* Spotbugs 4.7.0 warns when throwing a runtime exception,
+                 * but the program cannot do anything with a malformed URL.
+                 * Spotbugs warning is ignored.
+                 */
+                throw new RuntimeException(e);
+            }
+            logVerbose("Using plugin download URL " + downloadUrl + " from JENKINS_UC_DOWNLOAD_URL environment variable");
+        } else {
+            downloadUrl = null;
+            logVerbose("No CLI option or environment variable set for plugin download URL, using URLs from update-center.json");
+        }
+        return downloadUrl;
     }
 
     /**

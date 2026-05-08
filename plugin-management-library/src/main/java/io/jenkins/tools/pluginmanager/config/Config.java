@@ -47,6 +47,8 @@ public class Config {
     private final URL jenkinsUcExperimental;
     private final URL jenkinsIncrementalsRepoMirror;
     private final URL jenkinsPluginInfo;
+    @CheckForNull
+    private final URL jenkinsUcDownloadUrl;
     private final boolean doDownload;
     private final boolean useLatestSpecified;
     private final boolean useLatestAll;
@@ -72,6 +74,7 @@ public class Config {
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
             URL jenkinsPluginInfo,
+            URL jenkinsUcDownloadUrl,
             boolean doDownload,
             boolean useLatestSpecified,
             boolean useLatestAll,
@@ -95,6 +98,7 @@ public class Config {
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
         this.jenkinsPluginInfo = jenkinsPluginInfo;
+        this.jenkinsUcDownloadUrl = jenkinsUcDownloadUrl;
         this.doDownload = doDownload;
         this.useLatestSpecified = useLatestSpecified;
         this.useLatestAll = useLatestAll;
@@ -164,6 +168,11 @@ public class Config {
         return jenkinsPluginInfo;
     }
 
+    @CheckForNull
+    public URL getJenkinsUcDownloadUrl() {
+        return jenkinsUcDownloadUrl;
+    }
+
     /**
      * Get Jenkins version to be used by the plugin manager.
      * @return Jenkins version.
@@ -229,6 +238,7 @@ public class Config {
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
         private URL jenkinsPluginInfo = Settings.DEFAULT_PLUGIN_INFO;
+        private URL jenkinsUcDownloadUrl;
         private boolean doDownload;
         private boolean useLatestSpecified;
         private boolean useLatestAll;
@@ -322,6 +332,11 @@ public class Config {
             return this;
         }
 
+        public Builder withJenkinsUcDownloadUrl(@CheckForNull URL jenkinsUcDownloadUrl) {
+            this.jenkinsUcDownloadUrl = jenkinsUcDownloadUrl;
+            return this;
+        }
+
         public Builder withDoDownload(boolean doDownload) {
             this.doDownload = doDownload;
             return this;
@@ -384,6 +399,7 @@ public class Config {
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
                     jenkinsPluginInfo,
+                    jenkinsUcDownloadUrl,
                     doDownload,
                     useLatestSpecified,
                     useLatestAll,
