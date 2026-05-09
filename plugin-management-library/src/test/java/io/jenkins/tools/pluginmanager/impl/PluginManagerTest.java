@@ -20,7 +20,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -1340,7 +1339,6 @@ class PluginManagerTest {
     /**
      * Test configuring custom update center mirror configuration (i.e. Artifactory).
      */
-    @Disabled("setting environment variables is not supported in Java 17")
     @Test
     void getDownloadPluginUrlCustomUcUrls() throws IOException {
         Config config = Config.builder()
@@ -1350,9 +1348,8 @@ class PluginManagerTest {
                 .withJenkinsUcExperimental(new URL("https://private-mirror.com/jenkins-updated-center/experimental/update-center.actual.json"))
                 .withJenkinsIncrementalsRepoMirror(new URL("https://private-mirror.com/jenkins-updated-center/incrementals"))
                 .withJenkinsPluginInfo(new URL("https://private-mirror.com/jenkins-updated-center/current/plugin-versions.json"))
+                .withJenkinsUcDownloadUrl(new URL("https://private-mirror.com/jenkins-updated-center/download/plugins"))
                 .build();
-
-        //environmentVariables.set("JENKINS_UC_DOWNLOAD_URL", "https://private-mirror.com/jenkins-updated-center/download/plugins");
 
         PluginManager pluginManager = new PluginManager(config);
 
@@ -1414,10 +1411,10 @@ class PluginManagerTest {
                             .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
                 },
                 () -> {
-                    // explicit url
+                    // explicit per-plugin URL is preserved
                     Plugin plugin = new Plugin("pluginName", "1.0.0", "https://other-mirror.com/plugins/custom-url.hpi", null);
                     assertThat(pluginManager.getPluginDownloadUrl(plugin))
-                            .isEqualTo("https://private-mirror.com/jenkins-updated-center/download/plugins/pluginName/1.0.0/pluginName.hpi");
+                            .isEqualTo("https://other-mirror.com/plugins/custom-url.hpi");
                 }
         );
     }

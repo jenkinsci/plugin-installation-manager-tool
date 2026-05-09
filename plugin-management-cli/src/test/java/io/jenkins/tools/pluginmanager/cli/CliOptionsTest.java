@@ -78,7 +78,19 @@ class CliOptionsTest {
         assertThat(cfg.getJenkinsUcExperimental()).hasToString(Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER_LOCATION);
         assertThat(cfg.getJenkinsIncrementalsRepoMirror()).hasToString(Settings.DEFAULT_INCREMENTALS_REPO_MIRROR_LOCATION);
         assertThat(cfg.getJenkinsPluginInfo()).hasToString(Settings.DEFAULT_PLUGIN_INFO_LOCATION);
+        assertThat(cfg.getJenkinsUcDownloadUrl()).isNull();
         assertThat(cfg.getHashFunction()).isEqualTo(Settings.DEFAULT_HASH_FUNCTION);
+    }
+
+    @Test
+    void setupUpdateCenterDownloadUrlCliTest() throws Exception {
+        String downloadUrlCli = "https://private-mirror.com/jenkins-updated-center/download/plugins";
+
+        parser.parseArgument("--jenkins-update-center-download-url", downloadUrlCli);
+
+        Config cfg = options.setup();
+
+        assertThat(cfg.getJenkinsUcDownloadUrl()).hasToString(downloadUrlCli);
     }
 
     @Test
