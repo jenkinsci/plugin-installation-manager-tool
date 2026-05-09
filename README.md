@@ -92,7 +92,7 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 
 ## Mirror setup
 
-When PIMT runs against a proxy mirror of `updates.jenkins.io`, the update-center JSON is fetched from the mirror but the URLs *inside* that JSON still point at `https://updates.jenkins.io/...`. Mirrors typically do not rewrite JSON content, so plugin downloads would otherwise bypass the mirror. `JENKINS_UC_DOWNLOAD_URL` overrides those URLs at download time, so the JSON itself does not need to be rewritten.
+When the CLI runs against a proxy mirror of `updates.jenkins.io`, the update-center JSON is fetched from the mirror but the URLs *inside* that JSON still point at `https://updates.jenkins.io/...`. Mirrors typically do not rewrite JSON content, so plugin downloads would otherwise bypass the mirror. `JENKINS_UC_DOWNLOAD_URL` overrides those URLs at download time, so the JSON itself does not need to be rewritten.
 
 ### What you need to configure
 
