@@ -78,7 +78,7 @@ if the user doesn't have a home directory when it will go to: `$(pwd)/.cache/jen
 
 * `JENKINS_UC_DOWNLOAD`: *DEPRECATED* use `JENKINS_UC_DOWNLOAD_URL` instead.
 
-* `JENKINS_UC_DOWNLOAD_URL`: configures a custom base URL from which plugins are downloaded. When set, it overrides any download URL found in the update-center JSON. The final download URL for each plugin is constructed as:
+* `JENKINS_UC_DOWNLOAD_URL`: configures a custom base URL from which plugins are downloaded. When set, it overrides any download URL found in the update-center JSON. The same value can also be passed via the `--jenkins-update-center-download-url` CLI flag, which takes precedence over the environment variable. The final download URL for each plugin is constructed as:
 
   ```
   ${JENKINS_UC_DOWNLOAD_URL}/<plugin-name>/<plugin-version>/<plugin-name>.hpi
@@ -96,18 +96,17 @@ When the CLI runs against a proxy mirror of `updates.jenkins.io`, the update-cen
 
 ### What you need to configure
 
-To route plugin traffic through a mirror, two things must be true:
+Each mirror-related setting can be specified via either a CLI flag or an environment variable; pick whichever fits your invocation:
 
-1. The update-center JSON (and any other metadata you use) is fetched from the mirror. Each metadata resource has both a CLI flag and an environment variable; pick whichever fits your invocation:
+| Resource                          | CLI flag                                | Environment variable               | Required for                                   |
+|-----------------------------------|-----------------------------------------|------------------------------------|------------------------------------------------|
+| Main update-center JSON           | `--jenkins-update-center`               | `JENKINS_UC`                       | Always                                         |
+| Plugin-versions JSON              | `--jenkins-plugin-info`                 | `JENKINS_PLUGIN_INFO`              | Always                                         |
+| Experimental update-center JSON   | `--jenkins-experimental-update-center`  | `JENKINS_UC_EXPERIMENTAL`          | Only if you install `experimental` versions    |
+| Incrementals repository           | `--jenkins-incrementals-repo-mirror`    | `JENKINS_INCREMENTALS_REPO_MIRROR` | Only if you install `incrementals;...` plugins |
+| Plugin binary download URL        | `--jenkins-update-center-download-url`  | `JENKINS_UC_DOWNLOAD_URL`          | Routing plugin downloads through the mirror    |
 
-   | Resource                                  | CLI flag                                | Environment variable               | Required for                                  |
-   |-------------------------------------------|-----------------------------------------|------------------------------------|-----------------------------------------------|
-   | Main update-center JSON                   | `--jenkins-update-center`               | `JENKINS_UC`                       | Always                                        |
-   | Plugin-versions JSON                      | `--jenkins-plugin-info`                 | `JENKINS_PLUGIN_INFO`              | Always                                        |
-   | Experimental update-center JSON           | `--jenkins-experimental-update-center`  | `JENKINS_UC_EXPERIMENTAL`          | Only if you install `experimental` versions   |
-   | Incrementals repository                   | `--jenkins-incrementals-repo-mirror`    | `JENKINS_INCREMENTALS_REPO_MIRROR` | Only if you install `incrementals;...` plugins|
-
-2. Plugin binaries are also fetched from the mirror. This is what `JENKINS_UC_DOWNLOAD_URL` is for. **It has no CLI equivalent**, so it must be set as an environment variable. Without it, the download URLs from the JSON (which point at `updates.jenkins.io`) are used unchanged.
+The first four entries control where the metadata JSON files are fetched from. The last one controls where the plugin binaries themselves are downloaded from; without it, the download URLs in the JSON (which point at `updates.jenkins.io`) are used unchanged.
 
 ### Minimal invocation
 
