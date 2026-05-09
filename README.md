@@ -87,7 +87,9 @@ No path segments are inserted automatically: whatever path your mirror serves pl
 
 ## Mirror setup
 
-When the CLI runs against a proxy mirror of `updates.jenkins.io`, the update-center JSON is fetched from the mirror but the URLs *inside* that JSON still point at `https://updates.jenkins.io/...`. Mirrors typically do not rewrite JSON content, so plugin downloads would otherwise bypass the mirror. `JENKINS_UC_DOWNLOAD_URL` overrides those URLs at download time, so the JSON itself does not need to be rewritten.
+When the CLI runs against a proxy mirror of `updates.jenkins.io`, the update-center JSON is fetched from the mirror but the URLs *inside* that JSON still point at `https://updates.jenkins.io/...`.
+Mirrors typically do not rewrite JSON content, so plugin downloads would otherwise bypass the mirror.
+The flag `--jenkins-update-center-download-url` overrides those URLs at download time, so the JSON itself does not need to be rewritten.
 
 ### What you need to configure
 
