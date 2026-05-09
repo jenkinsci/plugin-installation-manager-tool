@@ -105,20 +105,22 @@ The first four entries control where the metadata JSON files are fetched from. T
 
 ### Minimal invocation
 
-A common setup uses CLI flags for the metadata locations and `JENKINS_UC_DOWNLOAD_URL` as the only environment variable:
+A common setup uses CLI flags for the metadata locations:
 
 ```bash
-JENKINS_UC_DOWNLOAD_URL="https://mirror.example.com/<updates-path>/download/plugins" \
 java -jar jenkins-plugin-manager-*.jar \
     --war "$JENKINS_WAR" \
     --plugin-download-directory "$JENKINS_HOME/plugins" \
     --plugin-file "$PLUGINS_TXT" \
     --jenkins-update-center "https://mirror.example.com/<updates-path>/update-center.actual.json" \
+    --jenkins-update-center-download-url "https://mirror.example.com/<updates-path>/download/plugins" \
     --jenkins-plugin-info "https://mirror.example.com/<updates-path>/current/plugin-versions.json" \
     --latest false
 ```
 
-Replace `<updates-path>` with the path your mirror uses for `updates.jenkins.io`. Add `--jenkins-experimental-update-center` and/or `--jenkins-incrementals-repo-mirror` only if you actually install `experimental` or `incrementals;...` plugins. The trailing `/download/plugins` segment on `JENKINS_UC_DOWNLOAD_URL` is required because does not insert it automatically.
+Replace `<updates-path>` with the path your mirror uses for `updates.jenkins.io`.
+Add `--jenkins-experimental-update-center` and/or `--jenkins-incrementals-repo-mirror` only if you actually install `experimental` or `incrementals;...` plugins.
+The trailing `/download/plugins` segment on the update center download url is required because it does not insert it automatically.
 
 ## Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
