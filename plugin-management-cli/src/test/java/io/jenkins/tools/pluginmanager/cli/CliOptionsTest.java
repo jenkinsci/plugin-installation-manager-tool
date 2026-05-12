@@ -348,6 +348,22 @@ class CliOptionsTest {
     }
 
     @Test
+    void excludePluginsDefaultTest() throws Exception {
+        parser.parseArgument();
+
+        Config cfg = options.setup();
+        assertThat(cfg.getExcludePlugins()).isEmpty();
+    }
+
+    @Test
+    void excludePluginsParseTest() throws Exception {
+        parser.parseArgument("--exclude-plugins", "git", "matrix-auth", "credentials");
+
+        Config cfg = options.setup();
+        assertThat(cfg.getExcludePlugins()).containsExactly("git", "matrix-auth", "credentials");
+    }
+
+    @Test
     void outputFormatTest() throws Exception {
         parser.parseArgument("--plugins", "foo", "--output", "yaml");
 

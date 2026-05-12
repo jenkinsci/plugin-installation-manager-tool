@@ -19,6 +19,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -52,6 +53,13 @@ class CliOptions {
     @Option(name = "--plugins", aliases = {"-p"}, usage = "List of plugins to install, separated by a space",
             handler = StringArrayOptionHandler.class)
     private String[] plugins = new String[0];
+
+    @Option(name = "--exclude-plugins",
+            usage = "List of plugin names to exclude from installation/update, separated by a space. " +
+                    "Excluded plugins are dropped from the download set even when they are transitive " +
+                    "dependencies of other requested plugins.",
+            handler = StringArrayOptionHandler.class)
+    private String[] excludePlugins = new String[0];
 
     @Option(name = "--jenkins-version", usage = "Jenkins version to be used. " +
             "If undefined, Plugin Manager will use alternative ways to retrieve the version, e.g. from WAR",
@@ -173,6 +181,7 @@ class CliOptions {
     Config setup() {
         return Config.builder()
                 .withPlugins(getPlugins())
+                .withExcludePlugins(getExcludePlugins())
                 .withPluginDir(getPluginDir())
                 .withCleanPluginsDir(isCleanPluginDir())
                 .withJenkinsUc(getUpdateCenter())
@@ -295,6 +304,13 @@ class CliOptions {
             }
         }
         return requestedPlugins;
+    }
+
+    private List<String> getExcludePlugins() {
+        if (excludePlugins == null || excludePlugins.length == 0) {
+            return Collections.emptyList();
+        }
+        return new ArrayList<>(Arrays.asList(excludePlugins));
     }
 
     /**

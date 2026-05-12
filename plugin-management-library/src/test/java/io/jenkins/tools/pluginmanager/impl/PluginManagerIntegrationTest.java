@@ -382,6 +382,45 @@ class PluginManagerIntegrationTest {
     }
 
     @Test
+    void excludePluginsRemovesTransitiveDependency() throws IOException {
+        Plugin plugin1 = new Plugin("plugin1", "1.0", null, null);
+        Plugin plugin1Dependency = new Plugin("plugin1Dependency", "1.0.1", null, null).withoutDependencies();
+        plugin1.setDependencies(Collections.singletonList(plugin1Dependency));
+
+        List<Plugin> requestedPlugins = Collections.singletonList(plugin1);
+
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder
+                        .withPlugins(requestedPlugins)
+                        .withExcludePlugins(Collections.singletonList("plugin1Dependency")));
+
+        pluginManager.start();
+
+        assertThat(pluginManager.getPluginsToBeDownloaded())
+                .extracting(Plugin::getName)
+                .containsExactly("plugin1");
+    }
+
+    @Test
+    void excludePluginsRemovesTopLevelRequestedPlugin() throws IOException {
+        Plugin keep = new Plugin("plugin1", "1.0", null, null).withoutDependencies();
+        Plugin drop = new Plugin("plugin2", "2.0", null, null).withoutDependencies();
+
+        List<Plugin> requestedPlugins = Arrays.asList(keep, drop);
+
+        PluginManager pluginManager = initPluginManager(
+                configBuilder -> configBuilder
+                        .withPlugins(requestedPlugins)
+                        .withExcludePlugins(Collections.singletonList("plugin2")));
+
+        pluginManager.start();
+
+        assertThat(pluginManager.getPluginsToBeDownloaded())
+                .extracting(Plugin::getName)
+                .containsExactly("plugin1");
+    }
+
+    @Test
     void verifyBackups() throws Exception {
         // First cycle, empty dir
         Plugin initialTrileadAPI = new Plugin("trilead-api", "1.0.12", null, null);

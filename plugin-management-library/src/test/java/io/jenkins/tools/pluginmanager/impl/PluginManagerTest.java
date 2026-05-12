@@ -871,6 +871,30 @@ class PluginManagerTest {
     }
 
     @Test
+    void filterExcludedPluginsTest() {
+        Plugin git = new Plugin("git", "1.0.0", null, null);
+        Plugin credentials = new Plugin("credentials", "2.1.14", null, null);
+        Plugin structs = new Plugin("structs", "1.18", null, null);
+
+        // no exclude list configured → list returned unchanged
+        List<Plugin> noExclude = pm.filterExcludedPlugins(Arrays.asList(git, credentials, structs));
+        assertThat(noExclude).containsExactly(git, credentials, structs);
+
+        // exclude "credentials" (top-level) and "structs" (transitive)
+        Config excludeCfg = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins-exclude"))
+                .withCachePath(newFolder(folder, "junit-exclude").toPath())
+                .withPlugins(Arrays.asList(git, credentials))
+                .withExcludePlugins(Arrays.asList("credentials", "structs"))
+                .build();
+        PluginManager excludePm = new PluginManager(excludeCfg);
+
+        List<Plugin> filtered = excludePm.filterExcludedPlugins(Arrays.asList(git, credentials, structs));
+        assertThat(filtered).containsExactly(git);
+    }
+
+    @Test
     void findPluginsToDownloadTest() {
         Map<String, Plugin> requestedPlugins = new HashMap<>();
 

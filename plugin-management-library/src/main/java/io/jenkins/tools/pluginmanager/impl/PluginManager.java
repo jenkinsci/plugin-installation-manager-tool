@@ -115,6 +115,7 @@ public class PluginManager implements Closeable {
     private final boolean useLatestAll;
     private final String userAgentInformation;
     private final boolean skipFailedPlugins;
+    private final Set<String> excludePlugins;
     private CloseableHttpClient httpClient;
     private final CacheManager cm;
     private final LogOutput logOutput;
@@ -140,6 +141,7 @@ public class PluginManager implements Closeable {
         useLatestSpecified = cfg.isUseLatestSpecified();
         useLatestAll = cfg.isUseLatestAll();
         skipFailedPlugins = cfg.isSkipFailedPlugins();
+        excludePlugins = new HashSet<>(cfg.getExcludePlugins());
         hashFunction = cfg.getHashFunction();
         httpClient = null;
         userAgentInformation = this.getUserAgentInformation();
@@ -231,6 +233,7 @@ public class PluginManager implements Closeable {
         List<Exception> exceptions = new ArrayList<>();
         allPluginsAndDependencies = findPluginsAndDependencies(cfg.getPlugins(), exceptions);
         pluginsToBeDownloaded = findPluginsToDownload(allPluginsAndDependencies);
+        pluginsToBeDownloaded = filterExcludedPlugins(pluginsToBeDownloaded);
         effectivePlugins = findEffectivePlugins(pluginsToBeDownloaded);
 
         listPlugins();
@@ -301,6 +304,37 @@ public class PluginManager implements Closeable {
             }
         }
         return pluginsToDownload;
+    }
+
+    /**
+     * Removes plugins on the exclusion list from the download set. A plugin in the exclusion list is dropped even when
+     * another plugin transitively depends on it; in that case a warning is logged because Jenkins may fail to load the
+     * dependent plugin.
+     *
+     * @param pluginsToDownload plugins resolved for download
+     * @return the filtered list without excluded plugins
+     */
+    public List<Plugin> filterExcludedPlugins(List<Plugin> pluginsToDownload) {
+        if (excludePlugins.isEmpty()) {
+            return pluginsToDownload;
+        }
+        Set<String> topLevelRequested = cfg.getPlugins().stream()
+                .map(Plugin::getName)
+                .collect(Collectors.toSet());
+        List<Plugin> filtered = new ArrayList<>(pluginsToDownload.size());
+        for (Plugin plugin : pluginsToDownload) {
+            if (excludePlugins.contains(plugin.getName())) {
+                if (topLevelRequested.contains(plugin.getName())) {
+                    logMessage("Excluding plugin " + plugin.getName() + " (explicitly requested but on exclude list)");
+                } else {
+                    logMessage("Excluding plugin " + plugin.getName() +
+                            " (transitive dependency; dependent plugins may fail to load)");
+                }
+            } else {
+                filtered.add(plugin);
+            }
+        }
+        return filtered;
     }
 
     /**
@@ -1719,6 +1753,10 @@ public class PluginManager implements Closeable {
      */
     public void setPluginsToBeDownloaded(List<Plugin> pluginsToBeDownloaded) {
         this.pluginsToBeDownloaded = pluginsToBeDownloaded;
+    }
+
+    public List<Plugin> getPluginsToBeDownloaded() {
+        return pluginsToBeDownloaded;
     }
 
     /**

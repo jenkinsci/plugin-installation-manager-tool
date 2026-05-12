@@ -41,6 +41,7 @@ public class Config {
     @CheckForNull
     private final String jenkinsWar;
     private final List<Plugin> plugins;
+    private final List<String> excludePlugins;
     private final boolean verbose;
     private final HashFunction hashFunction;
     private final URL jenkinsUc;
@@ -70,6 +71,7 @@ public class Config {
             VersionNumber jenkinsVersion,
             String jenkinsWar,
             List<Plugin> plugins,
+            List<String> excludePlugins,
             URL jenkinsUc,
             URL jenkinsUcExperimental,
             URL jenkinsIncrementalsRepoMirror,
@@ -94,6 +96,7 @@ public class Config {
         this.jenkinsVersion = jenkinsVersion;
         this.jenkinsWar = jenkinsWar;
         this.plugins = plugins;
+        this.excludePlugins = excludePlugins;
         this.jenkinsUc = jenkinsUc;
         this.jenkinsUcExperimental = jenkinsUcExperimental;
         this.jenkinsIncrementalsRepoMirror = jenkinsIncrementalsRepoMirror;
@@ -150,6 +153,10 @@ public class Config {
 
     public List<Plugin> getPlugins() {
         return plugins;
+    }
+
+    public List<String> getExcludePlugins() {
+        return excludePlugins;
     }
 
     public URL getJenkinsUc() {
@@ -234,6 +241,7 @@ public class Config {
         private VersionNumber jenkinsVersion;
         private String jenkinsWar;
         private List<Plugin> plugins = new ArrayList<>();
+        private List<String> excludePlugins = Collections.emptyList();
         private URL jenkinsUc = Settings.DEFAULT_UPDATE_CENTER;
         private URL jenkinsUcExperimental = Settings.DEFAULT_EXPERIMENTAL_UPDATE_CENTER;
         private URL jenkinsIncrementalsRepoMirror = Settings.DEFAULT_INCREMENTALS_REPO_MIRROR;
@@ -304,6 +312,15 @@ public class Config {
 
         public Builder withPlugins(List<Plugin> plugins) {
             this.plugins = plugins;
+            return this;
+        }
+
+        public Builder withExcludePlugins(List<String> excludePlugins) {
+            if (excludePlugins == null) {
+                this.excludePlugins = Collections.emptyList();
+                return this;
+            }
+            this.excludePlugins = excludePlugins;
             return this;
         }
 
@@ -395,6 +412,7 @@ public class Config {
                     jenkinsVersion,
                     jenkinsWar,
                     plugins,
+                    excludePlugins,
                     jenkinsUc,
                     jenkinsUcExperimental,
                     jenkinsIncrementalsRepoMirror,
