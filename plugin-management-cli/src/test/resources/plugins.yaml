@@ -10,7 +10,7 @@ plugins:
   - artifactId: docker
   - artifactId: cloudbees-bitbucket-branch-source
     source:
-      version: 2.4.4
+      version: 2.9.11.2
   - artifactId: script-security
     source:
       url: http://ftp-chi.osuosl.org/pub/jenkins/plugins/script-security/1.56/script-security.hpi
