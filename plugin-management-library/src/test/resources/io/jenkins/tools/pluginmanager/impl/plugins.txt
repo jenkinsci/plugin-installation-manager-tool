@@ -4,7 +4,7 @@ blueocean:1.27.25
 cloud-stats:0.27
 cloudbees-folder:6.1100.ve9eed61d16c4
 cobertura:1.17
-code-coverage-api:1.1.6
+code-coverage-api:1.4.1
 configuration-as-code:1.41
 data-tables-api:1.10.21-1
 docker-commons:1.16
