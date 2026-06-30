@@ -278,16 +278,16 @@ public class PluginManager implements Closeable {
             String pluginName = requestedPlugin.getKey();
             Plugin plugin = requestedPlugin.getValue();
             VersionNumber installedVersion = null;
-            if (installedPluginVersions.containsKey(pluginName)) {
-                installedVersion = installedPluginVersions.get(pluginName).getVersion();
-            } else if (bundledPluginVersions.containsKey(pluginName)) {
-                installedVersion = bundledPluginVersions.get(pluginName).getVersion();
-            } else if (bundledPluginVersions.containsKey(pluginName) &&
+            if (bundledPluginVersions.containsKey(pluginName) &&
                     installedPluginVersions.containsKey(pluginName)) {
                 installedVersion = bundledPluginVersions.get(pluginName).getVersion().
                         isNewerThan(installedPluginVersions.get(pluginName).getVersion()) ?
                         bundledPluginVersions.get(pluginName).getVersion() :
                         installedPluginVersions.get(pluginName).getVersion();
+            } else if (installedPluginVersions.containsKey(pluginName)) {
+                installedVersion = installedPluginVersions.get(pluginName).getVersion();
+            } else if (bundledPluginVersions.containsKey(pluginName)) {
+                installedVersion = bundledPluginVersions.get(pluginName).getVersion();
             }
             if (installedVersion == null) {
                 logVerbose(String.format(
