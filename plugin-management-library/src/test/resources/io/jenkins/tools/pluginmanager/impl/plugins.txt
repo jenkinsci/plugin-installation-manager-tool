@@ -8,7 +8,7 @@ code-coverage-api:1.4.1
 configuration-as-code:1.55.1
 data-tables-api:1.13.8-4
 docker-commons:1.21
-docker-workflow:1.23
+docker-workflow:1.29
 echarts-api:4.7.0-4
 email-ext:2.69
 extended-read-permission:3.2
