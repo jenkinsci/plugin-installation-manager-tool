@@ -18,7 +18,7 @@ git-client:3.2.1
 git:4.2.2
 github-api:1.112.0
 github-branch-source:2.8.0
-github:1.30.0
+github:1.47.0
 jackson2-api:2.11.0
 jacoco:3.0.4
 javadoc:1.5
