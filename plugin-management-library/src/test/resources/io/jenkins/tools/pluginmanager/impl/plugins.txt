@@ -17,7 +17,7 @@ filesystem_scm:2.1
 git-client:3.13.1
 git:4.2.2
 github-api:1.330-492.v3941a_032db_2a_
-github-branch-source:2.8.0
+github-branch-source:2.11.5
 github:1.47.0
 jackson2-api:2.11.0
 jacoco:3.0.4
