@@ -15,7 +15,7 @@ extended-read-permission:3.2
 favorite:2.267.vb_90d08408081
 filesystem_scm:2.1
 git-client:3.2.1
-git:4.2.2
+git:4.14.3
 github-api:1.112.0
 github-branch-source:2.8.0
 github:1.30.0
