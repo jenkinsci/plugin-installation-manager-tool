@@ -2,7 +2,7 @@ ace-editor:1.1
 authorize-project:1.8.1
 blueocean:1.27.26
 cloud-stats:0.27
-cloudbees-folder:6.1100.ve9eed61d16c4
+cloudbees-folder:6.1106.v3a_d9a_6d2465e
 cobertura:1.17
 code-coverage-api:1.4.1
 configuration-as-code:1.55.1
