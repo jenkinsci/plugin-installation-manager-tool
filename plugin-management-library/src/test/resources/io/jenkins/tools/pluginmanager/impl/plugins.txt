@@ -20,7 +20,7 @@ github-api:1.330-492.v3941a_032db_2a_
 github-branch-source:2.11.5
 github:1.47.0
 jackson2-api:2.22.2-445.vdc613f1d8012
-jacoco:3.0.4
+jacoco:3.3.7
 javadoc:1.6
 jdk-tool:1.4
 job-restrictions:0.8
