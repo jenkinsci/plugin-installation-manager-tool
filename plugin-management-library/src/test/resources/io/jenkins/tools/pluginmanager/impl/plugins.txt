@@ -29,7 +29,7 @@ junit:1.63
 icon-shim:2.0.3
 locale:1.4
 lockable-resources:2.18
-mailer:1.32
+mailer:1.34.2
 manage-permission:1.0.1
 matrix-auth:2.6.11
 maven-plugin:3.6
