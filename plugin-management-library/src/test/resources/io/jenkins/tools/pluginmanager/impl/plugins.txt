@@ -25,7 +25,7 @@ javadoc:1.6
 jdk-tool:1.5
 job-restrictions:0.8
 jsch:0.2.16-95.v3eecb_55fa_b_78
-junit:1.27
+junit:1.63
 icon-shim:2.0.3
 locale:1.4
 lockable-resources:2.8
