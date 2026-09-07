@@ -22,7 +22,7 @@ github:1.47.0
 jackson2-api:2.22.2-445.vdc613f1d8012
 jacoco:3.0.4
 javadoc:1.6
-jdk-tool:1.4
+jdk-tool:1.5
 job-restrictions:0.8
 jsch:0.1.55.2
 junit:1.27
