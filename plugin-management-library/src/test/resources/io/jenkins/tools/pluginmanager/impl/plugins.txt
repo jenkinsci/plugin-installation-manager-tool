@@ -38,7 +38,7 @@ monitoring:1.99.0
 ownership:0.13.0
 parallel-test-executor:1.13
 parameterized-trigger:2.36
-pipeline-build-step:2.12
+pipeline-build-step:2.18.1
 pipeline-model-definition:1.7.0
 pipeline-stage-tags-metadata:1.7.0
 pipeline-stage-view:2.13
