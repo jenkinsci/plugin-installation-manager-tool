@@ -35,7 +35,7 @@ matrix-auth:2.6.11
 maven-plugin:3.27
 momentjs:1.1.1
 monitoring:1.99.0
-ownership:0.12.1
+ownership:0.13.0
 parallel-test-executor:1.12
 parameterized-trigger:2.36
 pipeline-build-step:2.12
