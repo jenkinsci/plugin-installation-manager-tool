@@ -236,6 +236,18 @@ public class PluginManager implements Closeable {
         listPlugins();
         showSpecificSecurityWarnings(pluginsToBeDownloaded);
         checkVersionCompatibility(jenkinsVersion, pluginsToBeDownloaded, exceptions);
+        if(cfg.isSkipBroken()){
+            List<Plugin> failedPlugins = getFailedPlugins();
+            if(failedPlugins.isEmpty()){
+                System.out.println("No plugin is skipped");
+            }
+            else{
+                System.out.println("Following plugins are skipped due to failure:");
+                for(Plugin failedPlugin: failedPlugins){
+                    System.out.println(failedPlugin.getName());
+                }
+            }
+        }
         if (!exceptions.isEmpty()) {
             throw new AggregatePluginPrerequisitesNotMetException(exceptions);
         }
