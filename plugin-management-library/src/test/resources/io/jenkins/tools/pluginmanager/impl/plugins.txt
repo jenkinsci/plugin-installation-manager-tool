@@ -50,7 +50,7 @@ snakeyaml-api:1.33-95.va_b_a_e3e47b_fa_4
 ssh-credentials:1.19
 timestamper:1.11.3
 token-macro:2.12
-warnings-ng:8.1.0
+warnings-ng:8.10.1
 workflow-basic-steps:2.20
 workflow-cps:2.80
 workflow-durable-task-step:2.35
