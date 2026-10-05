@@ -51,7 +51,7 @@ ssh-credentials:1.19
 timestamper:1.30
 token-macro:2.15
 warnings-ng:8.10.1
-workflow-basic-steps:2.20
+workflow-basic-steps:2.24
 workflow-cps:2.94.4
 workflow-durable-task-step:2.35
 workflow-job:2.39
