@@ -57,4 +57,4 @@ workflow-durable-task-step:2.40
 workflow-job:2.42
 workflow-multibranch:2.21
 workflow-scm-step:2.13
-yet-another-docker-plugin:0.2.0
+yet-another-docker-plugin:0.3.2
