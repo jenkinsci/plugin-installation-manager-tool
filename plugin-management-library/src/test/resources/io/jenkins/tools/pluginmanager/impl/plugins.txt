@@ -54,7 +54,7 @@ warnings-ng:8.10.1
 workflow-basic-steps:2.24
 workflow-cps:2.94.4
 workflow-durable-task-step:2.35
-workflow-job:2.39
+workflow-job:2.42
 workflow-multibranch:2.21
 workflow-scm-step:2.11
 yet-another-docker-plugin:0.2.0
