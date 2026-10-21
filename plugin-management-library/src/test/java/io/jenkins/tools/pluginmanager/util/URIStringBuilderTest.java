@@ -62,4 +62,11 @@ class URIStringBuilderTest {
                 .build();
         assertThat(result).isEqualTo("http://bob.com/file.html");
     }
+
+    @Test
+    void constructorWithMultipleTrailingSlashesTest() {
+        String result = new URIStringBuilder("http://bob.com///")
+                .build();
+        assertThat(result).isEqualTo("http://bob.com");
+    }
 }
