@@ -1524,6 +1524,10 @@ public class PluginManager implements Closeable {
             logMessage("Unable to get Jenkins version from the WAR file: WAR file path is not defined.");
             return null;
         }
+        if (!jenkinsWarFile.exists()) {
+            logVerbose("WAR file does not exist: " + jenkinsWarFile.getPath());
+            return null;
+        }
         String version = getAttributeFromManifest(jenkinsWarFile, "Jenkins-Version");
         if (StringUtils.isEmpty(version)) {
             logMessage("Unable to get Jenkins version from the WAR file " + jenkinsWarFile.getPath());

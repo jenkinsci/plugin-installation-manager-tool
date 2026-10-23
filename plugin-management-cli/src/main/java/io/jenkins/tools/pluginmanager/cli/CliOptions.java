@@ -16,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -262,13 +264,28 @@ class CliOptions {
     }
 
     /**
-     * Gets the user specified Jenkins war from the CLI option and sets this in the configuration class
+     * Gets the user specified Jenkins war from the CLI option and sets this in the configuration class. Throws a
+     * PluginInputException if the user-specified war file does not exist.
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "we want the user to be able to specify a path")
     private String getJenkinsWar() {
         if (jenkinsWarFile == null) {
             logVerbose("No war entered. Will use default of " + Settings.DEFAULT_WAR);
             return Settings.DEFAULT_WAR;
         } else {
+            File warFile;
+            if (jenkinsWarFile.startsWith("file:")) {
+                try {
+                    warFile = new File(new URI(jenkinsWarFile));
+                } catch (URISyntaxException | IllegalArgumentException e) {
+                    warFile = new File(jenkinsWarFile);
+                }
+            } else {
+                warFile = new File(jenkinsWarFile);
+            }
+            if (!warFile.exists()) {
+                throw new PluginInputException("Jenkins war file does not exist " + jenkinsWarFile);
+            }
             logVerbose("Will use war file: " + jenkinsWarFile);
             return jenkinsWarFile;
         }
