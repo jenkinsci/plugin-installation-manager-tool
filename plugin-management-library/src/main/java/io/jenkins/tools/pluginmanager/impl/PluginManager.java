@@ -869,7 +869,6 @@ public class PluginManager implements Closeable {
             throw new RuntimeException(e);
         }
         latestPlugins = latestUcJson.getJSONObject("plugins");
-        pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
     }
 
     private static String getCacheSuffix(VersionNumber jenkinsVersion) {
@@ -1068,6 +1067,9 @@ public class PluginManager implements Closeable {
 
             dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
         } else {
+            if (pluginInfoJson == null) {
+                pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
+            }
             dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
         }
         if (dependentPlugins == null) {
