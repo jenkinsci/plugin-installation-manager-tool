@@ -183,6 +183,24 @@ class CliOptionsTest {
     }
 
     @Test
+    void setupWarDoesNotExistTest() throws CmdLineException {
+        parser.parseArgument("--war", "/non/existent/jenkins.war");
+
+        assertThatThrownBy(options::setup)
+                .isInstanceOf(PluginInputException.class)
+                .hasMessage("Jenkins war file does not exist /non/existent/jenkins.war");
+    }
+
+    @Test
+    void setupWarAliasDoesNotExistTest() throws CmdLineException {
+        parser.parseArgument("-w", "/non/existent/jenkins.war");
+
+        assertThatThrownBy(options::setup)
+                .isInstanceOf(PluginInputException.class)
+                .hasMessage("Jenkins war file does not exist /non/existent/jenkins.war");
+    }
+
+    @Test
     void setupJenkinsVersion() throws Exception {
         parser.parseArgument("--jenkins-version", "2.263.1");
         Config cfg = options.setup();
