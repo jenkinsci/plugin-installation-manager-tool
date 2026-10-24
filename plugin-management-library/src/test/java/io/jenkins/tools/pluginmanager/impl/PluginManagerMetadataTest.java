@@ -43,7 +43,7 @@ class PluginManagerMetadataTest {
         server.stop();
     }
 
-    private Config config(Plugin plugin) throws Exception {
+    private Config config(Plugin... plugins) throws Exception {
         return Config.builder()
                 .withJenkinsVersion(new VersionNumber("2.500"))
                 .withJenkinsUc(new URL(server.baseUrl() + "/update-center.json"))
@@ -51,7 +51,7 @@ class PluginManagerMetadataTest {
                 .withJenkinsUcExperimental(new URL(server.baseUrl() + "/experimental.json"))
                 .withPluginDir(new File(folder, "plugins"))
                 .withCachePath(new File(folder, "cache").toPath())
-                .withPlugins(List.of(plugin))
+                .withPlugins(List.of(plugins))
                 .withDoDownload(false)
                 .build();
     }
@@ -120,9 +120,21 @@ class PluginManagerMetadataTest {
         new PluginManager(config(new Plugin("example", "latest", null, null))).start();
         server.verify(0, getRequestedFor(urlPathEqualTo("/plugin-versions.json")));
 
-        PluginManager manager = new PluginManager(config(new Plugin("example", "1.0", null, null)));
+        PluginManager manager = new PluginManager(config(
+                new Plugin("example", "1.0", null, null),
+                new Plugin("helper", "1.0", null, null)));
         assertThatThrownBy(manager::start)
                 .isInstanceOf(AggregatePluginPrerequisitesNotMetException.class)
                 .hasStackTraceContaining("Error getting update center json");
+        server.verify(3, getRequestedFor(urlPathEqualTo("/plugin-versions.json")));
+
+        server.stubFor(get(urlPathEqualTo("/plugin-versions.json")).willReturn(okJson("""
+                {"plugins":{
+                  "example":{"1.0":{"requiredCore":"2.300","sha256":"old-checksum","dependencies":[]}},
+                  "helper":{"1.0":{"requiredCore":"2.300","sha256":"helper-checksum","dependencies":[]}}
+                }}
+                """)));
+        manager.start();
+        server.verify(4, getRequestedFor(urlPathEqualTo("/plugin-versions.json")));
     }
 }

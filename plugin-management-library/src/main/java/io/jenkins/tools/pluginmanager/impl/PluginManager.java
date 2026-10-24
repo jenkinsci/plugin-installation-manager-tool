@@ -108,6 +108,7 @@ public class PluginManager implements Closeable {
     private JSONObject latestUcJson;
     private JSONObject experimentalUcJson;
     private JSONObject pluginInfoJson;
+    private UpdateCenterInfoRetrievalException pluginInfoFailure;
     private JSONObject latestPlugins;
     private JSONObject experimentalPlugins;
     private final boolean verbose;
@@ -688,6 +689,7 @@ public class PluginManager implements Closeable {
      * @return set of all requested plugins and their recursive dependencies
      */
     public Map<String, Plugin> findPluginsAndDependencies(List<Plugin> requestedPlugins, @CheckForNull List<Exception> exceptions) {
+        pluginInfoFailure = null;
         // Prepare the initial list by putting all explicitly requested plugins
         Map<String, Plugin> topLevelDependencies = new HashMap<>();
         for (Plugin requestedPlugin : requestedPlugins) {
@@ -1068,7 +1070,15 @@ public class PluginManager implements Closeable {
             dependentPlugins = resolveDependenciesFromJson(plugin, experimentalUcJson);
         } else {
             if (pluginInfoJson == null) {
-                pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
+                if (pluginInfoFailure != null) {
+                    throw pluginInfoFailure;
+                }
+                try {
+                    pluginInfoJson = getJson(cfg.getJenkinsPluginInfo(), "plugin-versions");
+                } catch (UpdateCenterInfoRetrievalException e) {
+                    pluginInfoFailure = e;
+                    throw e;
+                }
             }
             dependentPlugins = resolveDependenciesFromJson(plugin, pluginInfoJson);
         }
