@@ -250,6 +250,16 @@ class PluginManagerIntegrationTest {
     }
 
     @Test
+    void failsFastWhenPluginNotFound() throws IOException {
+        Plugin plugin = new Plugin("break-it", "4.2", null, null);
+        PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(Collections.singletonList(plugin)));
+
+        assertThatThrownBy(pluginManager::start)
+                .isInstanceOf(AggregatePluginPrerequisitesNotMetException.class)
+                .hasMessage("Plugin prerequisite not met:\nPlugin break-it:4.2 was not found in the update center or archives");
+    }
+
+    @Test
     void allowsLatestTopLevelDependency() throws IOException {
         // given
         Plugin plugin1 = new Plugin("plugin1", "latest", null, null);
