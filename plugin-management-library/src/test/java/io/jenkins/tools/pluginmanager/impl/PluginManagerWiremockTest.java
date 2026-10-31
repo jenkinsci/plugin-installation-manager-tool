@@ -14,7 +14,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.proxyAllTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -79,6 +81,16 @@ class PluginManagerWiremockTest {
         Plugin plugin = new Plugin("pluginName", "pluginVersion", "pluginURL", null);
         int wireMockPort = archives.port(); // no credentials configured for this port
         assertThat(pm.downloadToFile("http://localhost:" + wireMockPort + "/protectedplugins/mailer/1.32/mailer.hpi", plugin, null)).isFalse();
+    }
+
+    @Test
+    void downloadHttpToFileNotFoundNotRetriedTest() {
+        Plugin plugin = new Plugin("nonexistent", "1.0", null, null);
+        int wireMockPort = archives.port();
+        File targetFile = new File(folder, "test.hpi");
+        String url = "http://localhost:" + wireMockPort + "/plugins/nonexistent/1.0/nonexistent.hpi";
+        assertThat(pm.downloadHttpToFile(url, plugin, targetFile, 3)).isFalse();
+        archives.verify(1, getRequestedFor(urlEqualTo("/plugins/nonexistent/1.0/nonexistent.hpi")));
     }
 
     @Test

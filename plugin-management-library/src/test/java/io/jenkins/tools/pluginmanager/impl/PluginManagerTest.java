@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.http.client.HttpResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -945,8 +946,36 @@ class PluginManagerTest {
     void resolveDependenciesFromManifestExceptionTest() {
         Plugin testPlugin = new Plugin("test", "latest", null, null);
         setTestUcJson();
-        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin)).isInstanceOf(DownloadPluginException.class)
-        .hasMessageContaining("Unable to resolve dependencies");
+        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin))
+                .isInstanceOf(PluginNotFoundException.class)
+                .hasMessage("Plugin test:latest was not found in the update center or archives");
+    }
+
+    @Test
+    void resolveDependenciesFromManifestCustomUrlNotFoundTest() {
+        Plugin testPlugin = new Plugin("test", "1.0", "https://example.com/test.hpi", null);
+        setTestUcJson();
+        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin))
+                .isInstanceOf(PluginNotFoundException.class)
+                .hasMessage("Plugin test:1.0 was not found at https://example.com/test.hpi");
+    }
+
+    @Test
+    void resolveDependenciesFromManifestIncrementalsNotFoundTest() {
+        Plugin testPlugin = new Plugin("test", "1.0", null, "io.jenkins.plugins");
+        setTestUcJson();
+        assertThatThrownBy(() -> pm.resolveDependenciesFromManifest(testPlugin))
+                .isInstanceOf(PluginNotFoundException.class)
+                .hasMessage("Plugin test:1.0 was not found in the incrementals repository or archives");
+    }
+
+    @Test
+    void isNotFoundTest() {
+        assertThat(pm.isNotFound(new HttpResponseException(404, "Not Found"))).isTrue();
+        assertThat(pm.isNotFound(new IOException("failed", new HttpResponseException(404, "Not Found")))).isTrue();
+        assertThat(pm.isNotFound(new HttpResponseException(500, "Server Error"))).isFalse();
+        assertThat(pm.isNotFound(new IOException("failed"))).isFalse();
+        assertThat(pm.isNotFound(null)).isFalse();
     }
 
     @Test
