@@ -63,10 +63,12 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -954,7 +956,15 @@ public class PluginManager implements Closeable {
                             "MANIFEST.MF", plugin.getName(), tempFile.toString()));
             if (!downloadPlugin(plugin, tempFile)) {
                 Files.deleteIfExists(tempFile.toPath());
-                throw new DownloadPluginException("Unable to resolve dependencies for " + plugin.getName());
+                String message;
+                if (StringUtils.isNotEmpty(plugin.getUrl())) {
+                    message = "was not found at " + plugin.getUrl();
+                } else if (StringUtils.isNotEmpty(plugin.getGroupId())) {
+                    message = "was not found in the incrementals repository or archives";
+                } else {
+                    message = "was not found in the update center or archives";
+                }
+                throw new PluginNotFoundException(plugin, message);
             }
 
             if (plugin.getVersion().toString().equals(Plugin.LATEST) ||
@@ -1318,7 +1328,7 @@ public class PluginManager implements Closeable {
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
             if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
-                logMessage("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
+                logVerbose("Downloading from mirrors failed, falling back to " + MIRROR_FALLBACK_BASE_URL);
                 // as fallback try to directly download from Jenkins server (only if mirrors fail)
                 urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
@@ -1373,8 +1383,12 @@ public class PluginManager implements Closeable {
                 throw new IOException("Downloaded file for " + plugin.getName() + " is not a valid ZIP", e);
             }
         } catch (IOException e) {
-            logMessage(e.getMessage());
-            logOutput.printVerboseStacktrace(e);
+            if (isNotFound(e)) {
+                logVerbose(e.getMessage());
+            } else {
+                logMessage(e.getMessage());
+                logOutput.printVerboseStacktrace(e);
+            }
             return false;
         }
         return true;
@@ -1392,25 +1406,27 @@ public class PluginManager implements Closeable {
         boolean success = false;
         // TODO: retry logic should rather be implemented via DefaultHttpRequestRetruHandler, there is no need for an additional retry
         for (int i = 0; i < maxRetries; i++) {
+            boolean notFound = false;
             try {
                 T response = httpClient.execute(httpGet, responseHandler, context);
                 success = true;
                 return response;
             } catch (IOException e) {
+                notFound = isNotFound(e);
                 String message = ioExceptionMessageSupplier.apply(e);
-                if (i < maxRetries - 1) {
-                    logMessage(message);
-                } else {
+                if (notFound || i == maxRetries - 1) {
                     throw new IOException(message, e);
+                } else {
+                    logMessage(message);
                 }
             } finally {
                 // get final URI (after all redirects)
                 List<URI> locations = context.getRedirectLocations();
-                if (locations != null) {
+                if (locations != null && !locations.isEmpty()) {
                     String message = String.format("%s %s from %s (attempt %d of %d)",
                             success ? "Downloaded" : "Tried downloading", resourceName,
                             locations.get(locations.size() - 1), i + 1, maxRetries);
-                    if (success) {
+                    if (success || notFound) {
                         logVerbose(message);
                     } else {
                         logMessage(message);
@@ -1419,6 +1435,16 @@ public class PluginManager implements Closeable {
             }
         }
         throw new IllegalStateException("Reached maximum number of retries without triggering IOException");
+    }
+
+    boolean isNotFound(Throwable t) {
+        while (t != null) {
+            if (t instanceof HttpResponseException) {
+                return ((HttpResponseException) t).getStatusCode() == HttpStatus.SC_NOT_FOUND;
+            }
+            t = t.getCause();
+        }
+        return false;
     }
 
     /**
