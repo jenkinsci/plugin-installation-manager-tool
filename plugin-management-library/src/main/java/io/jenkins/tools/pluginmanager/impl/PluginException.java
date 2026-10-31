@@ -1,5 +1,6 @@
 package io.jenkins.tools.pluginmanager.impl;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,9 +18,10 @@ public class PluginException extends RuntimeException {
         this(plugin, messageSuffix, null);
     }
 
+    @CheckForNull
     public String getOriginatorPluginAndDependencyChain() {
         if (plugin == null) {
-            return "";
+            return null;
         }
         List<Plugin> dependencyChain = new ArrayList<>();
         Plugin currentPlugin = plugin;
@@ -44,6 +46,10 @@ public class PluginException extends RuntimeException {
 
     @Override
     public String getMessage() {
-        return getOriginatorPluginAndDependencyChain() + super.getMessage();
+        String chain = getOriginatorPluginAndDependencyChain();
+        if (chain != null) {
+            return chain + super.getMessage();
+        }
+        return super.getMessage();
     }
 }

@@ -1186,7 +1186,8 @@ public class PluginManager implements Closeable {
                         }
                         logVerbose(String.format(
                                     "%s unable to find optional plugin %s in update center %s. " +
-                                    "Ignoring until it becomes required.", e.getOriginatorPluginAndDependencyChain(),
+                                    "Ignoring until it becomes required.",
+                                    StringUtils.defaultString(e.getOriginatorPluginAndDependencyChain()),
                                     dependencyName, jenkinsUcLatest));
                     }
                 }

@@ -929,7 +929,9 @@ class PluginManagerTest {
         setTestUcJson();
 
         assertThatThrownBy(() -> pm.getLatestPluginVersion(null, "git"))
-                .isInstanceOf(PluginNotFoundException.class);
+                .isInstanceOf(PluginNotFoundException.class)
+                .satisfies(e -> assertThat(((PluginNotFoundException) e).getOriginatorPluginAndDependencyChain()).isNull())
+                .hasMessageContaining("unable to find dependant plugin git");
     }
 
     @Test
