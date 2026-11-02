@@ -44,6 +44,15 @@ public class PluginException extends RuntimeException {
         return String.format("Plugin %s:%s%s ", originator.getName(), originator.getVersion(), chainInfo);
     }
 
+    @CheckForNull
+    public Plugin getPlugin() {
+        return plugin;
+    }
+
+    public String getMessageSuffix() {
+        return super.getMessage();
+    }
+
     @Override
     public String getMessage() {
         String chain = getOriginatorPluginAndDependencyChain();
