@@ -260,6 +260,20 @@ class PluginManagerIntegrationTest {
     }
 
     @Test
+    void failsFastWithClearMessageWhenDeclaredDependencyNotFound() throws IOException {
+        Plugin parent = new Plugin("parent-plugin", "1.0", null, null);
+        Plugin missingChild = new Plugin("missing-dep", "9.9", null, null);
+        missingChild.setParent(parent);
+        parent.setDependencies(Collections.singletonList(missingChild));
+
+        PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(Collections.singletonList(parent)));
+
+        assertThatThrownBy(pluginManager::start)
+                .isInstanceOf(AggregatePluginPrerequisitesNotMetException.class)
+                .hasMessage("Plugin prerequisite not met:\nPlugin parent-plugin:1.0 depends on missing-dep:9.9, which was not found in the update center or archives");
+    }
+
+    @Test
     void allowsLatestTopLevelDependency() throws IOException {
         // given
         Plugin plugin1 = new Plugin("plugin1", "latest", null, null);
