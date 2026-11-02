@@ -1,5 +1,5 @@
 ace-editor:1.1
-authorize-project:1.8.1
+authorize-project:534.v2f208c45e11c
 blueocean:1.27.26
 cloud-stats:0.27
 cloudbees-folder:6.1107.v31f8955765c8
