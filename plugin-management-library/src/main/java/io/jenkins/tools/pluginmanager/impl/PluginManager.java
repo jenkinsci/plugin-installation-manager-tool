@@ -36,6 +36,7 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
@@ -44,10 +45,12 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
@@ -348,8 +351,62 @@ public class PluginManager implements Closeable {
             logPlugins("Bundled plugins:", new ArrayList<>(bundledPluginVersions.values()));
             logPlugins("All requested plugins:", new ArrayList<>(allPluginsAndDependencies.values()));
             logPlugins("Plugins that will be downloaded:", pluginsToBeDownloaded);
-            outputPluginList(new ArrayList<>(effectivePlugins.values()), () -> new StdOutPluginOutputConverter("Resulting plugin list:"));
+
+            List<Plugin> pluginsToOutput = cfg.isShortList() ?
+                    findShortList(new ArrayList<>(effectivePlugins.values())) :
+                    new ArrayList<>(effectivePlugins.values());
+            outputPluginList(pluginsToOutput, () -> new StdOutPluginOutputConverter("Resulting plugin list:"));
         }
+    }
+
+    /**
+     * Filters a list of plugins to only include root plugins (plugins that are not declared as a dependency
+     * of any other plugin in the list).
+     *
+     * @param plugins list of plugins to filter
+     * @return filtered list containing only plugins that are not dependencies of another plugin in the list
+     */
+    @NonNull
+    public List<Plugin> findShortList(@CheckForNull List<Plugin> plugins) {
+        if (plugins == null || plugins.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, Plugin> pluginMap = plugins.stream()
+                .filter(p -> p != null && p.getName() != null)
+                .collect(Collectors.toMap(Plugin::getName, Function.identity(), (p1, p2) -> p1));
+
+        Set<Plugin> candidates = new LinkedHashSet<>(plugins);
+
+        for (Plugin root : new ArrayList<>(candidates)) {
+            if (!candidates.contains(root) || root == null || root.getName() == null) {
+                continue;
+            }
+
+            Set<String> visited = new HashSet<>();
+            visited.add(root.getName());
+            Queue<Plugin> queue = new ArrayDeque<>();
+            queue.add(root);
+
+            while (!queue.isEmpty()) {
+                Plugin current = queue.poll();
+                if (current.getDependencies() != null) {
+                    for (Plugin dependency : current.getDependencies()) {
+                        if (dependency != null && !dependency.getOptional() && dependency.getName() != null) {
+                            if (visited.add(dependency.getName())) {
+                                Plugin resolvedDep = pluginMap.get(dependency.getName());
+                                if (resolvedDep != null) {
+                                    candidates.remove(resolvedDep);
+                                    queue.add(resolvedDep);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return new ArrayList<>(candidates);
     }
 
     /**
@@ -1602,6 +1659,49 @@ public class PluginManager implements Closeable {
         return ManifestTools.getAttributeFromManifest(file, key);
     }
 
+    @NonNull
+    List<Plugin> parseDependenciesFromManifest(@NonNull File file, @CheckForNull Plugin parent) {
+        String dependencyString;
+        try {
+            dependencyString = ManifestTools.getAttributeFromManifest(file, "Plugin-Dependencies");
+        } catch (RuntimeException e) {
+            logVerbose("Unable to read dependencies from " + file.getName());
+            return Collections.emptyList();
+        }
+        if (StringUtils.isEmpty(dependencyString)) {
+            return Collections.emptyList();
+        }
+        String[] dependencies = dependencyString.split(",");
+        List<Plugin> dependentPlugins = new ArrayList<>();
+        for (String dependency : dependencies) {
+            String cleanDep = dependency.trim();
+            if (cleanDep.isEmpty()) {
+                continue;
+            }
+            boolean optional = cleanDep.contains("resolution:=optional") || cleanDep.contains("resolution:=\"optional\"");
+            int semicolonIdx = cleanDep.indexOf(';');
+            if (semicolonIdx >= 0) {
+                cleanDep = cleanDep.substring(0, semicolonIdx).trim();
+            }
+            if (cleanDep.isEmpty()) {
+                continue;
+            }
+            String[] pluginInfo = cleanDep.split(":");
+            String depName = pluginInfo[0].trim();
+            if (depName.isEmpty()) {
+                continue;
+            }
+            String depVersion = pluginInfo.length > 1 ? pluginInfo[1].trim() : "";
+            Plugin dependentPlugin = new Plugin(depName, depVersion, null, null);
+            dependentPlugin.setOptional(optional);
+            dependentPlugins.add(dependentPlugin);
+            if (parent != null) {
+                dependentPlugin.setParent(parent);
+            }
+        }
+        return dependentPlugins;
+    }
+
     /**
      * Finds all the plugins and their versions currently in the plugin directory specified in the Config class
      *
@@ -1617,7 +1717,9 @@ public class PluginManager implements Closeable {
         if (files != null) {
             for (File file : files) {
                 String pluginName = FilenameUtils.getBaseName(file.getName());
-                installedPlugins.put(pluginName, new Plugin(pluginName, getPluginVersion(file), null, null));
+                Plugin plugin = new Plugin(pluginName, getPluginVersion(file), null, null);
+                plugin.setDependencies(parseDependenciesFromManifest(file, plugin));
+                installedPlugins.put(pluginName, plugin);
             }
         }
 
@@ -1659,18 +1761,23 @@ public class PluginManager implements Closeable {
                         Path fileName = file.getFileName();
                         if (fileName != null) {
                             // Because can't convert a ZipPath to a file with file.toFile()
-                            InputStream in = Files.newInputStream(file);
                             final Path tempFile = Files.createTempFile("PREFIX", "SUFFIX");
-                            try (FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
-                                IOUtils.copy(in, out);
+                            try {
+                                try (InputStream in = Files.newInputStream(file);
+                                     FileOutputStream out = new FileOutputStream(tempFile.toFile())) {
+                                    IOUtils.copy(in, out);
+                                }
+
+                                File tempPluginFile = tempFile.toFile();
+                                String pluginVersion = getPluginVersion(tempPluginFile);
+                                String pluginName = FilenameUtils.getBaseName(fileName.toString());
+                                Plugin plugin = new Plugin(pluginName, pluginVersion, null, null);
+                                plugin.setDependencies(parseDependenciesFromManifest(tempPluginFile, plugin));
+
+                                bundledPlugins.put(pluginName, plugin);
+                            } finally {
+                                Files.deleteIfExists(tempFile);
                             }
-
-                            String pluginVersion = getPluginVersion(tempFile.toFile());
-
-                            Files.delete(tempFile);
-                            String pluginName = FilenameUtils.getBaseName(fileName.toString());
-                            bundledPlugins
-                                    .put(pluginName, new Plugin(pluginName, pluginVersion, null, null));
                         }
                     }
                 }

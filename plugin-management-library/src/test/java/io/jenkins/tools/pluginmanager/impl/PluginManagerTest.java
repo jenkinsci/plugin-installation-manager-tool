@@ -12,6 +12,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -480,6 +481,219 @@ class PluginManagerTest {
             
             """);
         // CHECKSTYLE:ON
+    }
+
+    @Test
+    void findShortList_emptyAndNullTest() {
+        assertThat(pm.findShortList(null)).isEmpty();
+        assertThat(pm.findShortList(Collections.emptyList())).isEmpty();
+    }
+
+    @Test
+    void findShortList_noDependenciesTest() {
+        Plugin a = new Plugin("plugin-a", "1.0", null, null);
+        Plugin b = new Plugin("plugin-b", "2.0", null, null);
+        List<Plugin> plugins = Arrays.asList(a, b);
+
+        List<Plugin> shortList = pm.findShortList(plugins);
+        assertThat(shortList).containsExactly(a, b);
+    }
+
+    @Test
+    void findShortList_filtersDirectDependenciesTest() {
+        Plugin dep1 = new Plugin("dep1", "1.0", null, null);
+        Plugin dep2 = new Plugin("dep2", "1.0", null, null);
+        Plugin root1 = new Plugin("root1", "2.0", null, null)
+                .withDependencies(Arrays.asList(dep1, dep2));
+        Plugin root2 = new Plugin("root2", "1.5", null, null);
+
+        List<Plugin> plugins = Arrays.asList(root1, dep1, dep2, root2);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(root1, root2);
+    }
+
+    @Test
+    void findShortList_chainDependenciesTest() {
+        Plugin leaf = new Plugin("leaf", "1.0", null, null);
+        Plugin middle = new Plugin("middle", "1.0", null, null)
+                .withDependencies(singletonList(leaf));
+        Plugin root = new Plugin("root", "1.0", null, null)
+                .withDependencies(singletonList(middle));
+
+        List<Plugin> plugins = Arrays.asList(root, middle, leaf);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(root);
+    }
+
+    @Test
+    void findShortList_optionalDependenciesNotFilteredTest() {
+        Plugin optDep = new Plugin("opt-dep", "1.0", null, null);
+        Plugin depRef = new Plugin("opt-dep", "1.0", null, null).setOptional(true);
+        Plugin root = new Plugin("root", "1.0", null, null)
+                .withDependencies(singletonList(depRef));
+
+        List<Plugin> plugins = Arrays.asList(root, optDep);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(root, optDep);
+    }
+
+    @Test
+    void findShortList_cycleRetainsOneRepresentativeTest() {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        Plugin b = new Plugin("b", "1.0", null, null);
+        a.withDependencies(singletonList(new Plugin("b", "1.0", null, null)));
+        b.withDependencies(singletonList(new Plugin("a", "1.0", null, null)));
+
+        List<Plugin> plugins = Arrays.asList(a, b);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(a);
+    }
+
+    @Test
+    void findShortList_disconnectedCycleRetainsRepresentativeNodeTest() {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        Plugin b = new Plugin("b", "1.0", null, null);
+        a.withDependencies(singletonList(new Plugin("b", "1.0", null, null)));
+        b.withDependencies(singletonList(new Plugin("a", "1.0", null, null)));
+        Plugin c = new Plugin("c", "1.0", null, null);
+
+        List<Plugin> plugins = Arrays.asList(a, b, c);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(a, c);
+    }
+
+    @Test
+    void findShortList_selfReferencingDependencyTest() {
+        Plugin a = new Plugin("a", "1.0", null, null);
+        a.withDependencies(singletonList(new Plugin("a", "1.0", null, null)));
+        Plugin b = new Plugin("b", "1.0", null, null);
+
+        List<Plugin> plugins = Arrays.asList(a, b);
+        List<Plugin> shortList = pm.findShortList(plugins);
+
+        assertThat(shortList).containsExactly(a, b);
+    }
+
+    @Test
+    void parseDependenciesFromManifestTest() throws Exception {
+        URL url = this.getClass().getResource("/ssh-credentials.hpi");
+        File file = new File(url.toURI());
+        Plugin parent = new Plugin("ssh-credentials", "1.10", null, null);
+
+        List<Plugin> deps = pm.parseDependenciesFromManifest(file, parent);
+        assertThat(deps).hasSize(1);
+        assertThat(deps.get(0).getName()).isEqualTo("credentials");
+        assertThat(deps.get(0).getVersion()).isEqualTo(new VersionNumber("1.16.1"));
+        assertThat(deps.get(0).getParent()).isEqualTo(parent);
+    }
+
+    @Test
+    void listPlugins_shortListTest() throws Exception {
+        Plugin dep = new Plugin("dep", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(dep));
+        Map<String, Plugin> effective = new HashMap<>();
+        effective.put("root", root);
+        effective.put("dep", dep);
+
+        cfg = Config.builder()
+                .withShowPluginsToBeDownloaded(true)
+                .withShortList(true)
+                .withOutputFormat(OutputFormat.TXT)
+                .build();
+        pm = new PluginManager(cfg);
+        pm.setInstalledPluginVersions(Collections.emptyMap());
+        pm.setBundledPluginVersions(Collections.emptyMap());
+        pm.setAllPluginsAndDependencies(Collections.emptyMap());
+        pm.setPluginsToBeDownloaded(Collections.emptyList());
+        pm.setEffectivePlugins(effective);
+
+        String stdout = tapSystemOutNormalized(() -> pm.listPlugins());
+        assertThat(stdout).isEqualTo("root:1.0\n");
+    }
+
+    @Test
+    void listPlugins_fullListByDefaultTest() throws Exception {
+        Plugin dep = new Plugin("dep", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(dep));
+        Map<String, Plugin> effective = new HashMap<>();
+        effective.put("root", root);
+        effective.put("dep", dep);
+
+        cfg = Config.builder()
+                .withShowPluginsToBeDownloaded(true)
+                .withShortList(false)
+                .withOutputFormat(OutputFormat.TXT)
+                .build();
+        pm = new PluginManager(cfg);
+        pm.setInstalledPluginVersions(Collections.emptyMap());
+        pm.setBundledPluginVersions(Collections.emptyMap());
+        pm.setAllPluginsAndDependencies(Collections.emptyMap());
+        pm.setPluginsToBeDownloaded(Collections.emptyList());
+        pm.setEffectivePlugins(effective);
+
+        String stdout = tapSystemOutNormalized(() -> pm.listPlugins());
+        assertThat(stdout).contains("root:1.0");
+        assertThat(stdout).contains("dep:1.0");
+    }
+
+    @Test
+    void listPlugins_shortListYamlTest() throws Exception {
+        Plugin dep = new Plugin("dep", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(dep));
+        Map<String, Plugin> effective = new HashMap<>();
+        effective.put("root", root);
+        effective.put("dep", dep);
+
+        cfg = Config.builder()
+                .withShowPluginsToBeDownloaded(true)
+                .withShortList(true)
+                .withOutputFormat(OutputFormat.YAML)
+                .build();
+        pm = new PluginManager(cfg);
+        pm.setInstalledPluginVersions(Collections.emptyMap());
+        pm.setBundledPluginVersions(Collections.emptyMap());
+        pm.setAllPluginsAndDependencies(Collections.emptyMap());
+        pm.setPluginsToBeDownloaded(Collections.emptyList());
+        pm.setEffectivePlugins(effective);
+
+        String stdout = tapSystemOutNormalized(() -> pm.listPlugins());
+        assertThat(stdout).contains("""
+            plugins:
+            - artifactId: "root"
+              source:
+                version: "1.0"
+            """);
+        assertThat(stdout).doesNotContain("artifactId: \"dep\"");
+    }
+
+    @Test
+    void listPlugins_shortListStdOutTest() throws Exception {
+        Plugin dep = new Plugin("dep", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(dep));
+        Map<String, Plugin> effective = new HashMap<>();
+        effective.put("root", root);
+        effective.put("dep", dep);
+
+        cfg = Config.builder()
+                .withShowPluginsToBeDownloaded(true)
+                .withShortList(true)
+                .withOutputFormat(OutputFormat.STDOUT)
+                .build();
+        pm = new PluginManager(cfg);
+        pm.setInstalledPluginVersions(Collections.emptyMap());
+        pm.setBundledPluginVersions(Collections.emptyMap());
+        pm.setAllPluginsAndDependencies(Collections.emptyMap());
+        pm.setPluginsToBeDownloaded(Collections.emptyList());
+        pm.setEffectivePlugins(effective);
+
+        String stdout = tapSystemOutNormalized(() -> pm.listPlugins());
+        assertThat(stdout).contains("root 1.0");
+        assertThat(stdout).doesNotContain("dep 1.0");
     }
 
     @Test
