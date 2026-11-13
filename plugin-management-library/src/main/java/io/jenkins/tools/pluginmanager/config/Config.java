@@ -29,6 +29,7 @@ public class Config {
     private final boolean showAllWarnings;
     private final boolean showAvailableUpdates;
     private final boolean showPluginsToBeDownloaded;
+    private final boolean shortList;
 
     /**
      * Explicitly passed Jenkins version.
@@ -66,6 +67,7 @@ public class Config {
             boolean showAllWarnings,
             boolean showAvailableUpdates,
             boolean showPluginsToBeDownloaded,
+            boolean shortList,
             boolean verbose,
             VersionNumber jenkinsVersion,
             String jenkinsWar,
@@ -90,6 +92,7 @@ public class Config {
         this.showAllWarnings = showAllWarnings;
         this.showAvailableUpdates = showAvailableUpdates;
         this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
+        this.shortList = shortList;
         this.verbose = verbose;
         this.jenkinsVersion = jenkinsVersion;
         this.jenkinsWar = jenkinsWar;
@@ -137,6 +140,10 @@ public class Config {
 
     public boolean isShowPluginsToBeDownloaded() {
         return showPluginsToBeDownloaded;
+    }
+
+    public boolean isShortList() {
+        return shortList;
     }
 
     public boolean isVerbose() {
@@ -230,6 +237,7 @@ public class Config {
         private boolean showAllWarnings;
         private boolean showAvailableUpdates;
         private boolean showPluginsToBeDownloaded;
+        private boolean shortList;
         private boolean verbose;
         private VersionNumber jenkinsVersion;
         private String jenkinsWar;
@@ -283,6 +291,11 @@ public class Config {
 
         public Builder withShowPluginsToBeDownloaded(boolean showPluginsToBeDownloaded) {
             this.showPluginsToBeDownloaded = showPluginsToBeDownloaded;
+            return this;
+        }
+
+        public Builder withShortList(boolean shortList) {
+            this.shortList = shortList;
             return this;
         }
 
@@ -391,6 +404,7 @@ public class Config {
                     showAllWarnings,
                     showAvailableUpdates,
                     showPluginsToBeDownloaded,
+                    shortList,
                     verbose,
                     jenkinsVersion,
                     jenkinsWar,

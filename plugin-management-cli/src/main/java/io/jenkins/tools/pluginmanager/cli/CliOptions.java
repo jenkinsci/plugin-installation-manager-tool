@@ -70,6 +70,10 @@ class CliOptions {
             handler = BooleanOptionHandler.class)
     private boolean showPluginsToBeDownloaded;
 
+    @Option(name = "--short-list", aliases = {"-s"}, usage = "When listing plugins, filter to only include plugins that are not dependencies of any other plugin",
+            handler = BooleanOptionHandler.class)
+    private boolean shortList;
+
     @Option(name = "--verbose", usage = "Verbose logging",
             handler = BooleanOptionHandler.class)
     private boolean verbose;
@@ -187,7 +191,8 @@ class CliOptions {
                 .withShowWarnings(isShowWarnings())
                 .withHideWarnings(isHideWarnings())
                 .withShowAllWarnings(isShowAllWarnings())
-                .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded())
+                .withShowPluginsToBeDownloaded(isShowPluginsToBeDownloaded() || isShortList())
+                .withShortList(isShortList())
                 .withShowAvailableUpdates(isShowAvailableUpdates())
                 .withOutputFormat(getOutputFormat())
                 .withIsVerbose(isVerbose())
@@ -359,7 +364,11 @@ class CliOptions {
         return showAllWarnings;
     }
 
-    private boolean isShowPluginsToBeDownloaded() {
+    public boolean isShortList() {
+        return shortList;
+    }
+
+    boolean isShowPluginsToBeDownloaded() {
         return showPluginsToBeDownloaded;
     }
 

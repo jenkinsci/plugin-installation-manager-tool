@@ -400,6 +400,32 @@ class CliOptionsTest {
         assertThat(stdErr).isEmpty();
     }
 
+    @Test
+    void shortListOptionTest() throws Exception {
+        parser.parseArgument("--short-list");
+        assertThat(options.isShortList()).isTrue();
+        Config cfg = options.setup();
+        assertThat(cfg.isShortList()).isTrue();
+        assertThat(cfg.isShowPluginsToBeDownloaded()).isTrue();
+    }
+
+    @Test
+    void shortListAliasOptionTest() throws Exception {
+        parser.parseArgument("-s");
+        assertThat(options.isShortList()).isTrue();
+        Config cfg = options.setup();
+        assertThat(cfg.isShortList()).isTrue();
+        assertThat(cfg.isShowPluginsToBeDownloaded()).isTrue();
+    }
+
+    @Test
+    void shortListDefaultTest() throws Exception {
+        parser.parseArgument();
+        assertThat(options.isShortList()).isFalse();
+        Config cfg = options.setup();
+        assertThat(cfg.isShortList()).isFalse();
+    }
+
     private static void assertConfigHasPlugins(Config cfg, List<Plugin> expectedPlugins) {
         Plugin[] expectedPluginsAsArray = expectedPlugins.toArray(new Plugin[0]);
         assertThat(cfg.getPlugins()).containsExactlyInAnyOrder(expectedPluginsAsArray);
