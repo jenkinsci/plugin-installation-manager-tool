@@ -94,6 +94,7 @@ import static io.jenkins.tools.pluginmanager.util.PluginManagerUtils.removePossi
 
 public class PluginManager implements Closeable {
     private static final VersionNumber LATEST = new VersionNumber(Plugin.LATEST);
+    private static final VersionNumber EXPERIMENTAL = new VersionNumber(Plugin.EXPERIMENTAL);
     private final List<Plugin> failedPlugins;
     /**
      * Directory where the plugins will be downloaded
@@ -1218,7 +1219,8 @@ public class PluginManager implements Closeable {
                 Plugin pinnedPlugin = topLevelDependencies != null ? topLevelDependencies.get(dependencyName) : null;
 
                 if (pinnedPlugin != null) { // There is a top-level plugin with the same ID
-                    if (pinnedPlugin.getVersion().isOlderThan(p.getVersion()) && !pinnedPlugin.getVersion().equals(LATEST)) {
+                    if (pinnedPlugin.getVersion().isOlderThan(p.getVersion()) && !pinnedPlugin.getVersion().equals(LATEST)
+                            && !pinnedPlugin.getVersion().equals(EXPERIMENTAL)) {
                         String message = String.format("depends on %s:%s, but there is an older version defined on the top level - %s:%s",
                                 p.getName(), p.getVersion(), pinnedPlugin.getName(), pinnedPlugin.getVersion());
                         PluginDependencyException exception = new PluginDependencyException(dependency, message);

@@ -250,6 +250,29 @@ class PluginManagerIntegrationTest {
     }
 
     @Test
+    void experimentalTopLevelVersionIsNotTreatedAsOlderThanRequiredDependency() throws IOException {
+        // git 4.2.2 (latest) depends on git-client 3.0.0, experimental update center offers git-client 3.5.1
+        for (boolean experimentalFirst : new boolean[] {false, true}) {
+            Plugin git = new Plugin("git", "latest", null, null);
+            Plugin gitClient = new Plugin("git-client", "experimental", null, null);
+            List<Plugin> requestedPlugins = experimentalFirst ? Arrays.asList(gitClient, git) : Arrays.asList(git, gitClient);
+
+            PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(requestedPlugins));
+            JSONObject experimentalUcJson;
+            try (InputStream stream = getClass().getResourceAsStream("available-updates/update-center.experimental.json")) {
+                experimentalUcJson = new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
+            }
+            pluginManager.setExperimentalUcJson(experimentalUcJson);
+            pluginManager.setExperimentalPlugins(experimentalUcJson.getJSONObject("plugins"));
+
+            Map<String, Plugin> pluginsAndDependencies = pluginManager.findPluginsAndDependencies(requestedPlugins);
+
+            assertThat(pluginsAndDependencies.get("git").getVersion()).hasToString("4.2.2");
+            assertThat(pluginsAndDependencies.get("git-client").getVersion()).hasToString("3.5.1");
+        }
+    }
+
+    @Test
     void failsFastWhenPluginNotFound() throws IOException {
         Plugin plugin = new Plugin("break-it", "4.2", null, null);
         PluginManager pluginManager = initPluginManager(configBuilder -> configBuilder.withPlugins(Collections.singletonList(plugin)));
