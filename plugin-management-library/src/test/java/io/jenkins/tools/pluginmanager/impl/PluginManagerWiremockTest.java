@@ -3,6 +3,7 @@ package io.jenkins.tools.pluginmanager.impl;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.http.Fault;
 import io.jenkins.tools.pluginmanager.config.Config;
 import io.jenkins.tools.pluginmanager.config.Credentials;
 import io.jenkins.tools.pluginmanager.config.Settings;
@@ -14,10 +15,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.proxyAllTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PluginManagerWiremockTest {
@@ -97,6 +102,48 @@ class PluginManagerWiremockTest {
     void getJsonWithBasicAuth() throws Exception {
         int wireMockPort = protectedArchives.port();
         assertThat(pm.getJson(new URL("http://localhost:" + wireMockPort + "/update-center.json"), "cache-key")).isNotNull();
+    }
+
+    @Test
+    void downloadToFileHttpEmptyResponseFaultTest() {
+        archives.stubFor(get("/fault/plugin.hpi")
+                .willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
+
+        Plugin plugin = new Plugin("faultyPlugin", "1.0", null, null);
+        int wireMockPort = archives.port();
+        String url = "http://localhost:" + wireMockPort + "/fault/plugin.hpi";
+
+        assertThat(pm.downloadToFile(url, plugin, null)).isFalse();
+        assertThat(pm.getFailedPlugins()).contains(plugin);
+    }
+
+    @Test
+    void downloadPluginsThrowsOnHttpFaultTest() {
+        archives.stubFor(get("/fault/plugin.hpi")
+                .willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
+
+        Plugin plugin = new Plugin("faultyPlugin", "1.0", "http://localhost:" + archives.port() + "/fault/plugin.hpi", null);
+        assertThatThrownBy(() -> pm.downloadPlugins(Collections.singletonList(plugin)))
+                .isInstanceOf(DownloadPluginException.class);
+    }
+
+    @Test
+    void downloadPluginsSkipFailedPluginsOnHttpFaultTest() {
+        archives.stubFor(get("/fault/plugin.hpi")
+                .willReturn(aResponse().withFault(Fault.EMPTY_RESPONSE)));
+
+        Config skipCfg = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins-skip"))
+                .withSkipFailedPlugins(true)
+                .withCachePath(newFolder(folder, "junit-skip").toPath())
+                .build();
+        PluginManager skipPm = new PluginManager(skipCfg);
+
+        Plugin plugin = new Plugin("faultyPlugin", "1.0", "http://localhost:" + archives.port() + "/fault/plugin.hpi", null);
+        assertThatCode(() -> skipPm.downloadPlugins(Collections.singletonList(plugin)))
+                .doesNotThrowAnyException();
+        assertThat(skipPm.getFailedPlugins()).contains(plugin);
     }
 
     private static File newFolder(File root, String... subDirs) {
