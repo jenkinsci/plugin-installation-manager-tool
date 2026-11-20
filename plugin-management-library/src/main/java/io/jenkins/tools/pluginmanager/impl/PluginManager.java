@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
@@ -136,7 +137,7 @@ public class PluginManager implements Closeable {
         jenkinsVersion = cfg.getJenkinsVersion();
         final String warArg = cfg.getJenkinsWar();
         jenkinsWarFile = warArg != null ? new File(warArg) : null;
-        failedPlugins = new ArrayList<>();
+        failedPlugins = new CopyOnWriteArrayList<>();
         installedPluginVersions = new HashMap<>();
         bundledPluginVersions = new HashMap<>();
         allSecurityWarnings = new HashMap<>();
@@ -170,7 +171,7 @@ public class PluginManager implements Closeable {
         return userAgentInformation;
     }
 
-    private HttpClient getHttpClient() {
+    private synchronized HttpClient getHttpClient() {
         if (httpClient == null) {
             RequestConfig globalConfig = RequestConfig.custom()
                 .setCookieSpec(CookieSpecs.STANDARD) // use modern cookie policy (RFC 6265)
@@ -666,20 +667,31 @@ public class PluginManager implements Closeable {
         try {
             ioThreadPool.submit(() -> plugins.parallelStream().forEach(plugin -> {
                 boolean successfulDownload = downloadPlugin(plugin, getPluginArchive(downloadsTmpDir, plugin));
-                if (skipFailedPlugins) {
-                    logMessage("SKIP: Unable to download " + plugin.getName());
-                } else if (!successfulDownload) {
-                    throw new DownloadPluginException("Unable to download " + plugin.getName());
+                if (!successfulDownload) {
+                    if (!failedPlugins.contains(plugin)) {
+                        failedPlugins.add(plugin);
+                    }
+                    if (skipFailedPlugins) {
+                        logMessage("SKIP: Unable to download " + plugin.getName());
+                    } else {
+                        throw new DownloadPluginException("Unable to download " + plugin.getName());
+                    }
                 }
             })).get();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new DownloadPluginException("Plugin download interrupted", e);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof DownloadPluginException) {
-                throw (DownloadPluginException) e.getCause();
+            Throwable cause = e.getCause();
+            if (cause instanceof DownloadPluginException) {
+                throw (DownloadPluginException) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
             } else {
-                e.printStackTrace();
+                throw new DownloadPluginException("Unexpected error during plugin downloads: " + cause.getMessage(), cause);
             }
+        } finally {
+            ioThreadPool.shutdown();
         }
 
         // Filter out failed plugins
@@ -700,6 +712,7 @@ public class PluginManager implements Closeable {
                 if (failedPluginNames.contains(plugin.getName())) {
                     logMessage("Will skip the failed plugin download: " + plugin.getName() +
                             ". See " + downloadedPlugin.getAbsolutePath() + " for the downloaded file");
+                    continue;
                 }
                 // We do not double-check overrides here, because findPluginsToDownload() has already done it
                 File finalPath = new File(pluginDir, archiveName);
@@ -1380,9 +1393,9 @@ public class PluginManager implements Closeable {
             pluginFile = fileLocation;
         }
 
-        boolean success = true;
+        boolean success = false;
 
-        if(urlString.startsWith("http://") || urlString.startsWith("https://")){
+        if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
             success = downloadHttpToFile(urlString, plugin, pluginFile, maxRetries);
 
             if (!success && !urlString.startsWith(MIRROR_FALLBACK_BASE_URL)) {
@@ -1391,8 +1404,10 @@ public class PluginManager implements Closeable {
                 urlString = appendPathOntoUrl(MIRROR_FALLBACK_BASE_URL, "/plugins", plugin.getName(), plugin.getVersion(), plugin.getName() + ".hpi");
                 return downloadToFile(urlString, plugin, fileLocation, 1);
             }
-        } else if (urlString.startsWith("file://")){
+        } else if (urlString.startsWith("file://")) {
             success = copyLocalFile(urlString, plugin, pluginFile);
+        } else {
+            logMessage("Unsupported URL protocol: " + urlString);
         }
 
         if (success) {
@@ -1954,7 +1969,7 @@ public class PluginManager implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         if (httpClient != null) {
             httpClient.close();
         }

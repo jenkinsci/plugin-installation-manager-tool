@@ -16,6 +16,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.http.client.HttpResponseException;
@@ -41,8 +46,10 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -1028,6 +1035,153 @@ class PluginManagerTest {
 
         assertThatThrownBy(() -> pluginManagerSpy.downloadPlugins(plugins))
                 .isInstanceOf(DownloadPluginException.class);
+    }
+
+    @Test
+    void downloadPluginsUnexpectedExceptionTest() {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins"))
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        doThrow(new RuntimeException("Simulated unexpected failure"))
+                .when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
+
+        List<Plugin> plugins = singletonList(
+                new Plugin("plugin", "1.0", null, null));
+
+        assertThatThrownBy(() -> pluginManagerSpy.downloadPlugins(plugins))
+                .isInstanceOf(DownloadPluginException.class)
+                .hasMessageContaining("Unexpected error during plugin downloads")
+                .hasRootCauseInstanceOf(RuntimeException.class)
+                .hasRootCauseMessage("Simulated unexpected failure");
+    }
+
+    @Test
+    void downloadPluginsSkipFailedPluginsTest() throws Exception {
+        File pluginsDir = new File(folder, "plugins-skip-test");
+        assertTrue(pluginsDir.mkdirs());
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(pluginsDir)
+                .withSkipFailedPlugins(true)
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        Plugin successfulPlugin = new Plugin("success-plugin", "1.0", null, null);
+        Plugin failedPlugin = new Plugin("failed-plugin", "1.0", null, null);
+
+        doAnswer(invocation -> {
+            File target = invocation.getArgument(1);
+            if (target != null) {
+                target.getParentFile().mkdirs();
+                target.createNewFile();
+            }
+            return true;
+        }).when(pluginManagerSpy).downloadPlugin(eq(successfulPlugin), any(File.class));
+
+        doReturn(false).when(pluginManagerSpy).downloadPlugin(eq(failedPlugin), any(File.class));
+
+        List<Plugin> plugins = Arrays.asList(successfulPlugin, failedPlugin);
+
+        String err = tapSystemErrNormalized(() -> pluginManagerSpy.downloadPlugins(plugins));
+
+        assertThat(err).contains("SKIP: Unable to download failed-plugin");
+        assertThat(err).doesNotContain("SKIP: Unable to download success-plugin");
+        assertThat(err).contains("Will skip the failed plugin download: failed-plugin");
+        assertThat(new File(pluginsDir, successfulPlugin.getArchiveFileName())).exists();
+        assertThat(new File(pluginsDir, failedPlugin.getArchiveFileName())).doesNotExist();
+        assertThat(pluginManagerSpy.getFailedPlugins()).contains(failedPlugin);
+    }
+
+    @Test
+    void downloadPluginsRestoresInterruptStatusTest() throws Exception {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins"))
+                .build();
+
+        PluginManager pluginManager = new PluginManager(config);
+        PluginManager pluginManagerSpy = spy(pluginManager);
+
+        doAnswer(invocation -> {
+            Thread.sleep(2000);
+            return true;
+        }).when(pluginManagerSpy).downloadPlugin(any(Plugin.class), nullable(File.class));
+
+        List<Plugin> plugins = singletonList(new Plugin("plugin", "1.0", null, null));
+
+        AtomicBoolean wasInterrupted = new AtomicBoolean(false);
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+
+        Thread worker = new Thread(() -> {
+            try {
+                pluginManagerSpy.downloadPlugins(plugins);
+            } catch (Throwable t) {
+                thrown.set(t);
+                wasInterrupted.set(Thread.currentThread().isInterrupted());
+            }
+        });
+
+        worker.start();
+        Thread.sleep(100);
+        worker.interrupt();
+        worker.join(5000);
+
+        assertThat(thrown.get())
+                .isInstanceOf(DownloadPluginException.class)
+                .hasMessageContaining("Plugin download interrupted")
+                .hasCauseInstanceOf(InterruptedException.class);
+        assertThat(wasInterrupted.get()).isTrue();
+    }
+
+    @Test
+    void failedPluginsConcurrentSafetyTest() throws InterruptedException {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins"))
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+
+        int threadCount = 64;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(threadCount);
+
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            executor.submit(() -> {
+                try {
+                    pluginManager.getFailedPlugins().add(new Plugin("plugin-" + index, "1.0", null, null));
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+
+        latch.await();
+        executor.shutdown();
+
+        assertThat(pluginManager.getFailedPlugins()).hasSize(threadCount);
+    }
+
+    @Test
+    void downloadToFileUnsupportedProtocolTest() {
+        Config config = Config.builder()
+                .withJenkinsWar(Settings.DEFAULT_WAR)
+                .withPluginDir(new File(folder, "plugins"))
+                .build();
+        PluginManager pluginManager = new PluginManager(config);
+
+        Plugin plugin = new Plugin("custom-plugin", "1.0", null, null);
+        String url = "ftp://example.com/custom-plugin.hpi";
+
+        assertThat(pluginManager.downloadToFile(url, plugin, null)).isFalse();
+        assertThat(pluginManager.getFailedPlugins()).contains(plugin);
     }
 
     @Test
