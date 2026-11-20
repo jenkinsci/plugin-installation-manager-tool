@@ -59,6 +59,7 @@ public class Config {
     private final List<Credentials> credentials;
     private final Path cachePath;
     private final LogOutput logOutput;
+    private final boolean skipBroken;
 
     private Config(
             File pluginDir,
@@ -85,7 +86,8 @@ public class Config {
             HashFunction hashFunction,
             List<Credentials> credentials,
             Path cachePath,
-            boolean hideWarnings) {
+            boolean hideWarnings,
+            boolean skipBroken) {
         this.pluginDir = pluginDir;
         this.cleanPluginDir = cleanPluginDir;
         this.showWarnings = showWarnings;
@@ -112,6 +114,7 @@ public class Config {
         this.cachePath = cachePath;
         this.logOutput = new LogOutput(verbose);
         this.hideWarnings = hideWarnings;
+        this.skipBroken = skipBroken;
     }
 
     public File getPluginDir() {
@@ -229,6 +232,10 @@ public class Config {
         return logOutput;
     }
 
+    public boolean isSkipBroken(){
+        return skipBroken;
+    }
+
     public static class Builder {
         private File pluginDir;
         private boolean cleanPluginDir;
@@ -255,6 +262,7 @@ public class Config {
         private List<Credentials> credentials = Collections.emptyList();
         private HashFunction hashFunction = Settings.DEFAULT_HASH_FUNCTION;
         private Path cachePath = Settings.DEFAULT_CACHE_PATH;
+        private boolean skipBroken;
 
         private Builder() {
         }
@@ -396,6 +404,11 @@ public class Config {
             return this;
         }
 
+        public Builder withSkipBroken(Boolean skipBroken){
+            this.skipBroken = skipBroken;
+            return this;
+        }
+
         public Config build() {
             return new Config(
                     pluginDir,
@@ -422,7 +435,8 @@ public class Config {
                     hashFunction,
                     credentials,
                     cachePath,
-                    hideWarnings
+                    hideWarnings,
+                    skipBroken
             );
         }
 
