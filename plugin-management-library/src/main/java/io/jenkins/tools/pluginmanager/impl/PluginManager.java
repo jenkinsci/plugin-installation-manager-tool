@@ -1270,12 +1270,18 @@ public class PluginManager implements Closeable {
                     }
                 } else {
                     Plugin existingDependency = recursiveDependencies.get(dependencyName);
+                    // combineDependencies changes the optional flag of the plugin it returns, so check before
+                    boolean becomesRequired = existingDependency.getOptional() && !p.getOptional();
                     Plugin newDependency = combineDependencies(existingDependency, p);
                     if (!newDependency.equals(existingDependency)) {
                         outputPluginReplacementInfo(existingDependency, newDependency);
                         recursiveDependencies.replace(dependencyName, existingDependency, newDependency);
                         // newDependency may have additional dependencies if it is a higher version or
                         // if it became non-optional.
+                        queue.add(newDependency);
+                    } else if (becomesRequired) {
+                        // Same plugin object as before, so equals() cannot tell that it became required.
+                        // Its dependencies were not expanded while it was optional.
                         queue.add(newDependency);
                     }
                 }
