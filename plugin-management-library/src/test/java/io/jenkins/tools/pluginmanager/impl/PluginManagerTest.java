@@ -29,6 +29,8 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemErrNormalized;
 import static com.github.stefanbirkner.systemlambda.SystemLambda.tapSystemOutNormalized;
@@ -1555,6 +1557,31 @@ class PluginManagerTest {
                         grandParent, parent1, child4, parent3, child2, child3,
                         child8, child9, child5, child6)
                 .hasSize(10);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0", "2.0"})
+    void resolveRecursiveDependenciesExpandsOptionalPluginThatBecomesRequired(String optionalVersion) {
+        PluginManager pluginManagerSpy = spy(pm);
+
+        // "shared" is optional where it is met first and required one level further down,
+        // at the same version or at a lower one
+        Plugin root = new Plugin("root", "1.0", null, null);
+        Plugin parent = new Plugin("parent", "1.0", null, null);
+        Plugin optionalShared = new Plugin("shared", optionalVersion, null, null).setOptional(true);
+        Plugin requiredShared = new Plugin("shared", "1.0", null, null);
+        Plugin child = new Plugin("child", "1.0", null, null);
+
+        root.setDependencies(Arrays.asList(optionalShared, parent));
+        parent.setDependencies(singletonList(requiredShared));
+        child.setDependencies(Collections.emptyList());
+        doReturn(singletonList(child)).when(pluginManagerSpy).resolveDirectDependencies(optionalShared);
+
+        Map<String, Plugin> recursiveDependencies = pluginManagerSpy.resolveRecursiveDependencies(root);
+
+        assertThat(recursiveDependencies).containsOnlyKeys("root", "parent", "shared", "child");
+        assertThat(recursiveDependencies.get("shared").getVersion()).isEqualTo(new VersionNumber(optionalVersion));
+        assertThat(recursiveDependencies.get("shared").getOptional()).isFalse();
     }
 
     @Test
