@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -126,6 +128,22 @@ class PluginListParserTest {
         File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/badformat3.yaml").toURI());
         assertThatThrownBy(() -> pluginList.parsePluginYamlFile(pluginYmlFile))
                 .isInstanceOf(PluginInputException.class);
+    }
+
+    // badformat4 has a wrong indentation, badformat5 lists bare names as plugins.txt does
+    @ParameterizedTest
+    @ValueSource(strings = {"badformat4.yaml", "badformat5.yaml"})
+    void yamlThatCannotBeReadFails(String name) throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/" + name).toURI());
+        assertThatThrownBy(() -> pluginList.parsePluginYamlFile(pluginYmlFile))
+                .isInstanceOf(PluginInputException.class)
+                .hasMessageStartingWith("Unable to read " + pluginYmlFile + ": ");
+    }
+
+    @Test
+    void yamlWithOnlyCommentsHasNoPlugins() throws URISyntaxException {
+        File pluginYmlFile = new File(this.getClass().getResource("PluginListParserTest/onlycomments.yaml").toURI());
+        assertThat(pluginList.parsePluginYamlFile(pluginYmlFile)).isEmpty();
     }
 
     @Test
