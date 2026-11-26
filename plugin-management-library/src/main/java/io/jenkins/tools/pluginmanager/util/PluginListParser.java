@@ -9,9 +9,7 @@ import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,7 +62,7 @@ public class PluginListParser {
                         .collect(toList());
                 pluginsFromTxt.addAll(pluginsFromFile);
             } catch (IOException e) {
-                System.err.println("Unable to open " + pluginTxtFile);
+                throw new PluginInputException("Unable to open " + pluginTxtFile, e);
             }
         }
 
@@ -81,8 +79,12 @@ public class PluginListParser {
     public List<Plugin> parsePluginYamlFile(File pluginYamlFile) {
         List<Plugin> pluginsFromYaml = new ArrayList<>();
         if (fileExists(pluginYamlFile)) {
-            try (InputStream inputStream = new FileInputStream(pluginYamlFile)) {
-                Plugins plugins = MAPPER.readValue(inputStream, Plugins.class);
+            try {
+                // an empty file, or one with only comments, asks for no plugins
+                if (MAPPER.readTree(pluginYamlFile).isMissingNode()) {
+                    return pluginsFromYaml;
+                }
+                Plugins plugins = MAPPER.readValue(pluginYamlFile, Plugins.class);
                 for (PluginInfo pluginInfo : plugins.getPlugins()) {
                     String name = pluginInfo.getArtifactId();
                     if (StringUtils.isEmpty(name)) {
@@ -112,8 +114,7 @@ public class PluginListParser {
                     pluginsFromYaml.add(plugin);
                 }
             } catch (IOException e) {
-                System.err.println("Unable to open " + pluginsFromYaml);
-                e.printStackTrace();
+                throw new PluginInputException("Unable to read " + pluginYamlFile + ": " + e.getMessage(), e);
             }
         }
         return pluginsFromYaml;
