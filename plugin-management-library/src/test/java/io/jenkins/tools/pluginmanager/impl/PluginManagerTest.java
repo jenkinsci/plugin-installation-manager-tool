@@ -1714,6 +1714,18 @@ class PluginManagerTest {
     }
 
     @Test
+    void resolveRecursiveDependenciesPinnedExperimentalIsNotOlder() {
+        Plugin child = new Plugin("child", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(child));
+        Plugin childPinned = new Plugin("child", Plugin.EXPERIMENTAL, null, null);
+
+        Map<String, Plugin> recursiveDependencies =
+                pm.resolveRecursiveDependencies(root, Collections.singletonMap("child", childPinned));
+
+        assertThat(recursiveDependencies).containsOnlyKeys("root");
+    }
+
+    @Test
     void resolveRecursiveDependenciesPinnedPlugin() {
         // Arrange
         Config config = Config.builder()

@@ -50,6 +50,14 @@ class PluginManagerUpdatesTest {
             .containsExactly(plugin("mailer", "latest"));
     }
 
+    @Test
+    void experimentalIsNotUpdated() {
+        List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(singletonList(plugin("mailer", "experimental")));
+
+        assertThat(latestVersionsOfPlugins)
+            .containsExactly(plugin("mailer", "experimental"));
+    }
+
     private JSONObject loadPluginVersionsFromClassPath() throws IOException {
         try (InputStream stream = getClass().getResourceAsStream("available-updates/update-center.actual.json")) {
             return new JSONObject(IOUtils.toString(stream, StandardCharsets.UTF_8));
