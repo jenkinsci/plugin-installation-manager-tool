@@ -971,6 +971,8 @@ class PluginManagerTest {
         deps2.put("matrix", new Plugin("matrix", "2.5", null, null).setOptional(true));
         doReturn(deps2).when(pluginManagerSpy).resolveRecursiveDependencies(
             eq(plugin2), nullable(Map.class), eq(null));
+        // structs 1.8 is only optional where it comes from, so its dependencies are read after the merge
+        doReturn(Collections.emptyList()).when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
 
         Map<String, Plugin> dependencies = pluginManagerSpy.findPluginsAndDependencies(
                 Arrays.asList(plugin1, plugin2));
@@ -1582,6 +1584,48 @@ class PluginManagerTest {
         assertThat(recursiveDependencies).containsOnlyKeys("root", "parent", "shared", "child");
         assertThat(recursiveDependencies.get("shared").getVersion()).isEqualTo(new VersionNumber(optionalVersion));
         assertThat(recursiveDependencies.get("shared").getOptional()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0", "2.0"})
+    void findPluginsAndDependenciesExpandsPluginThatIsOptionalForAnotherRequestedPlugin(String optionalVersion) {
+        PluginManager pluginManagerSpy = spy(pm);
+        pluginManagerSpy.setLatestUcPlugins(new JSONObject());
+
+        // "shared" is optional for the first requested plugin and required by the second,
+        // at the same version or at a lower one
+        Plugin optionalShared = new Plugin("shared", optionalVersion, null, null).setOptional(true);
+        Plugin requiredShared = new Plugin("shared", "1.0", null, null);
+        Plugin first = new Plugin("first", "1.0", null, null).withDependencies(singletonList(optionalShared));
+        Plugin second = new Plugin("second", "1.0", null, null).withDependencies(singletonList(requiredShared));
+        Plugin child = new Plugin("child", "1.0", null, null).withDependencies(Collections.emptyList());
+        // only the version of "shared" that gets picked depends on "child"
+        doAnswer(invocation -> invocation.<Plugin>getArgument(0).getVersion().toString().equals(optionalVersion)
+                ? singletonList(child)
+                : Collections.emptyList())
+                .when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
+
+        Map<String, Plugin> plugins = pluginManagerSpy.findPluginsAndDependencies(Arrays.asList(first, second));
+
+        assertThat(plugins).containsOnlyKeys("first", "second", "shared", "child");
+        assertThat(plugins.get("shared").getVersion()).isEqualTo(new VersionNumber(optionalVersion));
+        assertThat(plugins.get("shared").getDependencies()).containsExactly(child);
+    }
+
+    @Test
+    void findPluginsAndDependenciesReportsUnreadablePluginOnce() {
+        PluginManager pluginManagerSpy = spy(pm);
+        pluginManagerSpy.setLatestUcPlugins(new JSONObject());
+
+        Plugin broken = new Plugin("broken", "1.0", null, null);
+        Plugin root = new Plugin("root", "1.0", null, null).withDependencies(singletonList(broken));
+        doThrow(new PluginDependencyException(broken, "cannot be read"))
+                .when(pluginManagerSpy).resolveDirectDependencies(any(Plugin.class));
+        List<Exception> exceptions = new ArrayList<>();
+
+        pluginManagerSpy.findPluginsAndDependencies(singletonList(root), exceptions);
+
+        assertThat(exceptions).hasSize(1);
     }
 
     @Test

@@ -768,26 +768,45 @@ public class PluginManager implements Closeable {
             topLevelDependencies.put(requestedPlugin.getName(), requestedPlugin);
         }
         Map<String, Plugin> allPluginDependencies = new HashMap<>(topLevelDependencies);
+        // plugins not to read (again): reading them failed, or the second loop has already tried
+        Set<Plugin> tried = new HashSet<>();
 
         for (Plugin requestedPlugin : requestedPlugins) {
             calculateChecksum(requestedPlugin);
             //for each requested plugin, find all the dependent plugins that will be downloaded (including requested plugin)
             Map<String, Plugin> dependencies = resolveRecursiveDependencies(requestedPlugin, topLevelDependencies, exceptions);
+            // again, as resolving replaces "latest" with the version number
+            calculateChecksum(requestedPlugin);
+            mergeDependencies(allPluginDependencies, dependencies, tried);
+        }
 
-            for (Plugin dependentPlugin : dependencies.values()) {
-                String dependencyName = dependentPlugin.getName();
-                VersionNumber dependencyVersion = dependentPlugin.getVersion();
-                calculateChecksum(requestedPlugin);
-                if (!allPluginDependencies.containsKey(dependencyName)) {
-                    allPluginDependencies.put(dependencyName, dependentPlugin);
-                } else {
-                    Plugin existingDependency = allPluginDependencies.get(dependencyName);
-                    allPluginDependencies.replace(existingDependency.getName(),
-                            combineDependencies(existingDependency, dependentPlugin));
-                }
-            }
+        // The merge can keep a version that was only optional where it was found, so its dependencies have not been
+        // read yet. Reading them can bring in another such version, hence the loop.
+        for (Plugin unread = findUnread(allPluginDependencies, tried); unread != null;
+                unread = findUnread(allPluginDependencies, tried)) {
+            tried.add(unread);
+            mergeDependencies(allPluginDependencies,
+                    resolveRecursiveDependencies(unread, topLevelDependencies, exceptions), tried);
         }
         return removeOptional(allPluginDependencies);
+    }
+
+    private void mergeDependencies(Map<String, Plugin> allPluginDependencies, Map<String, Plugin> dependencies, Set<Plugin> tried) {
+        for (Plugin dependentPlugin : dependencies.values()) {
+            // a required plugin has been read by now, unless reading it failed
+            if (!dependentPlugin.getOptional() && !dependentPlugin.isDependenciesSpecified()) {
+                tried.add(dependentPlugin);
+            }
+            allPluginDependencies.merge(dependentPlugin.getName(), dependentPlugin, this::combineDependencies);
+        }
+    }
+
+    @CheckForNull
+    private Plugin findUnread(Map<String, Plugin> plugins, Set<Plugin> tried) {
+        return plugins.values().stream()
+                .filter(p -> !p.getOptional() && !p.isDependenciesSpecified() && !tried.contains(p))
+                .findFirst()
+                .orElse(null);
     }
 
     private Map<String, Plugin> removeOptional(Map<String, Plugin> plugins) {
@@ -804,7 +823,8 @@ public class PluginManager implements Closeable {
     // for determining this are as follows:
     // - The resulting plugin is optional iff both the given plugins are optional
     // - the resulting plugin will have the higher of the given versions
-    // - any remaining plugin attributes will come from the plugin with the higher version
+    // - any remaining plugin attributes will come from the plugin with the higher version,
+    //   or, at the same version, from the one whose dependencies have been read
     private Plugin combineDependencies(Plugin a, Plugin b) {
         if (!a.getName().equals(b.getName())) {
             throw new IllegalStateException("Can only combine dependencies on the same plugin. Got " + a.getName() + " and " + b.getName());
@@ -813,7 +833,8 @@ public class PluginManager implements Closeable {
         boolean resultIsOptional = a.getOptional() && b.getOptional();
 
         Plugin higherVersion = a;
-        if (a.getVersion().isOlderThan(b.getVersion())) {
+        boolean onlyBWasRead = !a.isDependenciesSpecified() && b.isDependenciesSpecified();
+        if (a.getVersion().isOlderThan(b.getVersion()) || (onlyBWasRead && a.getVersion().equals(b.getVersion()))) {
             higherVersion = b;
         }
 
