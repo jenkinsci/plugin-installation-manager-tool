@@ -74,6 +74,17 @@ class PluginListParserTest {
     }
 
     @Test
+    void parsePluginWithUrlAndNoVersion() {
+        List<Plugin> plugins = pluginList.parsePluginsFromCliOption(new String[] {
+                "git:https://updates.jenkins.io/latest/git.hpi",
+                "mailer:file:///tmp/mailer.hpi"});
+
+        assertThat(plugins).extracting(Plugin::toString).containsExactly(
+                new Plugin("git", "latest", "https://updates.jenkins.io/latest/git.hpi", null).toString(),
+                new Plugin("mailer", "latest", "file:///tmp/mailer.hpi", null).toString());
+    }
+
+    @Test
     void parsePluginTxtFileTest() throws URISyntaxException {
         List<Plugin> noFilePluginList = pluginList.parsePluginTxtFile(null);
         assertThat(noFilePluginList).isEmpty();
