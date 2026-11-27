@@ -128,7 +128,7 @@ The trailing `/download/plugins` segment on the update center download url is re
 ## Plugin Input Format
 The expected format for plugins in the .txt file or entered through the `--plugins` CLI option is `artifact ID:version` or `artifact ID:url` or `artifact:version:url`
 
-Use plugin artifact ID, without -plugin extension. If a plugin cannot be downloaded, -plugin will be appended to the name and download will be retried. This is for cases in which plugins don't follow the rules about artifact ID (i.e. docker plugin).
+Use the plugin's artifact ID exactly, including a `-plugin` suffix where the ID has one (for example `docker-plugin` or `gitlab-plugin`).
 
 The version and download url are optional. By default, the latest version of the plugin will be downloaded. If both a version and a url are supplied, the version will not be used to determine the plugin download location and the library will attempt to download the plugin from the given url.
 

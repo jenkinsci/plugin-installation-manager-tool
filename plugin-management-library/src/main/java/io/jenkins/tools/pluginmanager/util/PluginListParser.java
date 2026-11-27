@@ -149,6 +149,10 @@ public class PluginListParser {
      */
     private Plugin parsePluginLine(String pluginLine) {
         String[] pluginInfo = pluginLine.split(":", 3);
+        // in "artifactId:url", splitting on ":" also cuts the url after its scheme
+        if (pluginInfo.length == 3 && pluginInfo[2].startsWith("//") && isURL(pluginInfo[1] + ":" + pluginInfo[2])) {
+            pluginInfo = new String[] {pluginInfo[0], "", pluginInfo[1] + ":" + pluginInfo[2]};
+        }
         String pluginName = pluginInfo[0];
         String pluginVersion = "latest";
         String pluginUrl = null;
