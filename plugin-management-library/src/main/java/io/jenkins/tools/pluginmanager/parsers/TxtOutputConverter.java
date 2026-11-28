@@ -11,12 +11,12 @@ public class TxtOutputConverter implements PluginOutputConverter {
     @Override
     public String convert(List<Plugin> plugins) {
         return plugins.stream()
-                .map(this::mapPluginToTxtFormat)
+                .map(this::formatPlugin)
                 .collect(Collectors.joining(System.lineSeparator()));
 
     }
 
-    private String mapPluginToTxtFormat(Plugin plugin) {
+    public String formatPlugin(Plugin plugin) {
         StringBuilder builder = new StringBuilder();
 
         builder.append(plugin.getName());

@@ -58,7 +58,7 @@ exit
 * `--verbose`: (optional) Show additional information about plugin dependencies and the download process
 * `--hide-security-warnings`: (optional) Hide if any of the user specified plugins have security warnings
 * `--view-all-security-warnings`: (optional) Show all plugins that have security warnings.
-* `--available-updates`: (optional) Show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data.
+* `--available-updates`: (optional) Show if any requested plugins have newer versions available. If a Jenkins version-specific update center is available, the latest plugin version will be determined based on that update center's data. When exporting a TXT plugin file with `--output txt`, comments and blank lines are preserved.
 * `--output {stdout,yaml,txt}`: (optional) Format to output plugin updates file in, stdout is the default.
 * `--latest {true,false}`: (optional) Set to false to download the minimum required version of all dependencies.
 * `--latest-specified`: (optional) (advanced) Download latest dependencies of any plugin that is requested to have the latest version. All other plugin dependency versions are determined by the update center metadata or the plugin MANIFEST.MF.
