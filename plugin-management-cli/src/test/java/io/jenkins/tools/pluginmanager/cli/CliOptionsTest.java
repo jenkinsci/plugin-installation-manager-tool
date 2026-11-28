@@ -38,6 +38,20 @@ class CliOptionsTest {
     @TempDir
     private File temporaryFolder;
 
+    @Test
+    void txtUpdatesKeepCommentsWithTheirPlugins() throws Exception {
+        File input = new File(temporaryFolder, "plugins.txt");
+        String original = "# mail plugins\nmailer:1  # update together\n\n  # another source\n"
+                + "custom:https://example.org/custom.hpi#release\n# end\n";
+        FileUtils.writeStringToFile(input, original, UTF_8);
+        parser.parseArgument("--plugins", "extra:1", "-f", input.getPath(), "--available-updates", "--output", "txt");
+        List<Plugin> updates = new ArrayList<>(options.setup().getPlugins());
+        updates.set(1, new Plugin("mailer", "2", null, null));
+        assertThat(options.formatTxtUpdates(updates).lines().collect(java.util.stream.Collectors.toList()))
+                .containsExactly("extra:1", "# mail plugins", "mailer:2  # update together", "",
+                        "  # another source", "custom:latest:https://example.org/custom.hpi#release", "# end");
+    }
+
     @BeforeEach
     void createParser() {
         options = new CliOptions();

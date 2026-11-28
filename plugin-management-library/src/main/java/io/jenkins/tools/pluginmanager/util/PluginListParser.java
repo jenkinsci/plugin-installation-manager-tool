@@ -7,7 +7,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -49,24 +48,29 @@ public class PluginListParser {
      * @return list of plugins contained in the text file
      */
     public List<Plugin> parsePluginTxtFile(File pluginTxtFile) {
-        List<Plugin> pluginsFromTxt = new ArrayList<>();
-        if (fileExists(pluginTxtFile)) {
-            try (BufferedReader bufferedReader = Files.newBufferedReader(pluginTxtFile.toPath(),
-                    StandardCharsets.UTF_8)) {
-                List<Plugin> pluginsFromFile = bufferedReader.lines()
-                        .map(line -> line.replaceAll("\\s#+.*", ""))
-                        .map(line -> line.replaceAll("\\s", ""))
-                        .filter(line -> !line.startsWith("#"))
-                        .filter(line -> line.length() > 0)
-                        .map(this::parsePluginLine)
-                        .collect(toList());
-                pluginsFromTxt.addAll(pluginsFromFile);
-            } catch (IOException e) {
-                throw new PluginInputException("Unable to open " + pluginTxtFile, e);
-            }
+        if (!fileExists(pluginTxtFile)) {
+            return new ArrayList<>();
         }
+        try {
+            return parsePluginTxtLines(Files.readAllLines(pluginTxtFile.toPath(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            throw new PluginInputException("Unable to open " + pluginTxtFile, e);
+        }
+    }
 
-        return pluginsFromTxt;
+    public List<Plugin> parsePluginTxtLines(List<String> lines) {
+        return lines.stream()
+                .map(line -> line.substring(0, pluginTextEnd(line)).replaceAll("\\s", ""))
+                .filter(line -> !line.isEmpty())
+                .map(this::parsePluginLine)
+                .collect(toList());
+    }
+
+    private static final java.util.regex.Pattern COMMENT = java.util.regex.Pattern.compile("(?:^|\\s+)#");
+
+    public static int pluginTextEnd(String line) {
+        java.util.regex.Matcher comment = COMMENT.matcher(line);
+        return comment.find() ? comment.start() : line.length();
     }
 
     /**

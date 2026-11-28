@@ -11,6 +11,7 @@ import io.jenkins.tools.pluginmanager.config.OutputFormat;
 import io.jenkins.tools.pluginmanager.config.PluginInputException;
 import io.jenkins.tools.pluginmanager.config.Settings;
 import io.jenkins.tools.pluginmanager.impl.Plugin;
+import io.jenkins.tools.pluginmanager.parsers.TxtOutputConverter;
 import io.jenkins.tools.pluginmanager.util.PluginListParser;
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +41,8 @@ class CliOptions {
     @Option(name = "--plugin-file", aliases = {"-f"}, usage = "Path to plugins.txt or plugins.yaml file",
             handler = FileOptionHandler.class)
     private File pluginFile;
+    private List<String> txtUpdateLines;
+    private int cliPluginCount;
 
     @Option(name = "--plugin-download-directory", aliases = {"-d"},
             usage = "Path to directory in which to install plugins; will override PLUGIN_DIR environment variable.",
@@ -311,12 +314,44 @@ class CliOptions {
             if (isFileExtension(pluginFile, "yaml", "yml")) {
                 requestedPlugins.addAll(pluginParser.parsePluginYamlFile(pluginFile));
             } else if (isFileExtension(pluginFile, "txt")) {
-                requestedPlugins.addAll(pluginParser.parsePluginTxtFile(pluginFile));
+                if (isShowAvailableUpdates() && outputFormat == OutputFormat.TXT) {
+                    try {
+                        txtUpdateLines = Files.readAllLines(pluginFile.toPath());
+                    } catch (IOException e) {
+                        throw new PluginInputException("Unable to open " + pluginFile, e);
+                    }
+                    cliPluginCount = requestedPlugins.size();
+                    requestedPlugins.addAll(pluginParser.parsePluginTxtLines(txtUpdateLines));
+                } else {
+                    requestedPlugins.addAll(pluginParser.parsePluginTxtFile(pluginFile));
+                }
             } else {
                 throw new PluginInputException("Unknown file type, file must have .yaml/.yml or .txt extension");
             }
         }
         return requestedPlugins;
+    }
+
+    boolean hasTxtUpdateLines() {
+        return txtUpdateLines != null;
+    }
+
+    String formatTxtUpdates(List<Plugin> updates) {
+        TxtOutputConverter converter = new TxtOutputConverter();
+        List<String> lines = new ArrayList<>();
+        int index = 0;
+        while (index < cliPluginCount) {
+            lines.add(converter.formatPlugin(updates.get(index++)));
+        }
+        for (String line : txtUpdateLines) {
+            int end = PluginListParser.pluginTextEnd(line);
+            if (line.substring(0, end).trim().isEmpty()) {
+                lines.add(line);
+            } else {
+                lines.add(converter.formatPlugin(updates.get(index++)) + line.substring(end));
+            }
+        }
+        return String.join(System.lineSeparator(), lines);
     }
 
     /**

@@ -45,7 +45,11 @@ public class Main {
                 if (options.isShowAvailableUpdates()) {
                     pm.getUCJson(pm.getJenkinsVersion());
                     List<Plugin> latestVersionsOfPlugins = pm.getLatestVersionsOfPlugins(cfg.getPlugins());
-                    pm.outputPluginList(latestVersionsOfPlugins, () -> new AvailableUpdatesStdOutPluginOutputConverter(cfg.getPlugins()));
+                    if (options.hasTxtUpdateLines()) {
+                        System.out.println(options.formatTxtUpdates(latestVersionsOfPlugins));
+                    } else {
+                        pm.outputPluginList(latestVersionsOfPlugins, () -> new AvailableUpdatesStdOutPluginOutputConverter(cfg.getPlugins()));
+                    }
                 } else {
                     pm.start();
                 }
